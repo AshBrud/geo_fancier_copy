@@ -6,240 +6,476 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== BANNIÈRE D'ACCUEIL ===== */
+.db-welcome {
+  background: linear-gradient(135deg, #0f2050 0%, #1E3A8A 55%, #2563eb 100%);
+  border-radius: 16px; padding: 1.75rem 2rem;
+  color: #fff; margin-bottom: 1.5rem;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.db-welcome::before {
+  content: ''; position: absolute; right: -60px; top: -60px;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: rgba(255,255,255,.05); pointer-events: none;
+}
+.db-welcome::after {
+  content: ''; position: absolute; right: 80px; bottom: -80px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: rgba(255,255,255,.04); pointer-events: none;
+}
+.db-welcome-greet { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.db-welcome-sub   { font-size: 13px; opacity: .75; }
+.db-welcome-date  { font-size: 12px; opacity: .6; margin-top: 6px; }
+.db-welcome-actions { display: flex; gap: 8px; flex-wrap: wrap; position: relative; z-index: 1; }
+.db-welcome-btn {
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  color: #fff; border-radius: 9px; padding: 7px 14px;
+  font-size: 12.5px; font-weight: 600; text-decoration: none;
+  display: flex; align-items: center; gap: 6px;
+  transition: background .2s;
+}
+.db-welcome-btn:hover { background: rgba(255,255,255,.25); color: #fff; }
+
+/* ===== KPI CARDS ===== */
+.kpi-v2 {
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 14px; padding: 1.25rem 1.5rem;
+  transition: transform .2s, box-shadow .2s; height: 100%;
+}
+.kpi-v2:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.09); }
+.kpi-v2-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .75rem; }
+.kpi-v2-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.kpi-v2-val   { font-size: 30px; font-weight: 800; color: #111827; line-height: 1; }
+.kpi-v2-label { font-size: 12.5px; color: #6b7280; font-weight: 500; margin-top: 4px; }
+.kpi-v2-foot  { font-size: 11px; color: #9ca3af; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+
+/* ===== SECTION CARD HEADERS ===== */
+.card-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .9rem 1.25rem; border-bottom: 1px solid #f1f5f9;
+}
+.card-hdr-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13.5px; font-weight: 700; color: #374151;
+}
+
+/* ===== BARRES D'OCCUPATION ===== */
+.occ-row { margin-bottom: 1.1rem; }
+.occ-row:last-child { margin-bottom: 0; }
+.occ-labels { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12.5px; }
+.occ-pct { font-weight: 700; }
+.progress { height: 8px; border-radius: 99px; background: #f1f5f9; }
+
+/* ===== MINI STATS DRONE ===== */
+.mini-stat {
+  background: #f8fafc; border-radius: 10px; padding: .75rem 1rem;
+  display: flex; align-items: center; gap: 10px;
+}
+.mini-stat-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.mini-stat-val   { font-size: 18px; font-weight: 800; color: #111827; line-height: 1; }
+.mini-stat-label { font-size: 11px; color: #6b7280; }
+
+/* ===== TIMELINE ACTIVITÉS ===== */
+.tl-item {
+  display: flex; gap: 12px; padding: .75rem 1.25rem;
+  border-bottom: 1px solid #f8fafc; align-items: flex-start;
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #1E3A8A, #3b5bdb);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.tl-action { font-size: 12.5px; font-weight: 600; color: #1f2937; line-height: 1.4; }
+.tl-meta   { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+.tl-time   { font-size: 10.5px; color: #cbd5e1; white-space: nowrap; flex-shrink: 0; }
+
+/* ===== RÉSUMÉ ACTIVITÉS (non-admin) ===== */
+.act-section { padding: .75rem 1.25rem; border-bottom: 1px solid #f8fafc; }
+.act-section:last-child { border-bottom: none; }
+.act-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 20px; padding: 3px 10px; font-size: 11.5px; font-weight: 600;
+  margin-bottom: .6rem;
+}
+.act-line {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px dashed #f1f5f9;
+  font-size: 12.5px;
+}
+.act-line:last-child { border-bottom: none; }
+.act-line-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== DEMANDES CONSTRUCTIONS ===== */
+.const-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: .8rem 1.25rem; border-bottom: 1px solid #f8fafc;
+}
+.const-item:last-child { border-bottom: none; }
+.const-num {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #64748b;
+}
+.const-name { font-size: 13px; font-weight: 600; color: #1f2937; }
+.const-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
-    <p class="page-description">Vue d'ensemble du campus : indicateurs clés, occupation des espaces et activités récentes.</p>
-  </div>
-  <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>{% now "d F Y" %}</span>
-</div>
 
-<!-- KPI Cards -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-primary">
-      <div class="kpi-icon"><i class="bi bi-map"></i></div>
-      <div class="kpi-value">{{ superficie_totale }} ha</div>
-      <div class="kpi-label">Superficie totale</div>
+<!-- ===== BANNIÈRE D'ACCUEIL ===== -->
+<div class="db-welcome mb-4">
+  <div style="position:relative;z-index:1;">
+    <div class="db-welcome-greet">
+      Bonjour, {{ user.first_name|default:user.username }} 👋
     </div>
+    <div class="db-welcome-sub">
+      <span class="badge bg-white bg-opacity-25 text-white fw-semibold me-2" style="font-size:11px;">
+        {{ user.get_role_display }}
+      </span>
+      Bienvenue sur le Système d'Information Géographique de l'UAD
+    </div>
+    <div class="db-welcome-date"><i class="bi bi-calendar3 me-1"></i>{% now "l d F Y" %}</div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-secondary">
-      <div class="kpi-icon"><i class="bi bi-building"></i></div>
-      <div class="kpi-value">{{ total_batiments }}</div>
-      <div class="kpi-label">Bâtiments actifs</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-info">
-      <div class="kpi-icon"><i class="bi bi-grid-3x3-gap"></i></div>
-      <div class="kpi-value">{{ total_espaces }}</div>
-      <div class="kpi-label">Espaces gérés</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-warning">
-      <div class="kpi-icon"><i class="bi bi-percent"></i></div>
-      <div class="kpi-value">{{ taux_occupation }}%</div>
-      <div class="kpi-label">Taux d'occupation</div>
-    </div>
+  <div class="db-welcome-actions">
+    <a href="{% url 'foncier:cartographie' %}" class="db-welcome-btn">
+      <i class="bi bi-map"></i> Ouvrir la carte
+    </a>
+    {% if user.is_domaine_foncier %}
+    <a href="{% url 'constructions:nouvelle' %}" class="db-welcome-btn">
+      <i class="bi bi-building-add"></i> Nouvelle construction
+    </a>
+    <a href="{% url 'drones:missions' %}" class="db-welcome-btn">
+      <i class="bi bi-camera-video"></i> Données drone
+    </a>
+    {% endif %}
   </div>
 </div>
 
-<!-- Statistiques détaillées + Graphiques -->
+<!-- ===== KPI CARDS ===== -->
 <div class="row g-3 mb-4">
-  <!-- Répartition des espaces -->
-  <div class="col-lg-5">
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-v2">
+      <div class="kpi-v2-top">
+        <div>
+          <div class="kpi-v2-val">{{ superficie_totale }}</div>
+          <div class="kpi-v2-label">Superficie totale</div>
+        </div>
+        <div class="kpi-v2-icon" style="background:#eff6ff;color:#1E3A8A;">
+          <i class="bi bi-map-fill"></i>
+        </div>
+      </div>
+      <div class="kpi-v2-foot"><i class="bi bi-geo-alt text-primary"></i> Hectares — valeur officielle</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-v2">
+      <div class="kpi-v2-top">
+        <div>
+          <div class="kpi-v2-val">{{ total_batiments }}</div>
+          <div class="kpi-v2-label">Bâtiments actifs</div>
+        </div>
+        <div class="kpi-v2-icon" style="background:#f5f3ff;color:#7c3aed;">
+          <i class="bi bi-buildings-fill"></i>
+        </div>
+      </div>
+      <div class="kpi-v2-foot"><i class="bi bi-grid-3x3-gap text-secondary"></i> {{ total_espaces }} espaces gérés</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-v2">
+      <div class="kpi-v2-top">
+        <div>
+          <div class="kpi-v2-val text-success">{{ superficie_libre }}</div>
+          <div class="kpi-v2-label">Superficie libre (ha)</div>
+        </div>
+        <div class="kpi-v2-icon" style="background:#f0fdf4;color:#16A34A;">
+          <i class="bi bi-patch-check-fill"></i>
+        </div>
+      </div>
+      <div class="kpi-v2-foot"><i class="bi bi-circle-fill text-success" style="font-size:8px;"></i> {{ nb_espaces_libres }} espace{{ nb_espaces_libres|pluralize }} libre{{ nb_espaces_libres|pluralize }}</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-v2">
+      <div class="kpi-v2-top">
+        <div>
+          <div class="kpi-v2-val {% if taux_occupation > 70 %}text-danger{% elif taux_occupation > 40 %}text-warning{% else %}text-success{% endif %}">{{ taux_occupation }}%</div>
+          <div class="kpi-v2-label">Taux d'occupation</div>
+        </div>
+        <div class="kpi-v2-icon" style="background:#fffbeb;color:#d97706;">
+          <i class="bi bi-speedometer2"></i>
+        </div>
+      </div>
+      <div class="progress mt-2"><div class="progress-bar {% if taux_occupation > 70 %}bg-danger{% elif taux_occupation > 40 %}bg-warning{% else %}bg-success{% endif %}" style="width:{{ taux_occupation }}%"></div></div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-v2">
+      <div class="kpi-v2-top">
+        <div>
+          <div class="kpi-v2-val">{{ total_missions }}</div>
+          <div class="kpi-v2-label">Missions drone</div>
+        </div>
+        <div class="kpi-v2-icon" style="background:#ecfeff;color:#0891b2;">
+          <i class="bi bi-camera-video-fill"></i>
+        </div>
+      </div>
+      <div class="kpi-v2-foot"><i class="bi bi-check-circle text-success"></i> {{ missions_traitees }} traitée{{ missions_traitees|pluralize }}</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== GRAPHIQUES + STATISTIQUES ===== -->
+<div class="row g-3 mb-4">
+
+  <!-- Donut répartition -->
+  <div class="col-lg-4">
     <div class="card h-100">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-pie-chart text-primary"></i> Répartition des espaces
+      <div class="card-hdr">
+        <div class="card-hdr-title"><i class="bi bi-pie-chart-fill text-primary"></i> Répartition des espaces</div>
+      </div>
+      <div class="card-body d-flex flex-column align-items-center justify-content-center">
+        <div style="height:200px;width:200px;"><canvas id="espaceChart"></canvas></div>
+        <div class="row g-2 w-100 mt-3">
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 small">
+              <span style="width:10px;height:10px;border-radius:3px;background:#16A34A;flex-shrink:0;"></span>
+              <span class="text-muted">Libres</span>
+              <strong class="ms-auto">{{ superficie_libre }} ha</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 small">
+              <span style="width:10px;height:10px;border-radius:3px;background:#DC2626;flex-shrink:0;"></span>
+              <span class="text-muted">Occupés</span>
+              <strong class="ms-auto">{{ superficie_occupee }} ha</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 small">
+              <span style="width:10px;height:10px;border-radius:3px;background:#F59E0B;flex-shrink:0;"></span>
+              <span class="text-muted">Réservés</span>
+              <strong class="ms-auto">{{ superficie_reservee }} ha</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="d-flex align-items-center gap-2 small">
+              <span style="width:10px;height:10px;border-radius:3px;background:#6b7280;flex-shrink:0;"></span>
+              <span class="text-muted">Autres</span>
+              <strong class="ms-auto">—</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barres d'occupation -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-hdr">
+        <div class="card-hdr-title"><i class="bi bi-bar-chart-line-fill text-primary"></i> Occupation du campus</div>
       </div>
       <div class="card-body">
-        <div style="height:220px"><canvas id="espaceChart"></canvas></div>
-        <div class="row g-2 mt-2">
-          <div class="col-6">
-            <div class="stat-row">
-              <span><span class="legend-color d-inline-block bg-success me-2" style="width:10px;height:10px;border-radius:2px"></span>Libres</span>
-              <strong>{{ superficie_libre }} ha</strong>
-            </div>
-            <div class="stat-row">
-              <span><span class="legend-color d-inline-block bg-danger me-2" style="width:10px;height:10px;border-radius:2px"></span>Occupés</span>
-              <strong>{{ superficie_occupee }} ha</strong>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="stat-row">
-              <span><span class="legend-color d-inline-block bg-warning me-2" style="width:10px;height:10px;border-radius:2px"></span>Réservés</span>
-              <strong>{{ superficie_reservee }} ha</strong>
-            </div>
-            <div class="stat-row">
-              <span><span class="legend-color d-inline-block bg-secondary me-2" style="width:10px;height:10px;border-radius:2px"></span>Missions</span>
-              <strong>{{ total_missions }}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Taux d'occupation -->
-  <div class="col-lg-3">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-activity text-primary"></i> Occupation
-      </div>
-      <div class="card-body d-flex flex-column justify-content-center gap-3">
-        <div>
-          <div class="d-flex justify-content-between mb-1 small fw-semibold">
-            <span>Occupé</span><span class="text-danger">{{ taux_occupation }}%</span>
+        <div class="occ-row">
+          <div class="occ-labels">
+            <span class="fw-semibold">Occupé</span>
+            <span class="occ-pct text-danger">{{ taux_occupation }}%</span>
           </div>
           <div class="progress"><div class="progress-bar bg-danger" style="width:{{ taux_occupation }}%"></div></div>
+          <div class="text-muted" style="font-size:11px;margin-top:3px;">{{ superficie_occupee }} ha sur {{ superficie_totale }} ha</div>
         </div>
-        <div>
-          {% with pct_libre=superficie_libre|floatformat:2 %}
-          <div class="d-flex justify-content-between mb-1 small fw-semibold">
-            <span>Libre</span>
-            <span class="text-success">{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}%{% endif %}</span>
+        <div class="occ-row">
+          <div class="occ-labels">
+            <span class="fw-semibold">Libre</span>
+            <span class="occ-pct text-success">{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}{% endif %}%</span>
           </div>
           <div class="progress">
             <div class="progress-bar bg-success" style="width:{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}{% endif %}%"></div>
           </div>
-          {% endwith %}
+          <div class="text-muted" style="font-size:11px;margin-top:3px;">{{ superficie_libre }} ha disponibles</div>
         </div>
-        <div>
-          <div class="d-flex justify-content-between mb-1 small fw-semibold">
-            <span>Réservé</span>
-            <span class="text-warning">{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}%{% endif %}</span>
+        <div class="occ-row">
+          <div class="occ-labels">
+            <span class="fw-semibold">Réservé</span>
+            <span class="occ-pct text-warning">{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}{% endif %}%</span>
           </div>
           <div class="progress">
             <div class="progress-bar bg-warning" style="width:{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}{% endif %}%"></div>
           </div>
+          <div class="text-muted" style="font-size:11px;margin-top:3px;">{{ superficie_reservee }} ha réservés</div>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- Mini stats missions + constructions -->
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="mini-stat">
+              <div class="mini-stat-icon" style="background:#ecfeff;color:#0891b2;"><i class="bi bi-airplane-fill"></i></div>
+              <div>
+                <div class="mini-stat-val">{{ missions_planifiees }}</div>
+                <div class="mini-stat-label">Missions planifiées</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="mini-stat">
+              <div class="mini-stat-icon" style="background:#fff7ed;color:#c2410c;"><i class="bi bi-hourglass-split"></i></div>
+              <div>
+                <div class="mini-stat-val">{{ constructions_attente }}</div>
+                <div class="mini-stat-label">En attente</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="mini-stat">
+              <div class="mini-stat-icon" style="background:#f0fdf4;color:#15803d;"><i class="bi bi-check-circle-fill"></i></div>
+              <div>
+                <div class="mini-stat-val">{{ constructions_approuvees }}</div>
+                <div class="mini-stat-label">Approuvées</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="mini-stat">
+              <div class="mini-stat-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-building-add"></i></div>
+              <div>
+                <div class="mini-stat-val">{{ total_constructions }}</div>
+                <div class="mini-stat-label">Constructions total</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Évolution des constructions -->
+  <!-- Évolution historique -->
   <div class="col-lg-4">
     <div class="card h-100">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-bar-chart text-primary"></i> Évolution des constructions
+      <div class="card-hdr">
+        <div class="card-hdr-title"><i class="bi bi-graph-up text-primary"></i> Évolution des constructions</div>
       </div>
-      <div class="card-body">
-        <div style="height:240px"><canvas id="evolChart"></canvas></div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div style="width:100%;height:260px;"><canvas id="evolChart"></canvas></div>
       </div>
     </div>
   </div>
+
 </div>
 
-<!-- Dernières activités + Constructions récentes -->
+<!-- ===== ACTIVITÉS + DEMANDES ===== -->
 <div class="row g-3">
+
+  <!-- Activités (admin : journal / autres : résumé) -->
   <div class="col-lg-6">
 
     {% if user.is_admin %}
-    <!-- ADMIN : journal complet des actions utilisateurs -->
     <div class="card h-100">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <span class="d-flex align-items-center gap-2">
-          <i class="bi bi-shield-lock text-danger"></i>
-          Journal des activités
-        </span>
+      <div class="card-hdr">
+        <div class="card-hdr-title">
+          <i class="bi bi-shield-lock-fill text-danger"></i> Journal des activités
+        </div>
         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Admin</span>
       </div>
+      {% if activites %}
       <div class="card-body p-0">
-        {% if activites %}
-        <ul class="list-group list-group-flush">
-          {% for log in activites %}
-          <li class="list-group-item px-4 py-3 d-flex align-items-center gap-3">
-            <div class="user-avatar-sm flex-shrink-0">{{ log.user.username|first|upper }}</div>
-            <div class="flex-grow-1 min-w-0">
-              <div class="fw-semibold small text-truncate">{{ log.action }}</div>
-              <small class="text-muted">{{ log.user.get_full_name|default:log.user.username }}</small>
-            </div>
-            <small class="text-muted text-nowrap">{{ log.timestamp|timesince }}</small>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="p-4 text-center text-muted">
-          <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucune activité enregistrée
+        {% for log in activites %}
+        <div class="tl-item">
+          <div class="tl-avatar">{{ log.user.username|first|upper }}</div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="tl-action text-truncate">{{ log.action }}</div>
+            <div class="tl-meta">{{ log.user.get_full_name|default:log.user.username }}</div>
+          </div>
+          <div class="tl-time">{{ log.timestamp|timesince }}</div>
         </div>
-        {% endif %}
+        {% endfor %}
       </div>
+      {% else %}
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+        <p class="mb-0">Aucune activité enregistrée</p>
+      </div>
+      {% endif %}
     </div>
 
     {% else %}
-    <!-- AUTRES RÔLES : résumé des ajouts récents par catégorie -->
     <div class="card h-100">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-clock-history text-primary"></i> Activités récentes
+      <div class="card-hdr">
+        <div class="card-hdr-title"><i class="bi bi-clock-history text-primary"></i> Activités récentes</div>
       </div>
       <div class="card-body p-0">
 
-        <!-- Bâtiments ajoutés -->
-        <div class="px-4 pt-3 pb-1">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
-              <i class="bi bi-building me-1"></i>Bâtiments ajoutés
-            </span>
+        <!-- Bâtiments -->
+        <div class="act-section">
+          <div class="act-chip bg-primary-subtle text-primary border border-primary-subtle">
+            <i class="bi bi-building-fill"></i> Bâtiments ajoutés
           </div>
           {% if batiments_recents %}
-          <ul class="list-unstyled mb-0">
             {% for b in batiments_recents %}
-            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+            <div class="act-line">
               <i class="bi bi-building text-primary opacity-75 flex-shrink-0"></i>
-              <span class="small text-truncate flex-grow-1">{{ b.nom }}</span>
-              <small class="text-muted text-nowrap">{{ b.date_ajout|date:"d/m/Y" }}</small>
-            </li>
+              <span class="act-line-name">{{ b.nom }}</span>
+              <small class="text-muted flex-shrink-0">{{ b.date_ajout|date:"d/m/Y" }}</small>
+            </div>
             {% endfor %}
-          </ul>
           {% else %}
-          <p class="text-muted small mb-1">Aucun bâtiment récent</p>
+            <p class="text-muted small mb-0">Aucun bâtiment récent</p>
           {% endif %}
         </div>
 
-        <!-- Missions drone -->
-        <div class="px-4 pt-3 pb-1">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle">
-              <i class="bi bi-airplane me-1"></i>Missions de drone
-            </span>
+        <!-- Missions -->
+        <div class="act-section">
+          <div class="act-chip bg-info-subtle text-info border border-info-subtle">
+            <i class="bi bi-airplane-fill"></i> Missions de drone
           </div>
           {% if missions_recentes %}
-          <ul class="list-unstyled mb-0">
             {% for m in missions_recentes %}
-            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+            <div class="act-line">
               <i class="bi bi-airplane text-info opacity-75 flex-shrink-0"></i>
-              <span class="small text-truncate flex-grow-1">{{ m.nom }}</span>
-              <small class="text-muted text-nowrap">{{ m.date_mission|date:"d/m/Y" }}</small>
-            </li>
+              <span class="act-line-name">{{ m.nom }}</span>
+              <small class="text-muted flex-shrink-0">{{ m.date_mission|date:"d/m/Y"|default:"—" }}</small>
+            </div>
             {% endfor %}
-          </ul>
           {% else %}
-          <p class="text-muted small mb-1">Aucune mission récente</p>
+            <p class="text-muted small mb-0">Aucune mission récente</p>
           {% endif %}
         </div>
 
-        <!-- Constructions récentes -->
-        <div class="px-4 pt-3 pb-3">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle">
-              <i class="bi bi-hammer me-1"></i>Constructions en cours
-            </span>
+        <!-- Constructions -->
+        <div class="act-section">
+          <div class="act-chip bg-warning-subtle text-warning border border-warning-subtle">
+            <i class="bi bi-hammer"></i> Constructions récentes
           </div>
           {% if constructions_recentes %}
-          <ul class="list-unstyled mb-0">
             {% for c in constructions_recentes %}
-            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+            <div class="act-line">
               <i class="bi bi-hammer text-warning opacity-75 flex-shrink-0"></i>
-              <span class="small text-truncate flex-grow-1">{{ c.nom_projet }}</span>
-              <span class="badge bg-{{ c.badge_couleur }} ms-1" style="font-size:0.65rem">{{ c.get_statut_display }}</span>
-            </li>
+              <span class="act-line-name">{{ c.nom_projet }}</span>
+              <span class="badge bg-{{ c.badge_couleur }} ms-1" style="font-size:.65rem">{{ c.get_statut_display }}</span>
+            </div>
             {% endfor %}
-          </ul>
           {% else %}
-          <p class="text-muted small mb-1">Aucune construction récente</p>
+            <p class="text-muted small mb-0">Aucune construction récente</p>
           {% endif %}
         </div>
 
@@ -249,36 +485,57 @@
 
   </div>
 
+  <!-- Demandes de construction -->
   <div class="col-lg-6">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="d-flex align-items-center gap-2">
+    <div class="card h-100">
+      <div class="card-hdr">
+        <div class="card-hdr-title">
           <i class="bi bi-building-add text-primary"></i> Demandes de construction
-        </span>
-        <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
-      </div>
-      <div class="card-body p-0">
-        {% if constructions_recentes %}
-        <ul class="list-group list-group-flush">
-          {% for c in constructions_recentes %}
-          <li class="list-group-item px-4 py-3 d-flex align-items-center gap-3">
-            <div class="flex-grow-1 min-w-0">
-              <div class="fw-semibold small text-truncate">{{ c.nom_projet }}</div>
-              <small class="text-muted">{{ c.superficie_souhaitee|floatformat:0 }} m² · {{ c.date_demande|date:"d/m/Y" }}</small>
-            </div>
-            <span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="p-4 text-center text-muted">
-          <i class="bi bi-building-add fs-2 d-block mb-2"></i>Aucune demande en cours
         </div>
-        {% endif %}
+        <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-primary">
+          Voir tout <i class="bi bi-arrow-right ms-1"></i>
+        </a>
       </div>
+      {% if constructions_recentes %}
+      <div class="card-body p-0">
+        {% for c in constructions_recentes %}
+        <div class="const-item">
+          <div class="const-num">
+            {% if c.disponible is None %}
+              <i class="bi bi-hourglass text-muted"></i>
+            {% elif c.disponible %}
+              <i class="bi bi-check-circle-fill text-success"></i>
+            {% else %}
+              <i class="bi bi-x-circle-fill text-danger"></i>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="const-name text-truncate">{{ c.nom_projet }}</div>
+            <div class="const-meta">
+              {{ c.type_construction }} · {{ c.superficie_souhaitee|floatformat:0 }} m²
+              · {{ c.date_demande|date:"d/m/Y" }}
+            </div>
+          </div>
+          <div class="d-flex flex-column align-items-end gap-1">
+            <span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span>
+            <small class="text-muted" style="font-size:10.5px;">
+              {{ c.demandeur.get_full_name|default:c.demandeur.username|default:"—" }}
+            </small>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-building-add fs-1 d-block mb-2 opacity-25"></i>
+        <p class="mb-0">Aucune demande enregistrée</p>
+      </div>
+      {% endif %}
     </div>
   </div>
+
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -292,12 +549,13 @@
   if (chartLabels.length) {
     createDonutChart('espaceChart', chartLabels, chartData, chartColors);
   }
+
   if (evolLabels.length) {
     createBarChart('evolChart', evolLabels, evolData, '#1E3A8A');
   } else {
-    const ctx = document.getElementById('evolChart');
+    var ctx = document.getElementById('evolChart');
     if (ctx) ctx.parentElement.innerHTML =
-      '<p class="text-center text-muted py-5">Aucune donnée historique disponible</p>';
+      '<div class="text-center text-muted py-5"><i class="bi bi-bar-chart fs-1 d-block mb-2 opacity-25"></i><p class="mb-0 small">Aucune donnée historique</p></div>';
   }
 </script>
 {% endblock %}

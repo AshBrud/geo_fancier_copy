@@ -22,8 +22,14 @@ def index(request):
     taux_occupation = round((superficie_occupee / superficie_totale * 100) if superficie_totale else 0, 1)
 
     total_batiments = Batiment.objects.filter(est_actif=True).count()
-    total_missions = MissionDrone.objects.count()
+    total_missions  = MissionDrone.objects.count()
     total_constructions = NouvelleConstruction.objects.count()
+
+    nb_espaces_libres  = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count()
+    missions_traitees  = MissionDrone.objects.filter(statut='traite').count()
+    missions_planifiees = MissionDrone.objects.filter(statut='planifie').count()
+    constructions_attente  = NouvelleConstruction.objects.filter(statut='attente').count()
+    constructions_approuvees = NouvelleConstruction.objects.filter(statut='approuvee').count()
 
     # Données pour graphique répartition des espaces
     types_data = Espace.objects.values('type_espace').annotate(
@@ -79,6 +85,11 @@ def index(request):
         'batiments_recents': batiments_recents,
         'missions_recentes': missions_recentes,
         'constructions_recentes': constructions_recentes,
+        'nb_espaces_libres': nb_espaces_libres,
+        'missions_traitees': missions_traitees,
+        'missions_planifiees': missions_planifiees,
+        'constructions_attente': constructions_attente,
+        'constructions_approuvees': constructions_approuvees,
     }
     return render(request, 'dashboard/index.html', context)
 
