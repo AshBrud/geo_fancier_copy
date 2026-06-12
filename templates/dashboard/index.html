@@ -133,9 +133,16 @@
 <!-- Dernières activités + Constructions récentes -->
 <div class="row g-3">
   <div class="col-lg-6">
-    <div class="card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-clock-history text-primary"></i> Activités récentes
+
+    {% if user.is_admin %}
+    <!-- ADMIN : journal complet des actions utilisateurs -->
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-lock text-danger"></i>
+          Journal des activités
+        </span>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Admin</span>
       </div>
       <div class="card-body p-0">
         {% if activites %}
@@ -153,11 +160,90 @@
         </ul>
         {% else %}
         <div class="p-4 text-center text-muted">
-          <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucune activité récente
+          <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucune activité enregistrée
         </div>
         {% endif %}
       </div>
     </div>
+
+    {% else %}
+    <!-- AUTRES RÔLES : résumé des ajouts récents par catégorie -->
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i> Activités récentes
+      </div>
+      <div class="card-body p-0">
+
+        <!-- Bâtiments ajoutés -->
+        <div class="px-4 pt-3 pb-1">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle">
+              <i class="bi bi-building me-1"></i>Bâtiments ajoutés
+            </span>
+          </div>
+          {% if batiments_recents %}
+          <ul class="list-unstyled mb-0">
+            {% for b in batiments_recents %}
+            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+              <i class="bi bi-building text-primary opacity-75 flex-shrink-0"></i>
+              <span class="small text-truncate flex-grow-1">{{ b.nom }}</span>
+              <small class="text-muted text-nowrap">{{ b.date_ajout|date:"d/m/Y" }}</small>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted small mb-1">Aucun bâtiment récent</p>
+          {% endif %}
+        </div>
+
+        <!-- Missions drone -->
+        <div class="px-4 pt-3 pb-1">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle">
+              <i class="bi bi-airplane me-1"></i>Missions de drone
+            </span>
+          </div>
+          {% if missions_recentes %}
+          <ul class="list-unstyled mb-0">
+            {% for m in missions_recentes %}
+            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+              <i class="bi bi-airplane text-info opacity-75 flex-shrink-0"></i>
+              <span class="small text-truncate flex-grow-1">{{ m.nom }}</span>
+              <small class="text-muted text-nowrap">{{ m.date_mission|date:"d/m/Y" }}</small>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted small mb-1">Aucune mission récente</p>
+          {% endif %}
+        </div>
+
+        <!-- Constructions récentes -->
+        <div class="px-4 pt-3 pb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle">
+              <i class="bi bi-hammer me-1"></i>Constructions en cours
+            </span>
+          </div>
+          {% if constructions_recentes %}
+          <ul class="list-unstyled mb-0">
+            {% for c in constructions_recentes %}
+            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+              <i class="bi bi-hammer text-warning opacity-75 flex-shrink-0"></i>
+              <span class="small text-truncate flex-grow-1">{{ c.nom_projet }}</span>
+              <span class="badge bg-{{ c.badge_couleur }} ms-1" style="font-size:0.65rem">{{ c.get_statut_display }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted small mb-1">Aucune construction récente</p>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 
   <div class="col-lg-6">

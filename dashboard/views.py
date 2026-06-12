@@ -48,8 +48,16 @@ def index(request):
     evol_labels = [str(h['annee']) for h in histo_annees]
     evol_data = [h['count'] for h in histo_annees]
 
-    # Activités récentes
-    activites = ActivityLog.objects.select_related('user').all()[:5]
+    # Activités récentes — journal complet réservé à l'admin
+    activites = None
+    if request.user.is_admin:
+        activites = ActivityLog.objects.select_related('user').all()[:8]
+
+    # Résumé d'activités pour les utilisateurs non-admin
+    batiments_recents = Batiment.objects.order_by('-date_ajout')[:4]
+    missions_recentes = MissionDrone.objects.order_by('-date_creation')[:4]
+    constructions_recentes = NouvelleConstruction.objects.select_related(
+        'demandeur').order_by('-date_demande')[:5]
 
     context = {
         'superficie_totale': round(superficie_totale / 10000, 2),
@@ -67,8 +75,9 @@ def index(request):
         'evol_labels': json.dumps(evol_labels),
         'evol_data': json.dumps(evol_data),
         'activites': activites,
-        'constructions_recentes': NouvelleConstruction.objects.select_related(
-            'demandeur').order_by('-date_demande')[:5],
+        'batiments_recents': batiments_recents,
+        'missions_recentes': missions_recentes,
+        'constructions_recentes': constructions_recentes,
     }
     return render(request, 'dashboard/index.html', context)
 
