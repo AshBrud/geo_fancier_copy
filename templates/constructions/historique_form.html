@@ -6,7 +6,12 @@
 <li class="breadcrumb-item active">{{ action }}</li>
 {% endblock %}
 {% block content %}
-<div class="page-header"><h1 class="page-title"><i class="bi bi-clock-history"></i> {{ action }}</h1></div>
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-clock-history"></i> {{ action }}</h1>
+    <p class="page-description">Enregistrez une construction historique pour enrichir la base de données du campus.</p>
+  </div>
+</div>
 <div class="row justify-content-center"><div class="col-lg-7">
   <div class="form-card"><form method="post" novalidate>{% csrf_token %}{% crispy form %}</form></div>
 </div></div>
