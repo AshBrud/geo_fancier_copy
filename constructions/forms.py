@@ -22,9 +22,7 @@ class NouvelleConstructionForm(forms.ModelForm):
             Row(Column('type_construction', css_class='col-md-7'),
                 Column('superficie_souhaitee', css_class='col-md-5')),
             ButtonHolder(
-                Submit('submit', 'Analyser la faisabilité', css_class='btn btn-primary'),
-                Button('cancel', 'Annuler', css_class='btn btn-secondary ms-2',
-                       onclick='window.history.back()'),
+                Submit('submit', 'Analyser la disponibilité', css_class='btn btn-primary w-100'),
             )
         )
 

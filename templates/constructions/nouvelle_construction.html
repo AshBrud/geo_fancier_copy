@@ -1,14 +1,42 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% block title %}Nouvelle Construction{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Nouvelle Construction</li>{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block title %}Analyser la disponibilité{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Analyser la disponibilité</li>{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<style>
+  #construction-map { height: 480px; border-radius: 0 0 10px 10px; }
+  .avail-card {
+    border-radius: 12px; padding: 1.25rem 1.5rem;
+    border: 2px solid; margin-top: 1rem;
+  }
+  .avail-ok  { border-color: #16A34A; background: #f0fdf4; }
+  .avail-nok { border-color: #DC2626; background: #fef2f2; }
+  .avail-title { font-size: 16px; font-weight: 700; margin-bottom: .5rem; }
+  .avail-rapport { font-size: 13px; color: #374151; line-height: 1.6; }
+  .draw-hint {
+    background: #eff6ff; border: 1.5px solid #bfdbfe;
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 12.5px; color: #1e40af; margin-bottom: 1rem;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .zone-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #dcfce7; color: #15803d; border: 1.5px solid #86efac;
+    border-radius: 20px; padding: 3px 10px; font-size: 11.5px; font-weight: 600;
+    margin-bottom: .75rem;
+  }
+  .zone-badge.nok { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title"><i class="bi bi-building-add"></i> Analyse de faisabilité</h1>
-    <p class="page-description">Vérifiez la disponibilité d'un espace et étudiez la faisabilité de votre projet de construction.</p>
+    <h1 class="page-title"><i class="bi bi-geo-alt-fill"></i> Analyser la disponibilité</h1>
+    <p class="page-description">Remplissez les informations de votre projet, dessinez la zone souhaitée et vérifiez sa disponibilité.</p>
   </div>
   <a href="{% url 'constructions:list' %}" class="btn btn-outline-secondary btn-sm">
     <i class="bi bi-list me-1"></i>Voir les demandes
@@ -16,60 +44,144 @@
 </div>
 
 <div class="row g-4">
-  <!-- Formulaire -->
-  <div class="col-lg-4">
-    <div class="form-card">
-      <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil-square me-2"></i>Nouvelle demande</h6>
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% crispy form %}
-      </form>
+
+  <!-- ======= Colonne gauche : formulaire ======= -->
+  <div class="col-lg-5 col-xl-4">
+
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-pencil-square text-primary"></i> Votre projet
+      </div>
+      <div class="card-body">
+
+        <!-- Indice étape 1 -->
+        <div class="draw-hint">
+          <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+          <span>
+            <strong>Étape 1 :</strong> Remplissez les informations ci-dessous.<br>
+            <strong>Étape 2 :</strong> Dessinez la zone souhaitée sur la carte (outil <i class="bi bi-pentagon"></i>).<br>
+            <strong>Étape 3 :</strong> Cliquez sur <em>Analyser la disponibilité</em>.
+          </span>
+        </div>
+
+        <form method="post" novalidate id="constructionForm">
+          {% csrf_token %}
+          <input type="hidden" name="zone_geojson" id="zone_geojson">
+
+          <!-- Champs du formulaire -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Nom du projet <span class="text-danger">*</span></label>
+            {{ form.nom_projet }}
+            {% if form.nom_projet.errors %}<div class="text-danger small mt-1">{{ form.nom_projet.errors }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Type de construction <span class="text-danger">*</span></label>
+            {{ form.type_construction }}
+            {% if form.type_construction.errors %}<div class="text-danger small mt-1">{{ form.type_construction.errors }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Superficie souhaitée (m²) <span class="text-danger">*</span></label>
+            {{ form.superficie_souhaitee }}
+            {% if form.superficie_souhaitee.errors %}<div class="text-danger small mt-1">{{ form.superficie_souhaitee.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Indicateur zone dessinée -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Zone souhaitée <span class="text-danger">*</span></label>
+            <div id="zoneStatus" class="draw-hint">
+              <i class="bi bi-pencil-fill flex-shrink-0 mt-1"></i>
+              <span>Utilisez l'outil de dessin sur la carte pour définir votre zone.</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" id="submitBtn" disabled>
+            <i class="bi bi-search me-2"></i>Analyser la disponibilité
+          </button>
+        </form>
+      </div>
     </div>
 
-    <!-- Résultat de l'analyse -->
+    <!-- ======= Résultat de l'analyse ======= -->
     {% if resultat %}
-    <div class="feasibility-result mt-3 {% if resultat.disponible %}feasibility-ok{% else %}feasibility-nok{% endif %}">
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <i class="bi bi-{% if resultat.disponible %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %} fs-4"></i>
-        <strong>{% if resultat.disponible %}Zone disponible{% else %}Zone non disponible{% endif %}</strong>
+    <div class="avail-card {% if resultat.disponible %}avail-ok{% else %}avail-nok{% endif %}">
+
+      {% if resultat.disponible %}
+      <div class="zone-badge">
+        <i class="bi bi-check-circle-fill"></i> Zone disponible
       </div>
-      <p class="small mb-0">{{ resultat.rapport }}</p>
-      {% if resultat.construction.zones_alternatives %}
-      <div class="mt-2 small">
-        <strong>Alternatives :</strong> {{ resultat.construction.zones_alternatives }}
+      {% else %}
+      <div class="zone-badge nok">
+        <i class="bi bi-x-circle-fill"></i> Zone non disponible
       </div>
       {% endif %}
+
+      <p class="avail-rapport mb-0">{{ resultat.rapport }}</p>
+
+      {% if not resultat.disponible and zones_alternatives %}
+      <hr class="my-3">
+      <p class="fw-semibold small mb-2">
+        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+        Zones alternatives disponibles (superficie ≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²) :
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:12px;">
+          <thead class="table-light">
+            <tr>
+              <th>Espace</th>
+              <th>Superficie</th>
+              <th>Code</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for espace in zones_alternatives %}
+            <tr>
+              <td class="fw-semibold">{{ espace.nom }}</td>
+              <td>{{ espace.superficie|floatformat:0 }} m²</td>
+              <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ espace.code }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
     </div>
     {% endif %}
+
   </div>
 
-  <!-- Carte -->
-  <div class="col-lg-8">
+  <!-- ======= Colonne droite : carte ======= -->
+  <div class="col-lg-7 col-xl-8">
     <div class="card h-100">
-      <div class="card-header">
-        <i class="bi bi-map me-2"></i>Zones disponibles sur le campus
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-map text-primary"></i> Carte du campus
+        </span>
+        <div class="d-flex gap-2 small text-muted align-items-center">
+          <span><i class="bi bi-circle-fill text-success me-1" style="font-size:9px"></i>Espaces libres</span>
+          <span><i class="bi bi-circle-fill text-danger me-1" style="font-size:9px"></i>Occupés</span>
+          <span><i class="bi bi-circle-fill text-warning me-1" style="font-size:9px"></i>Réservés</span>
+        </div>
       </div>
       <div class="card-body p-0">
-        <div id="construction-map" style="height:500px;border-radius:0 0 10px 10px;"></div>
-      </div>
-      <div class="card-footer bg-transparent">
-        <div class="d-flex gap-3 flex-wrap small">
-          <span><span class="badge-espace badge-libre me-1">●</span> Espaces libres (constructibles)</span>
-          <span><span class="badge-espace badge-occupe me-1">●</span> Espaces occupés</span>
-          <span><span class="badge-espace badge-reserve me-1">●</span> Espaces réservés</span>
-        </div>
+        <div id="construction-map"></div>
       </div>
     </div>
   </div>
+
 </div>
 
-<!-- Demandes récentes -->
+<!-- ======= Demandes récentes ======= -->
 {% if recentes %}
 <div class="card mt-4">
-  <div class="card-header"><i class="bi bi-clock-history me-2"></i>Demandes récentes</div>
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-clock-history text-primary"></i> Demandes récentes
+  </div>
   <div class="table-responsive">
     <table class="table table-uad mb-0">
-      <thead><tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Statut</th><th>Date</th></tr></thead>
+      <thead>
+        <tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Statut</th><th>Date</th></tr>
+      </thead>
       <tbody>
         {% for c in recentes %}
         <tr>
@@ -85,13 +197,82 @@
   </div>
 </div>
 {% endif %}
+
 {% endblock %}
 
-{% block extra_js_vendor %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>{% endblock %}
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+{% endblock %}
+
 {% block extra_js %}
 <script>
-  const map = initCampusMap('construction-map');
+  const map = initCampusMap('construction-map', { hideLayerControl: false });
   loadEspaces(map);
   loadBatiments(map);
+
+  /* ---- Leaflet Draw : dessin de la zone souhaitée ---- */
+  const drawnItems = new L.FeatureGroup().addTo(map);
+
+  const drawControl = new L.Control.Draw({
+    position: 'topleft',
+    draw: {
+      polygon: {
+        shapeOptions: { color: '#1E3A8A', fillColor: '#3b5bdb', fillOpacity: 0.25, weight: 2 },
+        showArea: true,
+        allowIntersection: false,
+      },
+      rectangle: {
+        shapeOptions: { color: '#1E3A8A', fillColor: '#3b5bdb', fillOpacity: 0.25, weight: 2 },
+      },
+      polyline: false,
+      circle: false,
+      marker: false,
+      circlemarker: false,
+    },
+    edit: { featureGroup: drawnItems },
+  }).addTo(map);
+
+  const zoneInput  = document.getElementById('zone_geojson');
+  const submitBtn  = document.getElementById('submitBtn');
+  const zoneStatus = document.getElementById('zoneStatus');
+
+  function setZoneDrawn(geoJSON) {
+    zoneInput.value = geoJSON;
+    submitBtn.disabled = false;
+    zoneStatus.innerHTML =
+      '<i class="bi bi-check-circle-fill text-success flex-shrink-0 mt-1"></i>' +
+      '<span class="text-success fw-semibold">Zone définie sur la carte. Vous pouvez lancer l\'analyse.</span>';
+    zoneStatus.style.background = '#f0fdf4';
+    zoneStatus.style.borderColor = '#86efac';
+    zoneStatus.style.color = '#15803d';
+  }
+
+  function clearZone() {
+    zoneInput.value = '';
+    submitBtn.disabled = true;
+    zoneStatus.innerHTML =
+      '<i class="bi bi-pencil-fill flex-shrink-0 mt-1"></i>' +
+      '<span>Utilisez l\'outil de dessin sur la carte pour définir votre zone.</span>';
+    zoneStatus.style.background = '';
+    zoneStatus.style.borderColor = '';
+    zoneStatus.style.color = '';
+  }
+
+  map.on(L.Draw.Event.CREATED, function (e) {
+    drawnItems.clearLayers();
+    drawnItems.addLayer(e.layer);
+    setZoneDrawn(JSON.stringify(e.layer.toGeoJSON().geometry));
+  });
+
+  map.on(L.Draw.Event.EDITED, function () {
+    drawnItems.eachLayer(function (layer) {
+      setZoneDrawn(JSON.stringify(layer.toGeoJSON().geometry));
+    });
+  });
+
+  map.on(L.Draw.Event.DELETED, function () {
+    if (drawnItems.getLayers().length === 0) clearZone();
+  });
 </script>
 {% endblock %}

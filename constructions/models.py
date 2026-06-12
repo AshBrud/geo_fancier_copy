@@ -54,42 +54,66 @@ class NouvelleConstruction(models.Model):
     def badge_couleur(self):
         return self.BADGE_COULEURS.get(self.statut, 'secondary')
 
-    def analyser_faisabilite(self):
+    def analyser_disponibilite(self):
+        """Vérifie si la zone souhaitée peut accueillir la construction.
+        Retourne (disponible, rapport, zones_alternatives_qs).
+        """
+        alternatives = Espace.objects.none()
+
         if not self.zone_souhaitee:
-            return False, "Aucune zone définie."
-        espaces_libres = Espace.objects.filter(
+            return False, "Aucune zone dessinée sur la carte.", alternatives
+
+        espaces_intersectant = Espace.objects.filter(
             type_espace=Espace.TYPE_LIBRE,
             geometrie__intersects=self.zone_souhaitee
         )
-        if not espaces_libres.exists():
-            self.disponible = False
-            self.rapport_faisabilite = (
-                "La zone sélectionnée est occupée ou réservée. "
-                "Aucun espace libre disponible dans cette zone."
-            )
-            espaces_proches = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE)
-            if espaces_proches.exists():
-                noms = ', '.join(e.nom for e in espaces_proches[:3])
-                self.zones_alternatives = f"Espaces libres disponibles : {noms}"
-        else:
-            superficie_dispo = sum(
-                e.superficie or 0 for e in espaces_libres
-            )
+
+        if espaces_intersectant.exists():
+            superficie_dispo = sum(e.superficie or 0 for e in espaces_intersectant)
+            noms = ', '.join(e.nom for e in espaces_intersectant)
+
             if superficie_dispo >= self.superficie_souhaitee:
                 self.disponible = True
                 self.rapport_faisabilite = (
-                    f"Zone disponible. Superficie libre : {superficie_dispo:.0f} m² "
-                    f"(besoin : {self.superficie_souhaitee:.0f} m²). "
-                    f"Construction faisable."
+                    f"La zone sélectionnée est disponible. "
+                    f"Espace(s) libre(s) : {noms}. "
+                    f"Superficie libre : {superficie_dispo:.0f} m² "
+                    f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
                 )
+                self.zones_alternatives = ''
             else:
                 self.disponible = False
                 self.rapport_faisabilite = (
-                    f"Superficie insuffisante. Disponible : {superficie_dispo:.0f} m², "
+                    f"Superficie insuffisante dans la zone sélectionnée. "
+                    f"Disponible : {superficie_dispo:.0f} m², "
                     f"requis : {self.superficie_souhaitee:.0f} m²."
                 )
+        else:
+            self.disponible = False
+            self.rapport_faisabilite = (
+                "La zone sélectionnée ne contient aucun espace libre. "
+                "Elle est déjà occupée ou réservée."
+            )
+
+        # Proposer des zones alternatives si non disponible
+        if not self.disponible:
+            alternatives = Espace.objects.filter(
+                type_espace=Espace.TYPE_LIBRE,
+                superficie__gte=self.superficie_souhaitee
+            ).order_by('superficie')[:6]
+            if alternatives.exists():
+                noms_alt = ', '.join(
+                    f"{e.nom} ({e.superficie:.0f} m²)" for e in alternatives
+                )
+                self.zones_alternatives = noms_alt
+
         self.save()
-        return self.disponible, self.rapport_faisabilite
+        return self.disponible, self.rapport_faisabilite, alternatives
+
+    # Alias conservé pour compatibilité
+    def analyser_faisabilite(self):
+        disponible, rapport, _ = self.analyser_disponibilite()
+        return disponible, rapport
 
 
 class HistoriqueConstruction(models.Model):

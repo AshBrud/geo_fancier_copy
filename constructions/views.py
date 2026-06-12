@@ -13,23 +13,39 @@ from accounts.decorators import foncier_required
 @login_required
 @foncier_required
 def nouvelle_construction(request):
+    from django.contrib.gis.geos import GEOSGeometry
     form = NouvelleConstructionForm(request.POST or None)
     resultat = None
+    zones_alternatives = []
+
     if request.method == 'POST' and form.is_valid():
         construction = form.save(commit=False)
         construction.demandeur = request.user
+
+        zone_geojson = request.POST.get('zone_geojson', '').strip()
+        if zone_geojson:
+            try:
+                construction.zone_souhaitee = GEOSGeometry(zone_geojson)
+            except Exception:
+                messages.warning(request, 'Zone dessinée invalide, veuillez recommencer.')
+
         construction.save()
-        disponible, rapport = construction.analyser_faisabilite()
+        disponible, rapport, alternatives = construction.analyser_disponibilite()
+        zones_alternatives = list(alternatives)
         resultat = {
             'construction': construction,
             'disponible': disponible,
             'rapport': rapport,
         }
-        messages.success(request, 'Analyse de faisabilité effectuée.')
+        messages.success(request, 'Analyse de disponibilité effectuée.')
         form = NouvelleConstructionForm()
+
     recentes = NouvelleConstruction.objects.select_related('demandeur').all()[:5]
     return render(request, 'constructions/nouvelle_construction.html', {
-        'form': form, 'resultat': resultat, 'recentes': recentes,
+        'form': form,
+        'resultat': resultat,
+        'zones_alternatives': zones_alternatives,
+        'recentes': recentes,
     })
 
 
