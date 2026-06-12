@@ -7,219 +7,305 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
 <style>
-  #construction-map { height: 480px; border-radius: 0 0 10px 10px; }
+/* ===== CARTE ET MAP ===== */
+#construction-map { height: 560px; }
 
-  /* Résultat disponibilité */
-  .avail-card {
-    border-radius: 12px; padding: 1.25rem 1.5rem;
-    border: 2px solid; margin-top: 1rem;
-  }
-  .avail-ok  { border-color: #16A34A; background: #f0fdf4; }
-  .avail-nok { border-color: #DC2626; background: #fef2f2; }
-  .avail-rapport { font-size: 13px; color: #374151; line-height: 1.6; }
-  .zone-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    border-radius: 20px; padding: 3px 10px;
-    font-size: 11.5px; font-weight: 600; margin-bottom: .75rem;
-  }
-  .zone-badge.ok  { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
-  .zone-badge.nok { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fca5a5; }
+/* ===== STEPPER ===== */
+.nc-stepper {
+  display: flex; align-items: center;
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 14px; padding: 18px 24px;
+  margin-bottom: 1.5rem; gap: 0;
+}
+.nc-step {
+  display: flex; align-items: center; gap: 10px; flex: 1;
+}
+.nc-step-num {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px;
+  background: #f1f5f9; color: #94a3b8;
+  border: 2px solid #e2e8f0; transition: all .3s;
+}
+.nc-step.active .nc-step-num {
+  background: #1E3A8A; color: #fff; border-color: #1E3A8A;
+}
+.nc-step.done .nc-step-num {
+  background: #16A34A; color: #fff; border-color: #16A34A;
+}
+.nc-step-label { font-size: 12.5px; font-weight: 600; color: #94a3b8; }
+.nc-step.active .nc-step-label { color: #1E3A8A; }
+.nc-step.done  .nc-step-label { color: #16A34A; }
+.nc-step-sub { font-size: 11px; color: #cbd5e1; display: block; }
+.nc-step.active .nc-step-sub { color: #93c5fd; }
+.nc-step.done  .nc-step-sub { color: #86efac; }
+.nc-connector {
+  flex: 0 0 40px; height: 2px;
+  background: linear-gradient(90deg, #e2e8f0, #e2e8f0);
+  margin: 0 4px;
+}
+.nc-connector.done { background: linear-gradient(90deg, #16A34A, #86efac); }
 
-  /* Sélecteur de mode zone */
-  .zone-mode-tabs {
-    display: flex; gap: 5px;
-    background: #f1f5f9; border-radius: 10px; padding: 4px;
-    margin-bottom: .75rem;
-  }
-  .zone-mode-btn {
-    flex: 1; padding: 6px 8px; border: none; border-radius: 7px;
-    background: transparent; font-size: 12px; font-weight: 500;
-    color: #64748b; cursor: pointer; transition: all .2s;
-    display: flex; align-items: center; justify-content: center; gap: 5px;
-  }
-  .zone-mode-btn.active {
-    background: #fff; color: #1E3A8A;
-    box-shadow: 0 1px 4px rgba(0,0,0,.12); font-weight: 600;
-  }
+/* ===== SECTION FORMULAIRE ===== */
+.form-section {
+  position: relative; padding: 1rem 1rem 1rem 3rem;
+  margin-bottom: .5rem;
+}
+.form-section + .form-section { border-top: 1px solid #f1f5f9; }
+.form-section-num {
+  position: absolute; left: 0; top: 1rem;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: #eff6ff; color: #1E3A8A;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.form-section-title {
+  font-size: 12px; font-weight: 700; color: #1E3A8A;
+  text-transform: uppercase; letter-spacing: .6px;
+  margin-bottom: .75rem;
+}
 
-  /* Status zone */
-  .zone-status {
-    background: #eff6ff; border: 1.5px solid #bfdbfe;
-    border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #1e40af;
-    display: flex; align-items: flex-start; gap: 8px; margin-top: .5rem;
-  }
-  .zone-status.ok {
-    background: #f0fdf4; border-color: #86efac; color: #15803d;
-  }
+/* ===== OPTIONS DE ZONE ===== */
+.zone-option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .75rem; }
+.zone-option-card {
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; transition: all .2s;
+  background: #fff; display: flex; flex-direction: column; gap: 4px;
+}
+.zone-option-card:hover { border-color: #93c5fd; background: #f8faff; }
+.zone-option-card.active { border-color: #1E3A8A; background: #eff6ff; }
+.zone-option-icon {
+  font-size: 18px; color: #94a3b8; line-height: 1;
+  transition: color .2s;
+}
+.zone-option-card.active .zone-option-icon { color: #1E3A8A; }
+.zone-option-title { font-size: 12px; font-weight: 600; color: #374151; }
+.zone-option-card.active .zone-option-title { color: #1E3A8A; }
+.zone-option-sub { font-size: 10.5px; color: #94a3b8; }
 
-  /* Hint dessin */
-  .draw-hint {
-    background: #eff6ff; border: 1.5px solid #bfdbfe;
-    border-radius: 10px; padding: 10px 14px;
-    font-size: 12px; color: #1e40af;
-    display: flex; align-items: flex-start; gap: 8px;
-  }
+/* ===== ZONE STATUS ===== */
+.zone-status-bar {
+  display: flex; align-items: center; gap: 8px;
+  border-radius: 8px; padding: 8px 12px; font-size: 12px;
+  border: 1.5px solid #bfdbfe; background: #eff6ff; color: #1e40af;
+  transition: all .25s;
+}
+.zone-status-bar.ok { border-color: #86efac; background: #f0fdf4; color: #15803d; }
+
+/* ===== BOUTON ANALYSER ===== */
+.btn-analyze {
+  background: linear-gradient(135deg, #1E3A8A, #2563eb);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 12px; font-size: 14px; font-weight: 600;
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 8px; transition: opacity .2s; cursor: pointer;
+}
+.btn-analyze:disabled { opacity: .45; cursor: not-allowed; }
+.btn-analyze:not(:disabled):hover { opacity: .9; }
+
+/* ===== CARTE ===== */
+.map-legend {
+  display: flex; gap: 14px; align-items: center;
+  font-size: 11.5px; color: #64748b;
+}
+.map-legend span { display: flex; align-items: center; gap: 4px; }
+.leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== RÉSULTAT ===== */
+.result-banner {
+  border-radius: 14px; overflow: hidden;
+  border: 2px solid; margin-top: 1.5rem;
+}
+.result-banner.ok  { border-color: #16A34A; }
+.result-banner.nok { border-color: #DC2626; }
+.result-banner-header {
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; gap: 16px;
+}
+.result-banner.ok  .result-banner-header { background: #f0fdf4; }
+.result-banner.nok .result-banner-header { background: #fef2f2; }
+.result-icon-circle {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.result-banner.ok  .result-icon-circle { background: #dcfce7; color: #16A34A; }
+.result-banner.nok .result-icon-circle { background: #fee2e2; color: #DC2626; }
+.result-title-main { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 2px; }
+.result-subtitle { font-size: 12.5px; color: #6b7280; }
+.result-banner-body { padding: 1.25rem 1.5rem; background: #fff; }
+.result-rapport { font-size: 13.5px; color: #374151; line-height: 1.7; margin: 0; }
+
+/* ===== ALTERNATIVES TABLE ===== */
+.alt-table-wrap { margin-top: 1rem; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+.alt-table-header {
+  background: #fff7ed; padding: 10px 14px;
+  font-size: 12.5px; font-weight: 600; color: #92400e;
+  display: flex; align-items: center; gap: 6px;
+  border-bottom: 1px solid #fed7aa;
+}
+
+/* ===== DEMANDES RÉCENTES ===== */
+.recent-row td { vertical-align: middle; }
+.recent-projet { font-weight: 600; font-size: 13.5px; color: #111827; }
+.recent-meta { font-size: 11.5px; color: #94a3b8; }
+
+/* ===== HINT DESSIN ===== */
+.draw-info {
+  background: #f8faff; border: 1.5px solid #c7d7f4;
+  border-radius: 8px; padding: 9px 12px;
+  font-size: 11.5px; color: #3b5bdb;
+  display: flex; gap: 7px; align-items: flex-start;
+}
 </style>
 {% endblock %}
 
 {% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-building-add"></i> Nouvelle construction</h1>
-    <p class="page-description">Définissez votre projet, choisissez ou dessinez la zone souhaitée et vérifiez sa disponibilité sur le campus.</p>
+    <p class="page-description">Soumettez une demande de construction, vérifiez la disponibilité de la zone souhaitée et consultez les alternatives.</p>
   </div>
   <a href="{% url 'constructions:list' %}" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-list me-1"></i>Voir les demandes
+    <i class="bi bi-list-ul me-1"></i>Toutes les demandes
   </a>
 </div>
 
+<!-- ===== STEPPER ===== -->
+<div class="nc-stepper">
+  <div class="nc-step {% if not resultat %}active{% else %}done{% endif %}">
+    <div class="nc-step-num">{% if resultat %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</div>
+    <div>
+      <span class="nc-step-label">Informations du projet</span>
+      <span class="nc-step-sub">Nom, type, superficie</span>
+    </div>
+  </div>
+  <div class="nc-connector {% if resultat %}done{% endif %}"></div>
+  <div class="nc-step {% if not resultat %}active{% else %}done{% endif %}">
+    <div class="nc-step-num">{% if resultat %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</div>
+    <div>
+      <span class="nc-step-label">Zone souhaitée</span>
+      <span class="nc-step-sub">Sélection ou dessin</span>
+    </div>
+  </div>
+  <div class="nc-connector {% if resultat %}done{% endif %}"></div>
+  <div class="nc-step {% if resultat %}active{% endif %}">
+    <div class="nc-step-num">3</div>
+    <div>
+      <span class="nc-step-label">Résultat de l'analyse</span>
+      <span class="nc-step-sub">Disponibilité & alternatives</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORPS PRINCIPAL ===== -->
 <div class="row g-4">
 
-  <!-- ======= Colonne gauche : formulaire ======= -->
-  <div class="col-lg-5 col-xl-4">
+  <!-- ========== COLONNE FORMULAIRE ========== -->
+  <div class="col-lg-4">
+    <div class="card h-100 d-flex flex-column">
 
-    <div class="card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-pencil-square text-primary"></i> Votre projet
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-clipboard-plus text-primary"></i>
+        <span class="fw-semibold">Formulaire de demande</span>
       </div>
-      <div class="card-body">
 
-        <!-- Marche à suivre -->
-        <div class="draw-hint mb-3">
-          <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
-          <span>
-            <strong>Étape 1 :</strong> Remplissez les informations ci-dessous.<br>
-            <strong>Étape 2 :</strong> Choisissez un espace existant <em>ou</em> dessinez la zone sur la carte.<br>
-            <strong>Étape 3 :</strong> Cliquez sur <em>Analyser la disponibilité</em>.
-          </span>
-        </div>
-
-        <form method="post" novalidate id="constructionForm">
+      <div class="card-body p-0 flex-grow-1 d-flex flex-column">
+        <form method="post" novalidate id="constructionForm" class="d-flex flex-column h-100">
           {% csrf_token %}
           <input type="hidden" name="zone_geojson" id="zone_geojson">
           <input type="hidden" name="espace_id"    id="espace_id">
 
-          <!-- Nom du projet -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Nom du projet <span class="text-danger">*</span></label>
-            {{ form.nom_projet }}
-            {% if form.nom_projet.errors %}<div class="text-danger small mt-1">{{ form.nom_projet.errors }}</div>{% endif %}
+          <!-- Section 1 : Informations du projet -->
+          <div class="form-section">
+            <div class="form-section-num">01</div>
+            <div class="form-section-title">Informations du projet</div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold small mb-1">Nom du projet <span class="text-danger">*</span></label>
+              {{ form.nom_projet }}
+              {% if form.nom_projet.errors %}<div class="text-danger small mt-1">{{ form.nom_projet.errors }}</div>{% endif %}
+            </div>
+            <div class="row g-2">
+              <div class="col-12">
+                <label class="form-label fw-semibold small mb-1">Type de construction <span class="text-danger">*</span></label>
+                {{ form.type_construction }}
+                {% if form.type_construction.errors %}<div class="text-danger small mt-1">{{ form.type_construction.errors }}</div>{% endif %}
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold small mb-1">Superficie souhaitée (m²) <span class="text-danger">*</span></label>
+                {{ form.superficie_souhaitee }}
+                {% if form.superficie_souhaitee.errors %}<div class="text-danger small mt-1">{{ form.superficie_souhaitee.errors }}</div>{% endif %}
+              </div>
+            </div>
           </div>
 
-          <!-- Type et superficie -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Type de construction <span class="text-danger">*</span></label>
-            {{ form.type_construction }}
-            {% if form.type_construction.errors %}<div class="text-danger small mt-1">{{ form.type_construction.errors }}</div>{% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Superficie souhaitée (m²) <span class="text-danger">*</span></label>
-            {{ form.superficie_souhaitee }}
-            {% if form.superficie_souhaitee.errors %}<div class="text-danger small mt-1">{{ form.superficie_souhaitee.errors }}</div>{% endif %}
-          </div>
+          <!-- Section 2 : Zone souhaitée -->
+          <div class="form-section flex-grow-1">
+            <div class="form-section-num">02</div>
+            <div class="form-section-title">Zone souhaitée</div>
 
-          <!-- ===== Zone souhaitée ===== -->
-          <div class="mb-4">
-            <label class="form-label fw-semibold small">Zone souhaitée <span class="text-danger">*</span></label>
-
-            <!-- Tabs mode -->
-            <div class="zone-mode-tabs">
-              <button type="button" class="zone-mode-btn active" id="btnModeSelect" onclick="setZoneMode('select')">
-                <i class="bi bi-list-ul"></i> Choisir un espace
-              </button>
-              <button type="button" class="zone-mode-btn" id="btnModeDraw" onclick="setZoneMode('draw')">
-                <i class="bi bi-pencil"></i> Dessiner sur la carte
-              </button>
+            <!-- Cartes de choix de mode -->
+            <div class="zone-option-grid">
+              <div class="zone-option-card active" id="cardModeSelect" onclick="setZoneMode('select')">
+                <div class="zone-option-icon"><i class="bi bi-layers-fill"></i></div>
+                <div class="zone-option-title">Espace existant</div>
+                <div class="zone-option-sub">{{ espaces_count }} disponible{{ espaces_count|pluralize }}</div>
+              </div>
+              <div class="zone-option-card" id="cardModeDraw" onclick="setZoneMode('draw')">
+                <div class="zone-option-icon"><i class="bi bi-pencil-square"></i></div>
+                <div class="zone-option-title">Dessin libre</div>
+                <div class="zone-option-sub">Tracer sur la carte</div>
+              </div>
             </div>
 
-            <!-- Panneau : choisir un espace existant -->
-            <div id="panelSelect">
+            <!-- Panneau sélection espace -->
+            <div id="panelSelect" class="mb-2">
               <select id="espaceSelect" class="form-select form-select-sm">
-                <option value="">— Sélectionnez un espace libre —</option>
+                <option value="">— Choisissez un espace libre —</option>
               </select>
-              <div class="text-muted small mt-1">
-                <i class="bi bi-circle-fill text-success me-1" style="font-size:8px"></i>
-                {{ espaces_count }} espace{{ espaces_count|pluralize }} libre{{ espaces_count|pluralize }} disponible{{ espaces_count|pluralize }}
+            </div>
+
+            <!-- Panneau dessin -->
+            <div id="panelDraw" class="d-none mb-2">
+              <div class="draw-info">
+                <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                <span>Utilisez les outils <strong>polygone</strong> ou <strong>rectangle</strong> (barre d'outils en haut à gauche de la carte) pour délimiter votre zone.</span>
               </div>
             </div>
 
-            <!-- Panneau : dessiner sur la carte -->
-            <div id="panelDraw" class="d-none">
-              <div class="draw-hint">
-                <i class="bi bi-pencil-fill flex-shrink-0 mt-1"></i>
-                <span>Utilisez l'outil <i class="bi bi-pentagon"></i> ou <i class="bi bi-square"></i> en haut à gauche de la carte pour tracer votre zone.</span>
-              </div>
-            </div>
-
-            <!-- Indicateur de zone -->
-            <div id="zoneStatus" class="zone-status">
-              <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
-              <span>Sélectionnez un espace ou dessinez une zone sur la carte.</span>
+            <!-- Indicateur de statut de la zone -->
+            <div id="zoneStatus" class="zone-status-bar mt-2">
+              <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+              <span>Sélectionnez ou dessinez une zone pour activer l'analyse.</span>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary w-100" id="submitBtn" disabled>
-            <i class="bi bi-search me-2"></i>Analyser la disponibilité
-          </button>
+          <!-- Bouton analyser -->
+          <div class="p-3 border-top">
+            <button type="submit" class="btn-analyze" id="submitBtn" disabled>
+              <i class="bi bi-search"></i>
+              Analyser la disponibilité
+            </button>
+          </div>
+
         </form>
       </div>
     </div>
-
-    <!-- ======= Résultat de l'analyse ======= -->
-    {% if resultat %}
-    <div class="avail-card {% if resultat.disponible %}avail-ok{% else %}avail-nok{% endif %}">
-
-      {% if resultat.disponible %}
-      <div class="zone-badge ok">
-        <i class="bi bi-check-circle-fill"></i> Zone disponible
-      </div>
-      {% else %}
-      <div class="zone-badge nok">
-        <i class="bi bi-x-circle-fill"></i> Zone non disponible
-      </div>
-      {% endif %}
-
-      <p class="avail-rapport mb-0">{{ resultat.rapport }}</p>
-
-      {% if not resultat.disponible and zones_alternatives %}
-      <hr class="my-3">
-      <p class="fw-semibold small mb-2">
-        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
-        Zones alternatives disponibles (≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²) :
-      </p>
-      <div class="table-responsive">
-        <table class="table table-sm mb-0" style="font-size:12px;">
-          <thead class="table-light">
-            <tr><th>Espace</th><th>Superficie</th><th>Code</th></tr>
-          </thead>
-          <tbody>
-            {% for espace in zones_alternatives %}
-            <tr>
-              <td class="fw-semibold">{{ espace.nom }}</td>
-              <td>{{ espace.superficie|floatformat:0 }} m²</td>
-              <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ espace.code }}</span></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
   </div>
 
-  <!-- ======= Colonne droite : carte ======= -->
-  <div class="col-lg-7 col-xl-8">
+  <!-- ========== COLONNE CARTE ========== -->
+  <div class="col-lg-8">
     <div class="card h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="d-flex align-items-center gap-2">
-          <i class="bi bi-map text-primary"></i> Carte du campus
+      <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <span class="d-flex align-items-center gap-2 fw-semibold">
+          <i class="bi bi-map text-primary"></i> Carte interactive du campus
         </span>
-        <div class="d-flex gap-3 small text-muted align-items-center">
-          <span><i class="bi bi-circle-fill text-success me-1" style="font-size:9px"></i>Libres</span>
-          <span><i class="bi bi-circle-fill text-danger me-1" style="font-size:9px"></i>Occupés</span>
-          <span><i class="bi bi-circle-fill text-warning me-1" style="font-size:9px"></i>Réservés</span>
+        <div class="map-legend">
+          <span><span class="leg-dot" style="background:#16A34A"></span>Libres</span>
+          <span><span class="leg-dot" style="background:#DC2626"></span>Occupés</span>
+          <span><span class="leg-dot" style="background:#F59E0B"></span>Réservés</span>
+          <span><span class="leg-dot" style="background:#0EA5E9"></span>Sportifs</span>
         </div>
       </div>
       <div class="card-body p-0">
@@ -230,25 +316,119 @@
 
 </div>
 
-<!-- ======= Demandes récentes ======= -->
+<!-- ===== RÉSULTAT DE L'ANALYSE ===== -->
+{% if resultat %}
+<div class="result-banner {% if resultat.disponible %}ok{% else %}nok{% endif %}">
+
+  <div class="result-banner-header">
+    <div class="result-icon-circle">
+      {% if resultat.disponible %}
+        <i class="bi bi-check-circle-fill"></i>
+      {% else %}
+        <i class="bi bi-x-circle-fill"></i>
+      {% endif %}
+    </div>
+    <div>
+      <div class="result-title-main">{{ resultat.construction.nom_projet }}</div>
+      <div class="result-subtitle">
+        {{ resultat.construction.type_construction }} ·
+        {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m² ·
+        Analysé le {{ resultat.construction.date_demande|date:"d/m/Y à H\hi" }}
+      </div>
+    </div>
+    <div class="ms-auto">
+      {% if resultat.disponible %}
+        <span class="badge fs-6 bg-success"><i class="bi bi-check-lg me-1"></i>Zone disponible</span>
+      {% else %}
+        <span class="badge fs-6 bg-danger"><i class="bi bi-x-lg me-1"></i>Zone indisponible</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="result-banner-body">
+    <p class="result-rapport">{{ resultat.rapport }}</p>
+
+    {% if not resultat.disponible and zones_alternatives %}
+    <div class="alt-table-wrap mt-3">
+      <div class="alt-table-header">
+        <i class="bi bi-lightbulb-fill text-warning"></i>
+        Zones alternatives pouvant accueillir votre projet (≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²)
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:12.5px;">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Espace</th>
+              <th>Code</th>
+              <th>Superficie disponible</th>
+              <th>Écart</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for espace in zones_alternatives %}
+            <tr class="recent-row">
+              <td class="ps-3 recent-projet">{{ espace.nom }}</td>
+              <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ espace.code }}</span></td>
+              <td class="fw-semibold">{{ espace.superficie|floatformat:0 }} m²</td>
+              <td class="text-success small">
+                +{{ espace.superficie|add:"-0"|floatformat:0 }} m²
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+
+<!-- ===== DEMANDES RÉCENTES ===== -->
 {% if recentes %}
 <div class="card mt-4">
-  <div class="card-header d-flex align-items-center gap-2">
-    <i class="bi bi-clock-history text-primary"></i> Demandes récentes
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <span class="d-flex align-items-center gap-2 fw-semibold">
+      <i class="bi bi-clock-history text-primary"></i> Demandes récentes
+    </span>
+    <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-primary">
+      Voir tout <i class="bi bi-arrow-right ms-1"></i>
+    </a>
   </div>
   <div class="table-responsive">
     <table class="table table-uad mb-0">
       <thead>
-        <tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Statut</th><th>Date</th></tr>
+        <tr>
+          <th class="ps-3">Projet</th>
+          <th>Type</th>
+          <th>Superficie</th>
+          <th>Disponibilité</th>
+          <th>Statut</th>
+          <th>Date</th>
+        </tr>
       </thead>
       <tbody>
         {% for c in recentes %}
-        <tr>
-          <td class="fw-semibold">{{ c.nom_projet }}</td>
-          <td class="text-muted">{{ c.type_construction }}</td>
-          <td>{{ c.superficie_souhaitee|floatformat:0 }} m²</td>
+        <tr class="recent-row">
+          <td class="ps-3 recent-projet">{{ c.nom_projet }}</td>
+          <td class="recent-meta">{{ c.type_construction }}</td>
+          <td class="fw-semibold">{{ c.superficie_souhaitee|floatformat:0 }} m²</td>
+          <td>
+            {% if c.disponible is None %}
+              <span class="text-muted small">—</span>
+            {% elif c.disponible %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check me-1"></i>Disponible
+              </span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="bi bi-x me-1"></i>Indisponible
+              </span>
+            {% endif %}
+          </td>
           <td><span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span></td>
-          <td class="text-muted small">{{ c.date_demande|date:"d/m/Y" }}</td>
+          <td class="recent-meta">{{ c.date_demande|date:"d/m/Y" }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -266,19 +446,20 @@
 
 {% block extra_js %}
 <script>
+(function () {
   /* ---- Données espaces libres ---- */
-  const ESPACES_DATA = {{ espaces_json|safe }};
-  const espaceMap = {};
+  var ESPACES_DATA = {{ espaces_json|safe }};
+  var espaceMap = {};
   ESPACES_DATA.forEach(function(e) { espaceMap[e.id] = e; });
 
-  /* ---- Initialisation carte ---- */
-  const map = initCampusMap('construction-map', { hideLayerControl: false });
+  /* ---- Carte ---- */
+  var map = initCampusMap('construction-map', { hideLayerControl: false });
   loadEspaces(map);
   loadBatiments(map);
 
   /* ---- Leaflet Draw ---- */
-  const drawnItems = new L.FeatureGroup().addTo(map);
-  const drawControl = new L.Control.Draw({
+  var drawnItems = new L.FeatureGroup().addTo(map);
+  new L.Control.Draw({
     position: 'topleft',
     draw: {
       polygon: {
@@ -293,108 +474,87 @@
     edit: { featureGroup: drawnItems },
   }).addTo(map);
 
-  /* ---- Références éléments DOM ---- */
-  const zoneInput    = document.getElementById('zone_geojson');
-  const espaceInput  = document.getElementById('espace_id');
-  const submitBtn    = document.getElementById('submitBtn');
-  const zoneStatus   = document.getElementById('zoneStatus');
-  const espaceSelect = document.getElementById('espaceSelect');
+  /* ---- DOM ---- */
+  var zoneInput    = document.getElementById('zone_geojson');
+  var espaceInput  = document.getElementById('espace_id');
+  var submitBtn    = document.getElementById('submitBtn');
+  var zoneStatus   = document.getElementById('zoneStatus');
+  var espaceSelect = document.getElementById('espaceSelect');
+  var highlightLayer = null;
+  var currentMode    = 'select';
 
-  let highlightLayer = null;
-  let currentMode    = 'select';
-
-  /* ---- Helpers état zone ---- */
+  /* ---- Helpers état ---- */
   function setZoneOk(msg) {
     submitBtn.disabled = false;
-    zoneStatus.innerHTML = '<i class="bi bi-check-circle-fill flex-shrink-0 mt-1"></i><span class="fw-semibold">' + msg + '</span>';
-    zoneStatus.className = 'zone-status ok';
+    zoneStatus.innerHTML = '<i class="bi bi-check-circle-fill flex-shrink-0"></i><span class="fw-semibold">' + msg + '</span>';
+    zoneStatus.className = 'zone-status-bar ok mt-2';
   }
-
   function clearZone() {
-    zoneInput.value   = '';
-    espaceInput.value = '';
+    zoneInput.value = ''; espaceInput.value = '';
     submitBtn.disabled = true;
-    zoneStatus.innerHTML = '<i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i><span>Sélectionnez un espace ou dessinez une zone sur la carte.</span>';
-    zoneStatus.className = 'zone-status';
+    zoneStatus.innerHTML = '<i class="bi bi-info-circle-fill flex-shrink-0"></i><span>Sélectionnez ou dessinez une zone pour activer l\'analyse.</span>';
+    zoneStatus.className = 'zone-status-bar mt-2';
   }
-
   function clearHighlight() {
     if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
   }
 
-  /* ---- Bascule entre modes ---- */
+  /* ---- Bascule mode ---- */
   function setZoneMode(mode) {
     currentMode = mode;
     document.getElementById('panelSelect').classList.toggle('d-none', mode !== 'select');
     document.getElementById('panelDraw').classList.toggle('d-none',   mode !== 'draw');
-    document.getElementById('btnModeSelect').classList.toggle('active', mode === 'select');
-    document.getElementById('btnModeDraw').classList.toggle('active',   mode === 'draw');
-
+    document.getElementById('cardModeSelect').classList.toggle('active', mode === 'select');
+    document.getElementById('cardModeDraw').classList.toggle('active',   mode === 'draw');
     if (mode === 'draw') {
-      clearHighlight();
-      espaceSelect.value = '';
-      espaceInput.value  = '';
+      clearHighlight(); espaceSelect.value = ''; espaceInput.value = '';
     } else {
-      drawnItems.clearLayers();
-      zoneInput.value = '';
+      drawnItems.clearLayers(); zoneInput.value = '';
     }
     clearZone();
   }
+  window.setZoneMode = setZoneMode;
 
-  /* ---- Remplir le select avec les espaces libres ---- */
+  /* ---- Remplir le select ---- */
   ESPACES_DATA.forEach(function(e) {
-    const opt = document.createElement('option');
+    var opt = document.createElement('option');
     opt.value = e.id;
-    const sup = Math.round(e.superficie).toLocaleString('fr-FR');
-    opt.textContent = e.nom + ' — ' + sup + ' m²  (' + e.code + ')';
+    opt.textContent = e.nom + '  —  ' + Math.round(e.superficie).toLocaleString('fr-FR') + ' m²  (' + e.code + ')';
     espaceSelect.appendChild(opt);
   });
 
-  /* ---- Sélection d'un espace dans le menu ---- */
+  /* ---- Sélection d'un espace ---- */
   espaceSelect.addEventListener('change', function() {
-    clearHighlight();
-    drawnItems.clearLayers();
-    zoneInput.value   = '';
-    espaceInput.value = '';
-
+    clearHighlight(); drawnItems.clearLayers();
+    zoneInput.value = ''; espaceInput.value = '';
     var id = parseInt(this.value);
     if (!id) { clearZone(); return; }
-
     var espace = espaceMap[id];
     if (!espace || !espace.geojson) return;
-
     highlightLayer = L.geoJSON(espace.geojson, {
-      style: {
-        color: '#1E3A8A', weight: 3,
-        fillColor: '#3b5bdb', fillOpacity: 0.35,
-        dashArray: '7,4'
-      }
+      style: { color: '#1E3A8A', weight: 3, fillColor: '#3b5bdb', fillOpacity: 0.35, dashArray: '7,4' }
     }).addTo(map);
     map.fitBounds(highlightLayer.getBounds(), { padding: [50, 50] });
-
     espaceInput.value = id;
-    var sup = Math.round(espace.superficie).toLocaleString('fr-FR');
-    setZoneOk('Espace sélectionné : ' + espace.nom + ' (' + sup + ' m²)');
+    setZoneOk('Espace sélectionné : ' + espace.nom + ' (' + Math.round(espace.superficie).toLocaleString('fr-FR') + ' m²)');
   });
 
-  /* ---- Événements Leaflet Draw ---- */
+  /* ---- Leaflet Draw ---- */
   map.on(L.Draw.Event.CREATED, function(e) {
-    drawnItems.clearLayers();
-    drawnItems.addLayer(e.layer);
+    drawnItems.clearLayers(); drawnItems.addLayer(e.layer);
     espaceInput.value = '';
     zoneInput.value   = JSON.stringify(e.layer.toGeoJSON().geometry);
-    setZoneOk("Zone dessinée sur la carte. Vous pouvez lancer l'analyse.");
+    setZoneOk("Zone dessinée — prête pour l'analyse.");
   });
-
   map.on(L.Draw.Event.EDITED, function() {
-    drawnItems.eachLayer(function(layer) {
-      zoneInput.value = JSON.stringify(layer.toGeoJSON().geometry);
-      setZoneOk("Zone modifiée. Vous pouvez lancer l'analyse.");
+    drawnItems.eachLayer(function(l) {
+      zoneInput.value = JSON.stringify(l.toGeoJSON().geometry);
+      setZoneOk("Zone modifiée — prête pour l'analyse.");
     });
   });
-
   map.on(L.Draw.Event.DELETED, function() {
     if (drawnItems.getLayers().length === 0) clearZone();
   });
+})();
 </script>
 {% endblock %}
