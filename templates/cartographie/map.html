@@ -7,16 +7,6 @@
 <style>
   .page-content { padding: 0 !important; }
   #campus-map { height: calc(100vh - 60px); border-radius: 0; }
-  .map-panel {
-    position: absolute; top: 10px; left: 10px; z-index: 900;
-    background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.12);
-    min-width: 200px;
-  }
-  .map-panel-header {
-    padding: 12px 16px; font-weight: 600; font-size: 13px;
-    border-bottom: 1px solid #f1f5f9; color: var(--primary);
-    display: flex; align-items: center; gap: 8px;
-  }
 </style>
 {% endblock %}
 
@@ -28,32 +18,73 @@
 <div id="map-container" style="position:relative;">
   <div id="campus-map"></div>
 
-  <!-- Panneau de couches -->
-  <div class="map-panel">
-    <div class="map-panel-header"><i class="bi bi-layers"></i> Couches</div>
-    <div class="p-3 d-flex flex-column gap-2">
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="layerEspaces" checked>
-        <label class="form-check-label small fw-medium" for="layerEspaces">Espaces fonciers</label>
-      </div>
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="layerBatiments" checked>
-        <label class="form-check-label small fw-medium" for="layerBatiments">Bâtiments</label>
-      </div>
+  <!-- ===================== PANNEAU DE COUCHES ===================== -->
+  <div class="map-panel" id="mapPanel">
+    <div class="map-panel-header">
+      <i class="bi bi-layers"></i> Couches
+      <button class="map-panel-toggle" id="panelToggle" title="Réduire / Agrandir">
+        <i class="bi bi-chevron-left" id="panelToggleIcon"></i>
+      </button>
     </div>
 
-    <!-- Légende -->
-    <div class="px-3 pb-3">
-      <div class="small fw-semibold text-muted mb-2">LÉGENDE</div>
-      <div class="legend-item"><span class="legend-color" style="background:#16A34A"></span> Espaces libres</div>
-      <div class="legend-item"><span class="legend-color" style="background:#DC2626"></span> Espaces occupés</div>
-      <div class="legend-item"><span class="legend-color" style="background:#F59E0B"></span> Espaces réservés</div>
-      <div class="legend-item"><span class="legend-color" style="background:#6B7280"></span> Routes / Voies</div>
-      <div class="legend-item"><span class="legend-color" style="background:#1E3A8A"></span> Bâtiments</div>
-    </div>
-  </div>
+    <div class="map-panel-body" id="mapPanelBody">
 
-  <!-- Boutons action -->
+      <!-- Fond de carte -->
+      <div class="map-section">
+        <div class="map-section-title">Fond de carte</div>
+        <div class="map-base-btns">
+          <button class="map-base-btn active" id="btnOsm">
+            <i class="bi bi-map"></i> Plan
+          </button>
+          <button class="map-base-btn" id="btnSatellite">
+            <i class="bi bi-globe2"></i> Satellite
+          </button>
+        </div>
+      </div>
+
+      <!-- Orthophotos drone -->
+      <div class="map-section">
+        <div class="map-section-title">
+          Orthophotos drone
+          <span class="badge bg-info-subtle text-info border border-info-subtle ms-1"
+                style="font-size:9px;font-weight:600;padding:1px 5px;">WebODM</span>
+        </div>
+        <div id="orthoLayers"></div>
+      </div>
+
+      <!-- Couches vecteur -->
+      <div class="map-section">
+        <div class="map-section-title">Couches vecteur</div>
+        <div class="map-layer-item">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspaces" checked>
+            <label class="form-check-label" for="layerEspaces">Espaces fonciers</label>
+          </div>
+        </div>
+        <div class="map-layer-item">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerBatiments" checked>
+            <label class="form-check-label" for="layerBatiments">Bâtiments</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Légende -->
+      <div class="map-section">
+        <div class="map-section-title">Légende</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#16A34A"></span> Espaces libres</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#DC2626"></span> Espaces occupés</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#F59E0B"></span> Espaces réservés</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#6B7280"></span> Routes / Voies</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#22C55E"></span> Espaces verts</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#0EA5E9"></span> Espaces sportifs</div>
+        <div class="map-legend-item"><span class="map-legend-color" style="background:#1E3A8A"></span> Bâtiments</div>
+      </div>
+
+    </div><!-- /map-panel-body -->
+  </div><!-- /map-panel -->
+
+  <!-- Boutons action (admin/foncier) -->
   {% if user.can_manage_foncier %}
   <div style="position:absolute;bottom:24px;right:10px;z-index:900;display:flex;flex-direction:column;gap:8px;">
     <a href="{% url 'foncier:espace_create' %}" class="btn btn-success btn-sm shadow">
@@ -64,20 +95,98 @@
     </a>
   </div>
   {% endif %}
-</div>
+
+</div><!-- /map-container -->
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  const map = initCampusMap('campus-map');
+  /* ---- Données orthophotos transmises par Django ---- */
+  const ORTHOPHOTOS = {{ orthophotos_json|safe }};
+
+  /* ---- Initialisation de la carte (panneau Leaflet désactivé) ---- */
+  const map = initCampusMap('campus-map', { hideLayerControl: true });
   const layerEspaces   = loadEspaces(map);
   const layerBatiments = loadBatiments(map);
 
-  document.getElementById('layerEspaces').addEventListener('change', function() {
+  /* ---- Fond de carte ---- */
+  document.getElementById('btnOsm').addEventListener('click', function () {
+    map.removeLayer(map._baseLayers.satellite);
+    map._baseLayers.osm.addTo(map);
+    document.getElementById('btnSatellite').classList.remove('active');
+    this.classList.add('active');
+    map._activeBase = 'osm';
+  });
+  document.getElementById('btnSatellite').addEventListener('click', function () {
+    map.removeLayer(map._baseLayers.osm);
+    map._baseLayers.satellite.addTo(map);
+    document.getElementById('btnOsm').classList.remove('active');
+    this.classList.add('active');
+    map._activeBase = 'satellite';
+  });
+
+  /* ---- Couches vecteur ---- */
+  document.getElementById('layerEspaces').addEventListener('change', function () {
     this.checked ? map.addLayer(layerEspaces) : map.removeLayer(layerEspaces);
   });
-  document.getElementById('layerBatiments').addEventListener('change', function() {
+  document.getElementById('layerBatiments').addEventListener('change', function () {
     this.checked ? map.addLayer(layerBatiments) : map.removeLayer(layerBatiments);
+  });
+
+  /* ---- Orthophotos ---- */
+  const orthoContainer = document.getElementById('orthoLayers');
+  const orthoLayers = {};
+
+  if (ORTHOPHOTOS.length === 0) {
+    orthoContainer.innerHTML =
+      '<p class="map-empty-msg">Aucune orthophoto disponible.<br>' +
+      'Traitez une mission avec WebODM puis configurez l\'URL des tuiles.</p>';
+  } else {
+    ORTHOPHOTOS.forEach(function (m) {
+      orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'map-layer-item';
+      wrap.innerHTML =
+        '<div class="form-check form-switch mb-0">' +
+          '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '">' +
+          '<label class="form-check-label" for="ortho_' + m.id + '">' +
+            m.nom +
+            '<br><small class="text-muted fw-normal" style="font-size:10px">' + m.date_mission + '</small>' +
+          '</label>' +
+        '</div>' +
+        '<div class="map-opacity-wrap d-none" id="opacityWrap_' + m.id + '">' +
+          '<input type="range" class="form-range" min="10" max="100" value="85"' +
+                 ' id="slider_' + m.id + '" style="accent-color:var(--primary)">' +
+          '<span class="map-opacity-label">Opacité : <strong id="opLabel_' + m.id + '">85</strong>%</span>' +
+        '</div>';
+      orthoContainer.appendChild(wrap);
+
+      document.getElementById('ortho_' + m.id).addEventListener('change', function () {
+        const layer = orthoLayers[m.id];
+        const opWrap = document.getElementById('opacityWrap_' + m.id);
+        if (this.checked) {
+          layer.addTo(map);
+          opWrap.classList.remove('d-none');
+        } else {
+          map.removeLayer(layer);
+          opWrap.classList.add('d-none');
+        }
+      });
+
+      document.getElementById('slider_' + m.id).addEventListener('input', function () {
+        orthoLayers[m.id].setOpacity(this.value / 100);
+        document.getElementById('opLabel_' + m.id).textContent = this.value;
+      });
+    });
+  }
+
+  /* ---- Collapse du panneau ---- */
+  document.getElementById('panelToggle').addEventListener('click', function () {
+    const body = document.getElementById('mapPanelBody');
+    const icon = document.getElementById('panelToggleIcon');
+    const collapsed = body.classList.toggle('d-none');
+    icon.className = collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
   });
 </script>
 {% endblock %}

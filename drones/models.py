@@ -22,6 +22,11 @@ class MissionDrone(models.Model):
     recouvrement = models.FloatField(blank=True, null=True, verbose_name='Taux de recouvrement (%)')
     statut = models.CharField(max_length=20, choices=STATUTS, default=STATUT_PLANIFIE)
     description = models.TextField(blank=True, verbose_name='Description')
+    tiles_url = models.CharField(
+        max_length=500, blank=True,
+        verbose_name='URL tuiles XYZ (WebODM)',
+        help_text='Format : /static/tiles/mission/{z}/{x}/{y}.png ou URL WebODM'
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
 
     class Meta:

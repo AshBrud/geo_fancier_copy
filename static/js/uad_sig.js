@@ -65,22 +65,22 @@ document.addEventListener('DOMContentLoaded', function () {
 function initCampusMap(containerId, options) {
   options = options || {};
 
-  // Centre sur l'UAD Bambey (Sénégal) — à ajuster avec les vraies coordonnées
   const defaultCenter = options.center || [14.7000, -16.4600];
   const defaultZoom   = options.zoom   || 16;
 
   const map = L.map(containerId, { zoomControl: false }).setView(defaultCenter, defaultZoom);
 
-  // Contrôle zoom personnalisé
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Fond de carte OpenStreetMap
+  // Pane dédié aux orthophotos : au-dessus du fond de carte, sous les vecteurs
+  map.createPane('orthophotoPane');
+  map.getPane('orthophotoPane').style.zIndex = 250;
+
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 22
   });
 
-  // Fond de carte satellite (Esri)
   const satellite = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles © Esri — Source: Esri, USGS, NOAA',
@@ -89,17 +89,36 @@ function initCampusMap(containerId, options) {
 
   osm.addTo(map);
 
-  // Contrôle des couches de fond
-  L.control.layers(
-    { 'Plan (OSM)': osm, 'Satellite': satellite },
-    {},
-    { position: 'topright', collapsed: true }
-  ).addTo(map);
+  // Référence aux fonds de carte pour le panneau custom
+  map._baseLayers = { osm: osm, satellite: satellite };
+  map._activeBase = 'osm';
 
-  // Contrôle d'échelle
+  if (!options.hideLayerControl) {
+    L.control.layers(
+      { 'Plan (OSM)': osm, 'Satellite': satellite },
+      {},
+      { position: 'topright', collapsed: true }
+    ).addTo(map);
+  }
+
   L.control.scale({ imperial: false }).addTo(map);
 
   return map;
+}
+
+/* =====================================================
+   Charger une orthophoto en tuiles XYZ (WebODM / QGIS)
+   ===================================================== */
+function loadOrthophoto(map, tilesUrl, opts) {
+  opts = opts || {};
+  return L.tileLayer(tilesUrl, {
+    pane: 'orthophotoPane',
+    opacity: opts.opacity !== undefined ? opts.opacity : 0.85,
+    maxZoom: opts.maxZoom || 22,
+    maxNativeZoom: opts.maxNativeZoom || 20,
+    tms: opts.tms || false,
+    attribution: 'Orthophoto UAD SIG — WebODM/QGIS',
+  });
 }
 
 /* =====================================================

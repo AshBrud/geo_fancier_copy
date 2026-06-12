@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
+import json
 from .models import Espace, Batiment, FonctionBatiment
 from .forms import EspaceForm, BatimentForm
 from accounts.decorators import foncier_required
@@ -11,8 +12,19 @@ from accounts.decorators import foncier_required
 
 # --- Cartographie ---
 
+@login_required
 def cartographie(request):
-    return render(request, 'cartographie/map.html')
+    from drones.models import MissionDrone
+    missions = list(
+        MissionDrone.objects.filter(tiles_url__gt='')
+        .values('id', 'nom', 'date_mission', 'tiles_url', 'statut')
+        .order_by('-date_mission')
+    )
+    for m in missions:
+        m['date_mission'] = m['date_mission'].strftime('%d/%m/%Y') if m['date_mission'] else ''
+    return render(request, 'cartographie/map.html', {
+        'orthophotos_json': json.dumps(missions, ensure_ascii=False),
+    })
 
 
 # --- Espaces ---
