@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Row, Column, Field
+from crispy_forms.layout import Layout, Submit, Row, Column, Field, HTML
 from .models import CustomUser
 
 
@@ -85,3 +85,15 @@ class ProfileForm(forms.ModelForm):
             'telephone': 'Téléphone',
             'photo': 'Photo de profil',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(Column('first_name'), Column('last_name')),
+            Row(Column('email'), Column('telephone')),
+            'photo',
+            HTML('<div class="d-flex gap-2 mt-3">'),
+            Submit('submit', 'Enregistrer les modifications', css_class='btn btn-primary'),
+            HTML('<a href="{% url \'accounts:profile\' %}" class="btn btn-outline-secondary">Annuler</a></div>'),
+        )

@@ -2,6 +2,25 @@
 {% load crispy_forms_tags %}
 {% block title %}Mon profil{% endblock %}
 {% block breadcrumb %}<li class="breadcrumb-item active">Mon profil</li>{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-avatar {
+    width: 90px; height: 90px; border-radius: 50%;
+    object-fit: cover; border: 3px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+  .profile-avatar-initials {
+    width: 90px; height: 90px; border-radius: 50%;
+    font-size: 32px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1E3A8A, #3b5bdb);
+    color: #fff; margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
   <div>
@@ -9,29 +28,56 @@
     <p class="page-description">Gérez vos informations personnelles, votre photo et vos paramètres de connexion.</p>
   </div>
 </div>
+
 <div class="row g-4">
+
+  <!-- Carte profil -->
   <div class="col-md-4">
     <div class="card text-center p-4">
-      <div class="user-avatar-sm mx-auto mb-3" style="width:72px;height:72px;font-size:28px;border-radius:50%;">
-        {{ user.username|first|upper }}
-      </div>
-      <h5 class="fw-bold">{{ user.get_full_name|default:user.username }}</h5>
-      <span class="badge bg-primary">{{ user.get_role_display }}</span>
-      <ul class="list-group list-group-flush mt-3 text-start">
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ user.email|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Téléphone</span><span>{{ user.telephone|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Inscrit le</span><span>{{ user.date_joined|date:"d/m/Y" }}</span></li>
+
+      <!-- Photo ou initiales -->
+      {% if user.photo %}
+        <img src="{{ user.photo.url }}" alt="Photo de {{ user.get_full_name|default:user.username }}" class="profile-avatar mx-auto mb-3">
+      {% else %}
+        <div class="profile-avatar-initials mb-3">{{ user.username|first|upper }}</div>
+      {% endif %}
+
+      <h5 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h5>
+      <p class="text-muted small mb-2">@{{ user.username }}</p>
+      <span class="badge bg-primary mb-3">{{ user.get_role_display }}</span>
+
+      <ul class="list-group list-group-flush text-start">
+        <li class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted small"><i class="bi bi-envelope me-1"></i>Email</span>
+          <span class="small">{{ user.email|default:"—" }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted small"><i class="bi bi-telephone me-1"></i>Téléphone</span>
+          <span class="small">{{ user.telephone|default:"—" }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between px-0">
+          <span class="text-muted small"><i class="bi bi-calendar me-1"></i>Inscrit le</span>
+          <span class="small">{{ user.date_joined|date:"d/m/Y" }}</span>
+        </li>
       </ul>
     </div>
   </div>
+
+  <!-- Formulaire de modification -->
   <div class="col-md-8">
-    <div class="form-card">
-      <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil me-2"></i>Modifier mes informations</h6>
-      <form method="post" enctype="multipart/form-data" novalidate>
-        {% csrf_token %}
-        {% crispy form %}
-      </form>
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-pencil-square text-primary"></i>
+        <span class="fw-semibold">Modifier mes informations</span>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% crispy form %}
+        </form>
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

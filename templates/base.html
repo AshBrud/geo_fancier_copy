@@ -102,7 +102,11 @@
       </a>
       <div class="dropdown ms-1">
         <button class="btn btn-sm user-btn dropdown-toggle" data-bs-toggle="dropdown">
-          <div class="user-avatar-sm">{{ user.username|first|upper }}</div>
+          {% if user.photo %}
+            <img src="{{ user.photo.url }}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+          {% else %}
+            <div class="user-avatar-sm">{{ user.username|first|upper }}</div>
+          {% endif %}
           <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
