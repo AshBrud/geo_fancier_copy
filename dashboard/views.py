@@ -11,7 +11,8 @@ import json
 @login_required
 def index(request):
     # KPIs fonciers
-    superficie_totale = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 0
+    # Superficie totale du campus : valeur officielle (55 ha)
+    superficie_totale = 550000  # m² — 55 hectares exacts
     superficie_occupee = Espace.objects.filter(
         type_espace=Espace.TYPE_OCCUPE).aggregate(t=Sum('superficie'))['t'] or 0
     superficie_libre = Espace.objects.filter(
