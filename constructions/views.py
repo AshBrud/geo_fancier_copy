@@ -14,16 +14,41 @@ from accounts.decorators import foncier_required
 @foncier_required
 def nouvelle_construction(request):
     from django.contrib.gis.geos import GEOSGeometry
+    from foncier.models import Espace
+    import json
+
     form = NouvelleConstructionForm(request.POST or None)
     resultat = None
     zones_alternatives = []
+
+    # Sérialiser les espaces libres pour la carte
+    espaces_libres = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).order_by('nom')
+    espaces_data = []
+    for e in espaces_libres:
+        if e.geometrie:
+            espaces_data.append({
+                'id': e.pk,
+                'nom': e.nom,
+                'code': e.code,
+                'superficie': e.superficie or 0,
+                'geojson': json.loads(e.geometrie.geojson),
+            })
 
     if request.method == 'POST' and form.is_valid():
         construction = form.save(commit=False)
         construction.demandeur = request.user
 
+        espace_id = request.POST.get('espace_id', '').strip()
         zone_geojson = request.POST.get('zone_geojson', '').strip()
-        if zone_geojson:
+
+        if espace_id:
+            try:
+                espace_obj = Espace.objects.get(pk=int(espace_id))
+                if espace_obj.geometrie:
+                    construction.zone_souhaitee = espace_obj.geometrie.convex_hull
+            except (Espace.DoesNotExist, ValueError):
+                messages.warning(request, 'Espace sélectionné introuvable.')
+        elif zone_geojson:
             try:
                 construction.zone_souhaitee = GEOSGeometry(zone_geojson)
             except Exception:
@@ -46,6 +71,8 @@ def nouvelle_construction(request):
         'resultat': resultat,
         'zones_alternatives': zones_alternatives,
         'recentes': recentes,
+        'espaces_json': json.dumps(espaces_data, ensure_ascii=False),
+        'espaces_count': len(espaces_data),
     })
 
 
