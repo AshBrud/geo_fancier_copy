@@ -1,16 +1,188 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% block title %}Ajouter une orthophoto{% endblock %}
+{% block title %}Importer une orthophoto{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
+<li class="breadcrumb-item"><a href="{% url 'drones:mission_detail' mission.pk %}">{{ mission.nom }}</a></li>
+<li class="breadcrumb-item active">Importer orthophoto</li>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title"><i class="bi bi-images"></i> Ajouter une orthophoto</h1>
-  <small class="text-muted">Mission : {{ mission.nom }}</small>
+  <h1 class="page-title"><i class="bi bi-cloud-upload me-2"></i>Importer une orthophoto</h1>
 </div>
-<div class="row justify-content-center">
-  <div class="col-lg-6">
-    <div class="form-card">
-      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% crispy form %}</form>
+
+<div class="row justify-content-center g-4">
+
+  <!-- Carte mission résumé -->
+  <div class="col-lg-4 order-lg-2">
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-airplane text-primary"></i> Mission associée
+      </div>
+      <div class="card-body">
+        <h6 class="fw-bold mb-1">{{ mission.nom }}</h6>
+        <p class="text-muted small mb-2">
+          <i class="bi bi-calendar3 me-1"></i>{{ mission.date_mission|date:"d F Y" }}<br>
+          <i class="bi bi-person me-1"></i>{{ mission.operateur }}
+        </p>
+        <span class="badge
+          {% if mission.statut == 'traite' %}bg-success
+          {% elif mission.statut == 'realise' %}bg-info
+          {% else %}bg-warning text-dark{% endif %}">
+          {{ mission.get_statut_display }}
+        </span>
+      </div>
+    </div>
+
+    <div class="card bg-info-subtle border-info-subtle">
+      <div class="card-body">
+        <h6 class="fw-semibold text-info mb-2">
+          <i class="bi bi-lightbulb me-1"></i>Formats acceptés
+        </h6>
+        <ul class="small text-muted mb-0 ps-3">
+          <li>Images standards : JPG, PNG</li>
+          <li>GeoTIFF : .tif, .tiff</li>
+          <li>Exports WebODM / QGIS</li>
+        </ul>
+      </div>
     </div>
   </div>
+
+  <!-- Formulaire avec drag-and-drop -->
+  <div class="col-lg-7 order-lg-1">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-images text-primary"></i> Nouvelle orthophoto
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate id="orthoForm">
+          {% csrf_token %}
+
+          <!-- Zone de dépôt de fichier -->
+          <div class="upload-zone mb-4" id="uploadZone">
+            <i class="bi bi-cloud-upload upload-zone-icon"></i>
+            <p class="upload-zone-title">Glissez votre fichier ici</p>
+            <p class="upload-zone-sub">JPG, PNG, GeoTIFF (.tif, .tiff)</p>
+            <input type="file" name="fichier" id="fichierInput"
+                   accept="image/*,.tif,.tiff" class="upload-file-input" required>
+            <label for="fichierInput" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-folder2-open me-1"></i>Parcourir
+            </label>
+            <div class="upload-file-preview d-none" id="filePreview">
+              <i class="bi bi-file-earmark-image text-success"></i>
+              <span class="upload-file-name" id="fileName"></span>
+              <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" id="clearFile">
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Champs du formulaire (sans le champ fichier) -->
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold small">Mission</label>
+              {{ form.mission }}
+              {% if form.mission.errors %}
+              <div class="invalid-feedback d-block">{{ form.mission.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">Date de prise de vue</label>
+              {{ form.date_prise }}
+              {% if form.date_prise.errors %}
+              <div class="invalid-feedback d-block">{{ form.date_prise.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold small">Nom de l'orthophoto</label>
+              {{ form.nom }}
+              {% if form.nom.errors %}
+              <div class="invalid-feedback d-block">{{ form.nom.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">
+                Résolution <small class="text-muted fw-normal">(cm/px)</small>
+              </label>
+              {{ form.resolution }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Description (optionnel)</label>
+              {{ form.description }}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-success px-4" id="submitBtn" disabled>
+              <i class="bi bi-cloud-upload me-2"></i>Importer
+            </button>
+            <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-light">
+              Annuler
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const zone      = document.getElementById('uploadZone');
+  const input     = document.getElementById('fichierInput');
+  const preview   = document.getElementById('filePreview');
+  const fileName  = document.getElementById('fileName');
+  const clearBtn  = document.getElementById('clearFile');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function showFile(file) {
+    fileName.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' Ko)';
+    preview.classList.remove('d-none');
+    zone.classList.add('upload-zone--has-file');
+    submitBtn.disabled = false;
+  }
+
+  function clearFile() {
+    input.value = '';
+    preview.classList.add('d-none');
+    zone.classList.remove('upload-zone--has-file');
+    submitBtn.disabled = true;
+  }
+
+  input.addEventListener('change', function () {
+    if (this.files[0]) showFile(this.files[0]);
+  });
+
+  clearBtn.addEventListener('click', clearFile);
+
+  zone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    zone.classList.add('upload-zone--drag');
+  });
+  zone.addEventListener('dragleave', function () {
+    zone.classList.remove('upload-zone--drag');
+  });
+  zone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    zone.classList.remove('upload-zone--drag');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      showFile(file);
+    }
+  });
+
+  // Remplir automatiquement le nom si vide
+  input.addEventListener('change', function () {
+    const nomField = document.querySelector('[name="nom"]');
+    if (this.files[0] && !nomField.value) {
+      nomField.value = this.files[0].name.replace(/\.[^.]+$/, '');
+    }
+  });
+</script>
 {% endblock %}

@@ -10,14 +10,28 @@ from accounts.decorators import domaine_required
 @login_required
 @domaine_required
 def missions_list(request):
-    missions = MissionDrone.objects.prefetch_related('orthophotos').all()
-    paginator = Paginator(missions, 10)
+    statut = request.GET.get('statut', '')
+    qs = MissionDrone.objects.prefetch_related('orthophotos').order_by('-date_mission')
+    if statut:
+        qs = qs.filter(statut=statut)
+    paginator = Paginator(qs, 8)
     page = paginator.get_page(request.GET.get('page'))
     return render(request, 'drones/missions_list.html', {
         'page_obj': page,
+        'statut_actif': statut,
         'total_missions': MissionDrone.objects.count(),
         'total_orthophotos': Orthophoto.objects.count(),
+        'nb_planifiees': MissionDrone.objects.filter(statut='planifie').count(),
+        'nb_realisees': MissionDrone.objects.filter(statut='realise').count(),
+        'nb_traitees': MissionDrone.objects.filter(statut='traite').count(),
     })
+
+
+@login_required
+@domaine_required
+def mission_detail(request, pk):
+    mission = get_object_or_404(MissionDrone, pk=pk)
+    return render(request, 'drones/mission_detail.html', {'mission': mission})
 
 
 @login_required

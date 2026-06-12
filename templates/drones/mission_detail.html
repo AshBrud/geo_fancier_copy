@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}{{ mission.nom }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
+<li class="breadcrumb-item active">{{ mission.nom }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-airplane me-2"></i>{{ mission.nom }}</h1>
+    <span class="text-muted small">
+      <i class="bi bi-calendar3 me-1"></i>{{ mission.date_mission|date:"d F Y" }}
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'drones:orthophoto_add' mission.pk %}" class="btn btn-success">
+      <i class="bi bi-cloud-upload me-2"></i>Importer orthophoto
+    </a>
+    <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Colonne gauche : infos mission -->
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle text-primary"></i> Informations
+      </div>
+      <div class="card-body">
+        <dl class="drone-detail-dl">
+          <dt><i class="bi bi-person me-1 text-muted"></i>Opérateur</dt>
+          <dd>{{ mission.operateur }}</dd>
+
+          {% if mission.drone_utilise %}
+          <dt><i class="bi bi-joystick me-1 text-muted"></i>Drone utilisé</dt>
+          <dd>{{ mission.drone_utilise }}</dd>
+          {% endif %}
+
+          <dt><i class="bi bi-flag me-1 text-muted"></i>Statut</dt>
+          <dd>
+            <span class="badge
+              {% if mission.statut == 'traite' %}bg-success
+              {% elif mission.statut == 'realise' %}bg-info
+              {% else %}bg-warning text-dark{% endif %}">
+              {{ mission.get_statut_display }}
+            </span>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Paramètres de vol -->
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-bar-chart text-primary"></i> Paramètres de vol
+      </div>
+      <div class="card-body">
+        <div class="row g-3 text-center">
+          <div class="col-6">
+            <div class="drone-stat-box">
+              <div class="drone-stat-value">
+                {% if mission.altitude_vol %}{{ mission.altitude_vol }} m{% else %}—{% endif %}
+              </div>
+              <div class="drone-stat-label">Altitude</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="drone-stat-box">
+              <div class="drone-stat-value">
+                {% if mission.recouvrement %}{{ mission.recouvrement }}%{% else %}—{% endif %}
+              </div>
+              <div class="drone-stat-label">Recouvrement</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="drone-stat-box">
+              <div class="drone-stat-value">{{ mission.orthophotos.count }}</div>
+              <div class="drone-stat-label">Orthophotos</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="drone-stat-box">
+              {% with res=mission.orthophotos.first %}
+              <div class="drone-stat-value">
+                {% if res and res.resolution %}{{ res.resolution }} cm/px{% else %}—{% endif %}
+              </div>
+              {% endwith %}
+              <div class="drone-stat-label">Résolution</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WebODM -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-map text-primary"></i> Intégration cartographique
+      </div>
+      <div class="card-body">
+        {% if mission.tiles_url %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-check-circle-fill text-success"></i>
+          <span class="small fw-semibold text-success">Tuiles WebODM configurées</span>
+        </div>
+        <code class="small text-muted d-block text-break bg-light rounded p-2">{{ mission.tiles_url }}</code>
+        <p class="text-muted small mt-2 mb-0">
+          Cette couche est disponible dans la page Cartographie.
+        </p>
+        {% else %}
+        <div class="d-flex align-items-start gap-2 text-muted">
+          <i class="bi bi-info-circle mt-1 flex-shrink-0"></i>
+          <p class="small mb-2">
+            Aucune URL de tuiles configurée. Après traitement WebODM,
+            exportez les tuiles et renseignez l'URL dans
+            <a href="{% url 'drones:mission_update' mission.pk %}">la modification de mission</a>.
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite : orthophotos -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-images text-primary"></i>
+          Orthophotos
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">
+            {{ mission.orthophotos.count }}
+          </span>
+        </span>
+        <a href="{% url 'drones:orthophoto_add' mission.pk %}"
+           class="btn btn-sm btn-success">
+          <i class="bi bi-cloud-upload me-1"></i>Importer
+        </a>
+      </div>
+      <div class="card-body">
+        {% if mission.orthophotos.exists %}
+        <div class="row g-3">
+          {% for ortho in mission.orthophotos.all %}
+          <div class="col-sm-6 col-md-4">
+            <div class="drone-ortho-card">
+              <div class="drone-ortho-card-img">
+                <img src="{{ ortho.fichier.url }}" alt="{{ ortho.nom }}">
+              </div>
+              <div class="drone-ortho-card-body">
+                <div class="fw-semibold small text-truncate mb-1">{{ ortho.nom }}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">
+                    <i class="bi bi-calendar3 me-1"></i>{{ ortho.date_prise|date:"d/m/Y" }}
+                  </small>
+                  {% if ortho.resolution %}
+                  <small class="text-muted">{{ ortho.resolution }} cm/px</small>
+                  {% endif %}
+                </div>
+                {% if ortho.description %}
+                <p class="text-muted small mb-1 mt-1">{{ ortho.description }}</p>
+                {% endif %}
+              </div>
+              <div class="drone-ortho-card-actions">
+                <a href="{{ ortho.fichier.url }}" target="_blank"
+                   class="btn btn-sm btn-outline-primary flex-grow-1">
+                  <i class="bi bi-eye me-1"></i>Voir
+                </a>
+                <a href="{% url 'drones:orthophoto_delete' ortho.pk %}"
+                   class="btn btn-sm btn-outline-danger"
+                   data-confirm="Supprimer l'orthophoto « {{ ortho.nom }} » ?">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-cloud-upload fs-1 text-muted d-block mb-3"></i>
+          <h6 class="text-muted">Aucune orthophoto importée</h6>
+          <p class="text-muted small mb-4">
+            Traitez d'abord les photos avec WebODM, puis importez les fichiers résultants.
+          </p>
+          <a href="{% url 'drones:orthophoto_add' mission.pk %}"
+             class="btn btn-success">
+            <i class="bi bi-cloud-upload me-2"></i>Importer la première orthophoto
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if mission.description %}
+    <div class="card mt-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-card-text text-primary"></i> Description
+      </div>
+      <div class="card-body text-muted small">{{ mission.description }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
