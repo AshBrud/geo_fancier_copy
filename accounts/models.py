@@ -6,20 +6,16 @@ class CustomUser(AbstractUser):
     ROLE_ADMIN = 'admin'
     ROLE_DOMAINE = 'domaine_foncier'
     ROLE_ADMINISTRATION = 'administration'
-    ROLE_ENSEIGNANT = 'enseignant'
-    ROLE_ETUDIANT = 'etudiant'
-    ROLE_VISITEUR = 'visiteur'
+    ROLE_OBSERVATEUR = 'observateur'
 
     ROLES = [
         (ROLE_ADMIN, 'Administrateur'),
         (ROLE_DOMAINE, 'Responsable Domaine Foncier'),
         (ROLE_ADMINISTRATION, 'Administration Universitaire'),
-        (ROLE_ENSEIGNANT, 'Enseignant'),
-        (ROLE_ETUDIANT, 'Etudiant'),
-        (ROLE_VISITEUR, 'Visiteur'),
+        (ROLE_OBSERVATEUR, 'Observateur UAD'),
     ]
 
-    role = models.CharField(max_length=20, choices=ROLES, default=ROLE_VISITEUR)
+    role = models.CharField(max_length=20, choices=ROLES, default=ROLE_OBSERVATEUR)
     telephone = models.CharField(max_length=20, blank=True)
     photo = models.ImageField(upload_to='profils/', blank=True, null=True)
 
@@ -44,8 +40,8 @@ class CustomUser(AbstractUser):
 
     @property
     def can_view_stats(self):
-        return self.role in [self.ROLE_ADMIN, self.ROLE_DOMAINE, self.ROLE_ADMINISTRATION,
-                             self.ROLE_ENSEIGNANT, self.ROLE_ETUDIANT]
+        return self.role in [self.ROLE_ADMIN, self.ROLE_DOMAINE,
+                             self.ROLE_ADMINISTRATION, self.ROLE_OBSERVATEUR]
 
 
 class ActivityLog(models.Model):
