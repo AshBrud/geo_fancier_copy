@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Recherche & Navigation{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Recherche</li>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-search"></i> Recherche & Navigation</h1>
+</div>
+
+<!-- Barre de recherche principale -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-8 position-relative">
+        <div class="input-group">
+          <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" id="searchInput" class="form-control form-control-lg"
+                 placeholder="Rechercher un bâtiment, un espace, une infrastructure..."
+                 value="{{ q }}" autocomplete="off">
+          <div id="searchSuggestions" class="dropdown-menu w-100 d-none shadow" style="top:100%;position:absolute;z-index:1050;max-height:300px;overflow-y:auto;"></div>
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-lg px-4">Rechercher</button>
+      </div>
+      {% if q %}
+      <div class="col-auto">
+        <a href="{% url 'navigation:recherche' %}" class="btn btn-outline-secondary btn-lg">Effacer</a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if q %}
+<div class="row g-4">
+  <!-- Résultats texte -->
+  <div class="col-lg-5">
+    <h5 class="fw-semibold mb-3">
+      {{ nb_resultats }} résultat(s) pour « {{ q }} »
+    </h5>
+
+    {% if batiments %}
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-building me-2 text-primary"></i>Bâtiments ({{ batiments|length }})</div>
+      <div class="list-group list-group-flush">
+        {% for b in batiments %}
+        <a href="{% url 'foncier:batiment_detail' b.pk %}"
+           class="list-group-item list-group-item-action search-result-item"
+           data-lat="{% if b.geometrie %}{{ b.geometrie.centroid.y }}{% endif %}"
+           data-lng="{% if b.geometrie %}{{ b.geometrie.centroid.x }}{% endif %}"
+           data-nom="{{ b.nom }}">
+          <div class="search-icon bg-primary bg-opacity-10 text-primary">
+            <i class="bi bi-building"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ b.nom }}</div>
+            <small class="text-muted">{{ b.code }} · {{ b.fonction|default:"Bâtiment" }}</small>
+          </div>
+          <i class="bi bi-chevron-right text-muted ms-auto"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if espaces %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-grid-3x3-gap me-2 text-success"></i>Espaces ({{ espaces|length }})</div>
+      <div class="list-group list-group-flush">
+        {% for e in espaces %}
+        <div class="list-group-item search-result-item result-espace"
+             data-lat="{% if e.geometrie %}{{ e.geometrie.centroid.y }}{% endif %}"
+             data-lng="{% if e.geometrie %}{{ e.geometrie.centroid.x }}{% endif %}"
+             data-nom="{{ e.nom }}" style="cursor:pointer">
+          <div class="search-icon bg-success bg-opacity-10 text-success">
+            <i class="bi bi-grid-3x3-gap"></i>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ e.nom }}</div>
+            <small class="text-muted">{{ e.code }} · <span class="badge-espace badge-{{ e.type_espace }}">{{ e.get_type_espace_display }}</span></small>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not batiments and not espaces %}
+    <div class="card"><div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-search fs-2 d-block mb-2"></i>
+      Aucun résultat pour « {{ q }} »
+    </div></div>
+    {% endif %}
+  </div>
+
+  <!-- Carte résultats -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-map me-2"></i>Localisation sur le campus</div>
+      <div id="result-map" style="height:500px;border-radius:0 0 10px 10px;"></div>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- Vue carte complète quand pas de recherche -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-map me-2"></i>Campus UAD</div>
+  <div id="result-map" style="height:520px;border-radius:0 0 10px 10px;"></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js_vendor %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>{% endblock %}
+{% block extra_js %}
+<script>
+  const map = initCampusMap('result-map');
+  loadEspaces(map);
+  loadBatiments(map);
+
+  // Clic sur résultat → zoom sur la carte
+  document.querySelectorAll('.search-result-item[data-lat]').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      const lat = parseFloat(this.dataset.lat);
+      const lng = parseFloat(this.dataset.lng);
+      if (lat && lng) {
+        map.setView([lat, lng], 19);
+        L.popup().setLatLng([lat, lng])
+          .setContent('<strong>' + this.dataset.nom + '</strong>')
+          .openOn(map);
+      }
+    });
+  });
+
+  // Autocomplete
+  initSearchAutocomplete('searchInput', 'searchSuggestions');
+  document.querySelectorAll('#searchSuggestions a').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      const lat = parseFloat(this.dataset.lat);
+      const lng = parseFloat(this.dataset.lng);
+      if (lat && lng) { map.setView([lat, lng], 19); }
+    });
+  });
+</script>
+{% endblock %}

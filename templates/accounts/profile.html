@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Mon profil{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Mon profil</li>{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title"><i class="bi bi-person-circle"></i> Mon profil</h1></div>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card text-center p-4">
+      <div class="user-avatar-sm mx-auto mb-3" style="width:72px;height:72px;font-size:28px;border-radius:50%;">
+        {{ user.username|first|upper }}
+      </div>
+      <h5 class="fw-bold">{{ user.get_full_name|default:user.username }}</h5>
+      <span class="badge bg-primary">{{ user.get_role_display }}</span>
+      <ul class="list-group list-group-flush mt-3 text-start">
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ user.email|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Téléphone</span><span>{{ user.telephone|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Inscrit le</span><span>{{ user.date_joined|date:"d/m/Y" }}</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="form-card">
+      <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil me-2"></i>Modifier mes informations</h6>
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% crispy form %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

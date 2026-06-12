@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Gestion des Utilisateurs{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Utilisateurs</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-people"></i> Utilisateurs</h1>
+  <a href="{% url 'accounts:user_create' %}" class="btn btn-primary">
+    <i class="bi bi-person-plus me-2"></i>Ajouter un utilisateur
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Inscrit le</th><th>Dernière connexion</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="user-avatar-sm">{{ u.username|first|upper }}</div>
+              <div>
+                <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                <small class="text-muted">{{ u.username }}</small>
+              </div>
+            </div>
+          </td>
+          <td class="text-muted small">{{ u.email|default:"—" }}</td>
+          <td>
+            <span class="badge {% if u.role == 'admin' %}bg-danger{% elif u.role == 'domaine_foncier' %}bg-primary{% elif u.role == 'administration' %}bg-info{% else %}bg-secondary{% endif %}">
+              {{ u.get_role_display }}
+            </span>
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge bg-success">Actif</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactif</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ u.date_joined|date:"d/m/Y" }}</td>
+          <td class="text-muted small">{{ u.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{% url 'accounts:user_update' u.pk %}"
+                 class="btn btn-icon btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% if u.pk != request.user.pk %}
+              <a href="{% url 'accounts:user_delete' u.pk %}"
+                 class="btn btn-icon btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-5 text-muted">Aucun utilisateur</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

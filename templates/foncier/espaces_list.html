@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Gestion des Espaces{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="#">Gestion Foncière</a></li>
+<li class="breadcrumb-item active">Espaces</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-grid-3x3-gap"></i> Espaces Fonciers</h1>
+  {% if user.can_manage_foncier %}
+  <a href="{% url 'foncier:espace_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-2"></i>Ajouter un espace
+  </a>
+  {% endif %}
+</div>
+
+<!-- Stats par type -->
+<div class="row g-3 mb-4">
+  {% for type_key, type_label in types %}
+  <div class="col-6 col-md-2">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-5" style="color:{% if type_key == 'libre' %}#16A34A{% elif type_key == 'occupe' %}#DC2626{% elif type_key == 'reserve' %}#F59E0B{% else %}#6B7280{% endif %}">
+        {{ stats|dictsort:type_key }}
+      </div>
+      <div class="small text-muted">{{ type_label }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Rechercher nom ou code..." value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="type" class="form-select form-select-sm">
+          <option value="">Tous les types</option>
+          {% for t_key, t_label in types %}
+          <option value="{{ t_key }}" {% if type_filter == t_key %}selected{% endif %}>{{ t_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+        <a href="{% url 'foncier:espaces' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tableau -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-uad mb-0">
+        <thead>
+          <tr>
+            <th>Code</th><th>Nom</th><th>Type</th>
+            <th>Superficie</th><th>Usage</th><th>Date</th>
+            {% if user.can_manage_foncier %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for esp in page_obj %}
+          <tr>
+            <td><code class="bg-light px-2 py-1 rounded">{{ esp.code }}</code></td>
+            <td class="fw-semibold">{{ esp.nom }}</td>
+            <td>
+              <span class="badge-espace badge-{{ esp.type_espace }}">
+                {{ esp.get_type_espace_display }}
+              </span>
+            </td>
+            <td>
+              {% if esp.superficie %}
+                <span class="fw-semibold">{{ esp.superficie|floatformat:0 }} m²</span>
+                <small class="text-muted d-block">{{ esp.superficie_ha }} ha</small>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ esp.usage|default:"—" }}</td>
+            <td class="text-muted small">{{ esp.date_creation|date:"d/m/Y" }}</td>
+            {% if user.can_manage_foncier %}
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'foncier:espace_update' esp.pk %}"
+                   class="btn btn-icon btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Modifier">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'foncier:espace_delete' esp.pk %}"
+                   class="btn btn-icon btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun espace trouvé
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+    <small class="text-muted">{{ page_obj.paginator.count }} résultat(s)</small>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ type_filter }}">‹</a></li>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+      <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+        <a class="page-link" href="?page={{ num }}&q={{ q }}&type={{ type_filter }}">{{ num }}</a>
+      </li>
+      {% endfor %}
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ type_filter }}">›</a></li>
+      {% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

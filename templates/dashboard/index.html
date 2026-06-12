@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Tableau de bord</li>{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
+  <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>{% now "d F Y" %}</span>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon"><i class="bi bi-map"></i></div>
+      <div class="kpi-value">{{ superficie_totale }} ha</div>
+      <div class="kpi-label">Superficie totale</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-secondary">
+      <div class="kpi-icon"><i class="bi bi-building"></i></div>
+      <div class="kpi-value">{{ total_batiments }}</div>
+      <div class="kpi-label">Bâtiments actifs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-info">
+      <div class="kpi-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+      <div class="kpi-value">{{ total_espaces }}</div>
+      <div class="kpi-label">Espaces gérés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-warning">
+      <div class="kpi-icon"><i class="bi bi-percent"></i></div>
+      <div class="kpi-value">{{ taux_occupation }}%</div>
+      <div class="kpi-label">Taux d'occupation</div>
+    </div>
+  </div>
+</div>
+
+<!-- Statistiques détaillées + Graphiques -->
+<div class="row g-3 mb-4">
+  <!-- Répartition des espaces -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-pie-chart text-primary"></i> Répartition des espaces
+      </div>
+      <div class="card-body">
+        <div style="height:220px"><canvas id="espaceChart"></canvas></div>
+        <div class="row g-2 mt-2">
+          <div class="col-6">
+            <div class="stat-row">
+              <span><span class="legend-color d-inline-block bg-success me-2" style="width:10px;height:10px;border-radius:2px"></span>Libres</span>
+              <strong>{{ superficie_libre }} ha</strong>
+            </div>
+            <div class="stat-row">
+              <span><span class="legend-color d-inline-block bg-danger me-2" style="width:10px;height:10px;border-radius:2px"></span>Occupés</span>
+              <strong>{{ superficie_occupee }} ha</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-row">
+              <span><span class="legend-color d-inline-block bg-warning me-2" style="width:10px;height:10px;border-radius:2px"></span>Réservés</span>
+              <strong>{{ superficie_reservee }} ha</strong>
+            </div>
+            <div class="stat-row">
+              <span><span class="legend-color d-inline-block bg-secondary me-2" style="width:10px;height:10px;border-radius:2px"></span>Missions</span>
+              <strong>{{ total_missions }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taux d'occupation -->
+  <div class="col-lg-3">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-activity text-primary"></i> Occupation
+      </div>
+      <div class="card-body d-flex flex-column justify-content-center gap-3">
+        <div>
+          <div class="d-flex justify-content-between mb-1 small fw-semibold">
+            <span>Occupé</span><span class="text-danger">{{ taux_occupation }}%</span>
+          </div>
+          <div class="progress"><div class="progress-bar bg-danger" style="width:{{ taux_occupation }}%"></div></div>
+        </div>
+        <div>
+          {% with pct_libre=superficie_libre|floatformat:2 %}
+          <div class="d-flex justify-content-between mb-1 small fw-semibold">
+            <span>Libre</span>
+            <span class="text-success">{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}%{% endif %}</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar bg-success" style="width:{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}{% endif %}%"></div>
+          </div>
+          {% endwith %}
+        </div>
+        <div>
+          <div class="d-flex justify-content-between mb-1 small fw-semibold">
+            <span>Réservé</span>
+            <span class="text-warning">{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}%{% endif %}</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar bg-warning" style="width:{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}{% endif %}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Évolution des constructions -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-bar-chart text-primary"></i> Évolution des constructions
+      </div>
+      <div class="card-body">
+        <div style="height:240px"><canvas id="evolChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dernières activités + Constructions récentes -->
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i> Activités récentes
+      </div>
+      <div class="card-body p-0">
+        {% if activites %}
+        <ul class="list-group list-group-flush">
+          {% for log in activites %}
+          <li class="list-group-item px-4 py-3 d-flex align-items-center gap-3">
+            <div class="user-avatar-sm flex-shrink-0">{{ log.user.username|first|upper }}</div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold small text-truncate">{{ log.action }}</div>
+              <small class="text-muted">{{ log.user.get_full_name|default:log.user.username }}</small>
+            </div>
+            <small class="text-muted text-nowrap">{{ log.timestamp|timesince }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucune activité récente
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-building-add text-primary"></i> Demandes de construction
+        </span>
+        <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+      </div>
+      <div class="card-body p-0">
+        {% if constructions_recentes %}
+        <ul class="list-group list-group-flush">
+          {% for c in constructions_recentes %}
+          <li class="list-group-item px-4 py-3 d-flex align-items-center gap-3">
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold small text-truncate">{{ c.nom_projet }}</div>
+              <small class="text-muted">{{ c.superficie_souhaitee|floatformat:0 }} m² · {{ c.date_demande|date:"d/m/Y" }}</small>
+            </div>
+            <span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-building-add fs-2 d-block mb-2"></i>Aucune demande en cours
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const chartLabels = {{ chart_labels|safe }};
+  const chartData   = {{ chart_data|safe }};
+  const chartColors = {{ chart_colors|safe }};
+  const evolLabels  = {{ evol_labels|safe }};
+  const evolData    = {{ evol_data|safe }};
+
+  if (chartLabels.length) {
+    createDonutChart('espaceChart', chartLabels, chartData, chartColors);
+  }
+  if (evolLabels.length) {
+    createBarChart('evolChart', evolLabels, evolData, '#1E3A8A');
+  } else {
+    const ctx = document.getElementById('evolChart');
+    if (ctx) ctx.parentElement.innerHTML =
+      '<p class="text-center text-muted py-5">Aucune donnée historique disponible</p>';
+  }
+</script>
+{% endblock %}

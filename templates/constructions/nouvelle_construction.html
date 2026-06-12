@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Nouvelle Construction{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Nouvelle Construction</li>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-building-add"></i> Analyse de faisabilité</h1>
+  <a href="{% url 'constructions:list' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-list me-1"></i>Voir les demandes
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Formulaire -->
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil-square me-2"></i>Nouvelle demande</h6>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% crispy form %}
+      </form>
+    </div>
+
+    <!-- Résultat de l'analyse -->
+    {% if resultat %}
+    <div class="feasibility-result mt-3 {% if resultat.disponible %}feasibility-ok{% else %}feasibility-nok{% endif %}">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-{% if resultat.disponible %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %} fs-4"></i>
+        <strong>{% if resultat.disponible %}Zone disponible{% else %}Zone non disponible{% endif %}</strong>
+      </div>
+      <p class="small mb-0">{{ resultat.rapport }}</p>
+      {% if resultat.construction.zones_alternatives %}
+      <div class="mt-2 small">
+        <strong>Alternatives :</strong> {{ resultat.construction.zones_alternatives }}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Carte -->
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-map me-2"></i>Zones disponibles sur le campus
+      </div>
+      <div class="card-body p-0">
+        <div id="construction-map" style="height:500px;border-radius:0 0 10px 10px;"></div>
+      </div>
+      <div class="card-footer bg-transparent">
+        <div class="d-flex gap-3 flex-wrap small">
+          <span><span class="badge-espace badge-libre me-1">●</span> Espaces libres (constructibles)</span>
+          <span><span class="badge-espace badge-occupe me-1">●</span> Espaces occupés</span>
+          <span><span class="badge-espace badge-reserve me-1">●</span> Espaces réservés</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Demandes récentes -->
+{% if recentes %}
+<div class="card mt-4">
+  <div class="card-header"><i class="bi bi-clock-history me-2"></i>Demandes récentes</div>
+  <div class="table-responsive">
+    <table class="table table-uad mb-0">
+      <thead><tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for c in recentes %}
+        <tr>
+          <td class="fw-semibold">{{ c.nom_projet }}</td>
+          <td class="text-muted">{{ c.type_construction }}</td>
+          <td>{{ c.superficie_souhaitee|floatformat:0 }} m²</td>
+          <td><span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span></td>
+          <td class="text-muted small">{{ c.date_demande|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js_vendor %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>{% endblock %}
+{% block extra_js %}
+<script>
+  const map = initCampusMap('construction-map');
+  loadEspaces(map);
+  loadBatiments(map);
+</script>
+{% endblock %}

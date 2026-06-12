@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Connexion — UAD SIG{% endblock %}
+
+{% block auth_content %}
+<div style="display:contents">
+
+<!-- ══════════════ PANNEAU GAUCHE ══════════════ -->
+<div class="auth-left-panel">
+  <img src="{% static 'images/drone_campus.jpg' %}" alt="Campus UAD vue drone"
+       class="auth-drone-img" onerror="this.style.display='none'">
+  <div class="auth-left-overlay"></div>
+
+  <div class="auth-left-body">
+
+    <!-- Badge université -->
+    <div class="auth-univ-badge">
+      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white"></i></div>
+      <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
+    </div>
+
+    <!-- Titre -->
+    <div class="auth-app-title">UAD <span class="accent">SIG</span></div>
+
+    <!-- Règle décorative -->
+    <div class="auth-title-rule">
+      <div class="rule-line"></div>
+      <span>Système d'Information Géographique</span>
+    </div>
+
+    <!-- Description -->
+    <p class="auth-app-sub">
+      Plateforme intelligente de gestion du domaine foncier universitaire.
+      Cartographiez les espaces du campus, analysez les données collectées
+      par drones et pilotez chaque projet d'aménagement en temps réel.
+    </p>
+
+    <!-- Colonnes verticales animées -->
+    <div class="auth-feat-container">
+      <!-- Colonne gauche : descend -->
+      <div class="auth-marquee-col">
+        <div class="auth-marquee-track">
+          {% include 'accounts/_feat_items.html' %}
+          {% include 'accounts/_feat_items.html' %}
+        </div>
+      </div>
+      <!-- Colonne droite : monte -->
+      <div class="auth-marquee-col">
+        <div class="auth-marquee-track up">
+          {% include 'accounts/_feat_items_alt.html' %}
+          {% include 'accounts/_feat_items_alt.html' %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="auth-left-footer">
+      <span class="footer-copy">
+        &copy; 2026 UAD SIG &mdash; UFR SATIC &mdash; Licence 3 SRT
+      </span>
+      <span class="footer-badge">
+        <i class="bi bi-shield-check"></i> Sécurisé
+      </span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ PANNEAU DROIT ══════════════ -->
+<div class="auth-right-panel">
+
+  <div class="auth-card-box">
+
+    <!-- En-tête de carte -->
+    <div class="auth-card-header">
+      <div class="auth-card-icon login-icon">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <div class="auth-card-header-text">
+        <h3>Connexion</h3>
+        <p>Accédez à votre espace de gestion foncière</p>
+      </div>
+    </div>
+
+    <!-- Messages Django -->
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="auth-alert mb-3">
+        <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Formulaire -->
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="auth-field">
+        <label>Nom d'utilisateur</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-person field-icon"></i>
+          <input type="text" name="username" placeholder="Votre identifiant"
+                 value="{{ form.username.value|default:'' }}"
+                 class="{% if form.username.errors %}is-invalid{% endif %}"
+                 autofocus required>
+        </div>
+        {% if form.username.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="auth-field">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="mb-0">Mot de passe</label>
+          <a href="{% url 'accounts:password_reset' %}" class="auth-forgot-link">
+            <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+          </a>
+        </div>
+        <div class="auth-input-wrap">
+          <i class="bi bi-lock field-icon"></i>
+          <input type="password" name="password" id="pwdLogin" placeholder="••••••••"
+                 class="{% if form.password.errors %}is-invalid{% endif %}" required>
+          <button type="button" class="toggle-eye" id="toggleLogin">
+            <i class="bi bi-eye" id="eyeLogin"></i>
+          </button>
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+      <div class="auth-alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+        Identifiant ou mot de passe incorrect.
+      </div>
+      {% endif %}
+
+      <button type="submit" class="auth-btn btn-login">
+        <i class="bi bi-box-arrow-in-right"></i> Se connecter
+      </button>
+    </form>
+
+    <div class="auth-switch-link">
+      Pas encore de compte ?
+      <a href="{% url 'accounts:register' %}">Créer un compte</a>
+    </div>
+
+  </div>
+
+  <div class="auth-right-footer">
+    Université Alioune Diop de Bambey &mdash; Domaine Foncier &mdash; 2026
+  </div>
+
+</div>
+
+</div>
+
+<script>
+document.getElementById('toggleLogin').addEventListener('click', function () {
+  const p = document.getElementById('pwdLogin');
+  const i = document.getElementById('eyeLogin');
+  p.type = p.type === 'password' ? 'text' : 'password';
+  i.classList.toggle('bi-eye'); i.classList.toggle('bi-eye-slash');
+});
+</script>
+{% endblock %}

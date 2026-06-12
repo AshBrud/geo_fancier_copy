@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Gestion des Bâtiments{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="#">Gestion Foncière</a></li>
+<li class="breadcrumb-item active">Bâtiments</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-building"></i> Bâtiments</h1>
+  {% if user.can_manage_foncier %}
+  <a href="{% url 'foncier:batiment_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-2"></i>Ajouter un bâtiment
+  </a>
+  {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4 text-primary">{{ total_batiments }}</div>
+      <div class="small text-muted">Total bâtiments</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4 text-info">{{ superficie_totale|floatformat:0 }} m²</div>
+      <div class="small text-muted">Superficie bâtie</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4 text-success">{{ superficie_totale|floatformat:4 }} ha</div>
+      <div class="small text-muted">En hectares</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtre recherche -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Nom ou code du bâtiment..." value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Rechercher</button>
+        <a href="{% url 'foncier:batiments' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-uad mb-0">
+        <thead>
+          <tr>
+            <th>Code</th><th>Nom</th><th>Fonction</th>
+            <th>Étages</th><th>Superficie</th><th>Capacité</th><th>Année</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bat in page_obj %}
+          <tr>
+            <td><code class="bg-light px-2 py-1 rounded">{{ bat.code }}</code></td>
+            <td>
+              <a href="{% url 'foncier:batiment_detail' bat.pk %}" class="fw-semibold text-decoration-none text-primary">
+                {{ bat.nom }}
+              </a>
+            </td>
+            <td class="text-muted small">{{ bat.fonction|default:"—" }}</td>
+            <td class="text-center">{{ bat.etages }}</td>
+            <td>
+              {% if bat.superficie %}
+                {{ bat.superficie|floatformat:0 }} m²
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-muted">{{ bat.capacite|default:"—" }}</td>
+            <td class="text-muted">{{ bat.annee_construction|default:"—" }}</td>
+            <td>
+              {% if bat.est_actif %}
+                <span class="badge bg-success">Actif</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactif</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'foncier:batiment_detail' bat.pk %}"
+                   class="btn btn-icon btn-outline-info btn-sm" data-bs-toggle="tooltip" title="Détail">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if user.can_manage_foncier %}
+                <a href="{% url 'foncier:batiment_update' bat.pk %}"
+                   class="btn btn-icon btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Modifier">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'foncier:batiment_delete' bat.pk %}"
+                   class="btn btn-icon btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-center py-5 text-muted">
+            <i class="bi bi-building fs-2 d-block mb-2"></i>Aucun bâtiment enregistré
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+    <small class="text-muted">{{ page_obj.paginator.count }} bâtiment(s)</small>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">‹</a></li>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+      <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+        <a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a>
+      </li>
+      {% endfor %}
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">›</a></li>
+      {% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

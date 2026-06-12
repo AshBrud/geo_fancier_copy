@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ action }} un utilisateur{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:users' %}">Utilisateurs</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title"><i class="bi bi-person"></i> {{ action }} un utilisateur</h1></div>
+<div class="row justify-content-center"><div class="col-lg-6">
+  <div class="form-card"><form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% crispy form %}</form></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Aide au PDU{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Aide au PDU</li>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-diagram-3"></i> Aide à la Planification Urbaine (PDU)</h1>
+  <a href="{% url 'pdu:statistiques' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-bar-chart-line me-1"></i>Statistiques détaillées
+  </a>
+</div>
+
+<!-- Recommandations -->
+{% for rec in recommandations %}
+<div class="alert alert-{{ rec.niveau }} d-flex gap-3 align-items-start mb-3">
+  <i class="bi bi-{% if rec.niveau == 'success' %}check-circle-fill{% elif rec.niveau == 'danger' %}x-circle-fill{% elif rec.niveau == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} fs-5 flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>{{ rec.titre }}</strong>
+    <p class="mb-0 small mt-1">{{ rec.texte }}</p>
+  </div>
+</div>
+{% endfor %}
+
+<div class="row g-4">
+  <!-- Occupation du sol -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Occupation du sol</div>
+      <div class="card-body">
+        <div style="height:220px"><canvas id="pduChart"></canvas></div>
+        <div class="mt-3">
+          {% for item in occupation %}
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="width:12px;height:12px;background:{{ item.couleur }};border-radius:3px;display:inline-block;flex-shrink:0;"></span>
+              <span class="small">{{ item.type }}</span>
+            </div>
+            <div class="text-end">
+              <span class="fw-semibold small">{{ item.superficie }} ha</span>
+              <span class="text-muted small ms-2">({{ item.pourcentage }}%)</span>
+            </div>
+          </div>
+          <div class="progress mb-2" style="height:5px">
+            <div class="progress-bar" style="width:{{ item.pourcentage }}%;background:{{ item.couleur }}"></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Indicateurs clés -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bar-chart me-2"></i>Indicateurs clés</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="text-muted">Superficie totale</span>
+          <strong class="text-primary">{{ total_superficie }} ha</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="text-muted">Zones constructibles</span>
+          <strong class="text-success">{{ superficie_constructible }} ha</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="text-muted">Taux de terrain libre</span>
+          <strong class="{% if taux_libre > 20 %}text-success{% elif taux_libre > 10 %}text-warning{% else %}text-danger{% endif %}">{{ taux_libre }}%</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="text-muted">Nombre de bâtiments</span>
+          <strong>{{ nb_batiments }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="text-muted">Parcelles libres</span>
+          <strong class="text-success">{{ zones_constructibles.count }}</strong>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Zones constructibles -->
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-geo-alt me-2 text-success"></i>Zones libres disponibles</div>
+      <div class="card-body p-0" style="max-height:200px;overflow-y:auto">
+        {% if zones_constructibles %}
+        <ul class="list-group list-group-flush">
+          {% for z in zones_constructibles %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+            <span class="small fw-medium">{{ z.nom }}</span>
+            <span class="badge bg-success">{{ z.superficie|floatformat:0 }} m²</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-center text-muted py-3 small">Aucune zone libre disponible</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Carte PDU -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-map me-2"></i>Carte d'occupation</div>
+      <div id="pdu-map" style="height:460px;border-radius:0 0 10px 10px;"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const map = initCampusMap('pdu-map');
+  loadEspaces(map);
+  loadBatiments(map);
+
+  const labels = {{ chart_labels|safe }};
+  const data   = {{ chart_data|safe }};
+  const colors = {{ chart_colors|safe }};
+  if (labels.length) createDonutChart('pduChart', labels, data, colors);
+</script>
+{% endblock %}

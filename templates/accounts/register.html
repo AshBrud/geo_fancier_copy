@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Créer un compte — UAD SIG{% endblock %}
+
+{% block auth_content %}
+<div style="display:contents">
+
+<!-- ══════════════ PANNEAU GAUCHE ══════════════ -->
+<div class="auth-left-panel">
+  <img src="{% static 'images/drone_campus.jpg' %}" alt="Campus UAD vue drone"
+       class="auth-drone-img" onerror="this.style.display='none'">
+  <div class="auth-left-overlay"></div>
+
+  <div class="auth-left-body">
+
+    <div class="auth-univ-badge">
+      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white"></i></div>
+      <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
+    </div>
+
+    <div class="auth-app-title">UAD <span class="accent">SIG</span></div>
+
+    <div class="auth-title-rule">
+      <div class="rule-line"></div>
+      <span>Système d'Information Géographique</span>
+    </div>
+
+    <p class="auth-app-sub">
+      Rejoignez la plateforme de gestion intelligente du domaine foncier de l'UAD.
+      Accédez aux outils de cartographie, d'analyse spatiale et de suivi des
+      aménagements du campus universitaire.
+    </p>
+
+    <!-- Colonnes verticales animées -->
+    <div class="auth-feat-container">
+      <!-- Colonne gauche : descend -->
+      <div class="auth-marquee-col">
+        <div class="auth-marquee-track">
+          {% include 'accounts/_feat_items.html' %}
+          {% include 'accounts/_feat_items.html' %}
+        </div>
+      </div>
+      <!-- Colonne droite : monte -->
+      <div class="auth-marquee-col">
+        <div class="auth-marquee-track up">
+          {% include 'accounts/_feat_items_alt.html' %}
+          {% include 'accounts/_feat_items_alt.html' %}
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-left-footer">
+      <span class="footer-copy">
+        &copy; 2026 UAD SIG &mdash; UFR SATIC &mdash; Licence 3 SRT
+      </span>
+      <span class="footer-badge">
+        <i class="bi bi-shield-check"></i> Sécurisé
+      </span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ PANNEAU DROIT ══════════════ -->
+<div class="auth-right-panel">
+
+  <div class="auth-card-box" style="max-width:430px">
+
+    <div class="auth-card-header">
+      <div class="auth-card-icon register-icon">
+        <i class="bi bi-person-plus-fill"></i>
+      </div>
+      <div class="auth-card-header-text">
+        <h3>Créer un compte</h3>
+        <p>Rejoignez la plateforme UAD SIG</p>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="auth-alert mb-3">
+        <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Prénom + Nom -->
+      <div class="row g-3 mb-1">
+        <div class="col-6">
+          <div class="auth-field">
+            <label>Prénom</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person field-icon"></i>
+              <input type="text" name="first_name" placeholder="Votre prénom"
+                     value="{{ form.first_name.value|default:'' }}"
+                     class="{% if form.first_name.errors %}is-invalid{% endif %}">
+            </div>
+            {% if form.first_name.errors %}
+              <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="auth-field">
+            <label>Nom</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person field-icon"></i>
+              <input type="text" name="last_name" placeholder="Votre nom"
+                     value="{{ form.last_name.value|default:'' }}"
+                     class="{% if form.last_name.errors %}is-invalid{% endif %}">
+            </div>
+            {% if form.last_name.errors %}
+              <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label>Nom d'utilisateur</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-at field-icon"></i>
+          <input type="text" name="username" placeholder="Identifiant unique"
+                 value="{{ form.username.value|default:'' }}"
+                 class="{% if form.username.errors %}is-invalid{% endif %}" autofocus>
+        </div>
+        {% if form.username.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label>Adresse e-mail</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-envelope field-icon"></i>
+          <input type="email" name="email" placeholder="exemple@uad.edu.sn"
+                 value="{{ form.email.value|default:'' }}"
+                 class="{% if form.email.errors %}is-invalid{% endif %}">
+        </div>
+        {% if form.email.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-lock field-icon"></i>
+          <input type="password" name="password1" id="pwd1" placeholder="Choisir un mot de passe"
+                 class="{% if form.password1.errors %}is-invalid{% endif %}">
+          <button type="button" class="toggle-eye" id="toggle1">
+            <i class="bi bi-eye" id="eye1"></i>
+          </button>
+        </div>
+        {% if form.password1.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.password1.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="auth-field">
+        <label>Confirmer le mot de passe</label>
+        <div class="auth-input-wrap">
+          <i class="bi bi-lock-fill field-icon"></i>
+          <input type="password" name="password2" id="pwd2" placeholder="Répéter le mot de passe"
+                 class="{% if form.password2.errors %}is-invalid{% endif %}">
+          <button type="button" class="toggle-eye" id="toggle2">
+            <i class="bi bi-eye" id="eye2"></i>
+          </button>
+        </div>
+        {% if form.password2.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+      <div class="auth-alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+        {{ form.non_field_errors.0 }}
+      </div>
+      {% endif %}
+
+      <button type="submit" class="auth-btn btn-register">
+        <i class="bi bi-person-check-fill"></i> Créer mon compte
+      </button>
+    </form>
+
+    <div class="auth-switch-link">
+      Déjà inscrit ?
+      <a href="{% url 'accounts:login' %}">Se connecter</a>
+    </div>
+
+  </div>
+
+  <div class="auth-right-footer">
+    Université Alioune Diop de Bambey &mdash; Domaine Foncier &mdash; 2026
+  </div>
+
+</div>
+</div>
+
+<script>
+function togglePwd(inputId, iconId) {
+  const p = document.getElementById(inputId);
+  const i = document.getElementById(iconId);
+  p.type = p.type === 'password' ? 'text' : 'password';
+  i.classList.toggle('bi-eye'); i.classList.toggle('bi-eye-slash');
+}
+document.getElementById('toggle1').addEventListener('click', () => togglePwd('pwd1','eye1'));
+document.getElementById('toggle2').addEventListener('click', () => togglePwd('pwd2','eye2'));
+</script>
+{% endblock %}

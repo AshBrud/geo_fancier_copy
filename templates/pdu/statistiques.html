@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Statistiques Foncières{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Statistiques</li>{% endblock %}
+{% block extra_js_vendor %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-bar-chart-line"></i> Statistiques Foncières</h1>
+  <a href="{% url 'pdu:aide_pdu' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-diagram-3 me-1"></i>Aide au PDU
+  </a>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon"><i class="bi bi-map"></i></div>
+      <div class="kpi-value">{{ total_superficie }} ha</div>
+      <div class="kpi-label">Superficie totale</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-secondary">
+      <div class="kpi-icon"><i class="bi bi-building"></i></div>
+      <div class="kpi-value">{{ total_batiments }}</div>
+      <div class="kpi-label">Bâtiments</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-info">
+      <div class="kpi-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+      <div class="kpi-value">{{ total_espaces }}</div>
+      <div class="kpi-label">Espaces gérés</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Tableau par type -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-table me-2"></i>Répartition par type d'espace</div>
+      <div class="table-responsive">
+        <table class="table table-uad mb-0">
+          <thead><tr><th>Type</th><th>Nb espaces</th><th>Superficie (ha)</th><th>%</th></tr></thead>
+          <tbody>
+            {% for item in espaces_stats %}
+            {% with type_label=types_espaces|dictsort:item.type_espace %}
+            <tr>
+              <td>
+                <span style="display:inline-block;width:12px;height:12px;background:{{ couleurs_espaces|default_if_none:'#ccc' }};border-radius:3px;margin-right:8px;vertical-align:middle;"></span>
+                {% for key, label in types_espaces %}
+                  {% if key == item.type_espace %}{{ label }}{% endif %}
+                {% endfor %}
+              </td>
+              <td>{{ item.count }}</td>
+              <td>{{ item.superficie|floatformat:2|default:"—" }}</td>
+              <td>
+                {% if total_superficie and item.superficie %}
+                  {% widthratio item.superficie total_superficie 100 %}%
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Aucune donnée disponible</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Historique travaux par année -->
+    {% if historique_stats %}
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-clock-history me-2"></i>Travaux par année</div>
+      <div class="table-responsive">
+        <table class="table table-uad mb-0">
+          <thead><tr><th>Année</th><th>Type</th><th>Nb interventions</th></tr></thead>
+          <tbody>
+            {% for h in historique_stats %}
+            <tr>
+              <td class="fw-semibold">{{ h.annee }}</td>
+              <td>{% for key, label in types_espaces %}{% if key == h.type_travaux %}{{ label }}{% endif %}{% endfor %}{{ h.type_travaux }}</td>
+              <td>{{ h.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Graphiques -->
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Répartition (superficie)</div>
+      <div class="card-body"><div style="height:260px"><canvas id="statsChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const labels = [{% for item in espaces_stats %}"{% for key, label in types_espaces %}{% if key == item.type_espace %}{{ label }}{% endif %}{% endfor %}"{% if not forloop.last %},{% endif %}{% endfor %}];
+  const data   = [{% for item in espaces_stats %}{{ item.superficie|floatformat:2|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+  const colors = ['#16A34A','#DC2626','#F59E0B','#6B7280','#22C55E','#0EA5E9'];
+  if (labels.length) createDonutChart('statsChart', labels, data, colors.slice(0, labels.length));
+</script>
+{% endblock %}

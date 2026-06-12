@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}{{ batiment.nom }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'foncier:batiments' %}">Bâtiments</a></li>
+<li class="breadcrumb-item active">{{ batiment.nom }}</li>
+{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-building"></i> {{ batiment.nom }}</h1>
+  <div class="d-flex gap-2">
+    {% if user.can_manage_foncier %}
+    <a href="{% url 'foncier:batiment_update' batiment.pk %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+    {% endif %}
+    <a href="{% url 'foncier:batiments' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    {% if batiment.photo %}
+    <img src="{{ batiment.photo.url }}" class="img-fluid rounded-3 shadow mb-3 w-100" style="max-height:220px;object-fit:cover;" alt="{{ batiment.nom }}">
+    {% endif %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-2"></i>Informations</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Code</span>
+          <code>{{ batiment.code }}</code>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Fonction</span>
+          <strong>{{ batiment.fonction|default:"—" }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Étages</span>
+          <strong>{{ batiment.etages }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Superficie</span>
+          <strong>{{ batiment.superficie|floatformat:0|default:"—" }} m²</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Capacité</span>
+          <strong>{{ batiment.capacite|default:"—" }} pers.</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Construction</span>
+          <strong>{{ batiment.annee_construction|default:"—" }}</strong>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Statut</span>
+          {% if batiment.est_actif %}
+            <span class="badge bg-success">Actif</span>
+          {% else %}
+            <span class="badge bg-secondary">Inactif</span>
+          {% endif %}
+        </li>
+      </ul>
+    </div>
+    {% if batiment.description %}
+    <div class="card mt-3">
+      <div class="card-header">Description</div>
+      <div class="card-body text-muted small">{{ batiment.description }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    {% if batiment.geometrie %}
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-map me-2"></i>Localisation</div>
+      <div id="detail-map" style="height:340px;border-radius:0 0 10px 10px;"></div>
+    </div>
+    {% endif %}
+
+    <!-- Historique des travaux -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Historique des travaux</span>
+        {% if user.can_manage_foncier %}
+        <a href="{% url 'constructions:historique_create' %}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-plus-lg me-1"></i>Ajouter
+        </a>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        {% if batiment.historiques.exists %}
+        <table class="table table-uad mb-0">
+          <thead><tr><th>Type</th><th>Début</th><th>Fin</th><th>Coût</th></tr></thead>
+          <tbody>
+            {% for h in batiment.historiques.all %}
+            <tr>
+              <td>{{ h.get_type_travaux_display }}</td>
+              <td>{{ h.date_debut|date:"Y" }}</td>
+              <td>{{ h.date_fin|date:"Y"|default:"En cours" }}</td>
+              <td class="text-muted small">{{ h.cout|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="text-center text-muted py-4">Aucun historique de travaux</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js_vendor %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>{% endblock %}
+
+{% block extra_js %}
+{% if batiment.geometrie %}
+<script>
+  const map = initCampusMap('detail-map', { zoom: 18 });
+  const geom = {{ batiment.geometrie.geojson|safe }};
+  const layer = L.geoJSON(geom, { style: { color: '#1E3A8A', fillOpacity: 0.6, weight: 2 } }).addTo(map);
+  map.fitBounds(layer.getBounds());
+</script>
+{% endif %}
+{% endblock %}

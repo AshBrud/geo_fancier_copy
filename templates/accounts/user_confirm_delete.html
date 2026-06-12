@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Suppression{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5"><div class="col-md-5">
+  <div class="card border-danger"><div class="card-body text-center p-5">
+    <i class="bi bi-person-x-fill text-danger" style="font-size:3rem"></i>
+    <h4 class="mt-3 fw-bold">Supprimer l'utilisateur</h4>
+    <p class="text-muted mt-2">Voulez-vous supprimer <strong>{{ obj }}</strong> ?</p>
+    <form method="post" class="mt-4 d-flex justify-content-center gap-3">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger px-4"><i class="bi bi-trash me-2"></i>Supprimer</button>
+      <a href="{% url 'accounts:users' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+    </form>
+  </div></div>
+</div></div>
+{% endblock %}
