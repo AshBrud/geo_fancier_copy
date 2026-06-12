@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function initCampusMap(containerId, options) {
   options = options || {};
 
-  const defaultCenter = options.center || [14.6965, -16.4583];
+  const defaultCenter = options.center || [14.696291168874254, -16.477368387258974];
   const defaultZoom   = options.zoom   || 17;
 
   const map = L.map(containerId, { zoomControl: false }).setView(defaultCenter, defaultZoom);
