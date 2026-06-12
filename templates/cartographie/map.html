@@ -5,8 +5,219 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  .page-content { padding: 0 !important; }
-  #campus-map { height: calc(100vh - 60px); border-radius: 0; }
+/* ===== MISE EN PAGE GLOBALE ===== */
+.page-content {
+  padding: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);   /* 60px = topbar */
+}
+
+/* ===== EN-TÊTE ===== */
+.carto-header {
+  flex-shrink: 0;
+  padding: 14px 24px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  z-index: 10;
+}
+.carto-header-left .page-title  { margin-bottom: 2px; font-size: 19px; }
+.carto-header-left .page-description { margin: 0; }
+.carto-header-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.carto-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 11.5px; font-weight: 600; color: #475569;
+  white-space: nowrap;
+}
+.carto-chip-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ===== LAYOUT PRINCIPAL ===== */
+.carto-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ===== SIDEBAR COUCHES ===== */
+.carto-sidebar {
+  width: 268px; flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: width .28s ease;
+  z-index: 5;
+}
+.carto-sidebar.is-collapsed { width: 0; }
+
+.carto-sidebar-hdr {
+  flex-shrink: 0;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.carto-sidebar-title {
+  font-size: 12.5px; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 7px;
+}
+.carto-sidebar-title i { color: #1E3A8A; font-size: 15px; }
+.carto-collapse-btn {
+  width: 26px; height: 26px; border-radius: 7px;
+  border: 1px solid #e2e8f0; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer; color: #64748b;
+  transition: all .2s; flex-shrink: 0;
+}
+.carto-collapse-btn:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+
+.carto-sidebar-body { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.carto-sidebar-body::-webkit-scrollbar { width: 4px; }
+.carto-sidebar-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ===== SECTIONS ===== */
+.cs-section { padding: 12px 14px; border-bottom: 1px solid #f8fafc; }
+.cs-section:last-child { border-bottom: none; }
+.cs-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .85px; color: #94a3b8;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.cs-section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+
+/* ===== FOND DE CARTE ===== */
+.basemap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.basemap-card {
+  border: 2px solid #e2e8f0; border-radius: 10px;
+  padding: 0; cursor: pointer; background: #fff;
+  overflow: hidden; transition: all .2s; text-align: center;
+}
+.basemap-card:hover:not(.active) { border-color: #93c5fd; transform: translateY(-1px); }
+.basemap-card.active { border-color: #1E3A8A; box-shadow: 0 0 0 3px rgba(30,58,138,.12); }
+.basemap-thumb {
+  height: 44px; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.basemap-thumb-osm { background: linear-gradient(135deg, #e2f0ff, #bfdbfe); color: #1E3A8A; }
+.basemap-thumb-sat { background: linear-gradient(135deg, #1a2744, #2d4a6e); color: #93c5fd; }
+.basemap-lbl {
+  padding: 4px 6px; font-size: 11px; font-weight: 600; color: #475569;
+  border-top: 1px solid #f1f5f9;
+}
+.basemap-card.active .basemap-lbl { color: #1E3A8A; background: #eff6ff; }
+
+/* ===== COUCHES VECTEUR ===== */
+.layer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px dashed #f1f5f9;
+}
+.layer-row:last-child { border-bottom: none; }
+.layer-row-left { display: flex; align-items: center; gap: 8px; }
+.layer-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.layer-name { font-size: 12.5px; font-weight: 500; color: #334155; }
+.layer-count {
+  font-size: 10px; background: #f1f5f9; border: 1px solid #e2e8f0;
+  color: #64748b; border-radius: 99px; padding: 1px 6px; font-weight: 600;
+}
+
+/* ===== ORTHOPHOTOS ===== */
+.ortho-empty {
+  background: #f8fafc; border: 1.5px dashed #e2e8f0;
+  border-radius: 9px; padding: 12px; text-align: center;
+  font-size: 11.5px; color: #94a3b8; line-height: 1.5;
+}
+.ortho-card {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 9px; padding: 9px 10px; margin-bottom: 6px;
+  transition: border-color .2s;
+}
+.ortho-card:last-child { margin-bottom: 0; }
+.ortho-card.is-active { border-color: #0891b2; background: #ecfeff; }
+.ortho-card-hdr { display: flex; align-items: flex-start; gap: 8px; }
+.ortho-card-info { flex: 1; min-width: 0; }
+.ortho-card-name { font-size: 12px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ortho-card-date { font-size: 10.5px; color: #94a3b8; margin-top: 1px; }
+.ortho-slider-wrap { margin-top: 8px; padding-top: 7px; border-top: 1px dashed #e2e8f0; }
+.ortho-slider-lbl { display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; margin-bottom: 3px; }
+.form-range { height: 4px; }
+
+/* ===== LÉGENDE ===== */
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 0; font-size: 12px; color: #374151;
+}
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+/* ===== PIED SIDEBAR ===== */
+.carto-sidebar-foot {
+  flex-shrink: 0; border-top: 1px solid #e2e8f0;
+  padding: 10px 14px; background: #f8fafc;
+}
+.carto-stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 0; font-size: 11.5px; color: #6b7280;
+}
+.carto-stat-val { font-weight: 700; color: #1e293b; }
+
+/* ===== ZONE CARTE ===== */
+.carto-map-wrap {
+  flex: 1; position: relative; min-width: 0;
+}
+#campus-map { height: 100%; width: 100%; }
+
+/* Bouton réouvrir sidebar */
+.carto-open-sidebar {
+  position: absolute; left: 10px; top: 10px; z-index: 900;
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 9px; padding: 8px 12px;
+  font-size: 12.5px; font-weight: 600; color: #374151;
+  cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  display: flex; align-items: center; gap: 6px; transition: all .2s;
+}
+.carto-open-sidebar:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+.carto-open-sidebar.d-none { display: none !important; }
+
+/* Barre d'outils carte */
+.map-toolbar {
+  position: absolute; top: 10px; right: 10px; z-index: 900;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.map-tool {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: #fff; border: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; color: #374151;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  transition: all .2s; text-decoration: none;
+}
+.map-tool:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+
+/* Boutons action foncier */
+.map-actions {
+  position: absolute; bottom: 20px; right: 10px; z-index: 900;
+  display: flex; flex-direction: column; gap: 7px;
+}
+
+/* Affichage coordonnées */
+.map-coords {
+  position: absolute; bottom: 8px; left: 10px; z-index: 900;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(4px);
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 4px 10px; font-size: 10.5px; color: #64748b;
+  font-family: 'Courier New', monospace; pointer-events: none;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .carto-header { padding: 10px 16px; flex-wrap: wrap; }
+  .carto-header-chips { display: none; }
+  .carto-sidebar { position: absolute; height: 100%; z-index: 800; box-shadow: 4px 0 16px rgba(0,0,0,.1); }
+}
 </style>
 {% endblock %}
 
@@ -15,115 +226,208 @@
 {% endblock %}
 
 {% block content %}
-<div id="map-container" style="position:relative;">
-  <div id="campus-map"></div>
 
-  <!-- ===================== PANNEAU DE COUCHES ===================== -->
-  <div class="map-panel" id="mapPanel">
-    <div class="map-panel-header">
-      <i class="bi bi-layers"></i> Couches
-      <button class="map-panel-toggle" id="panelToggle" title="Réduire / Agrandir">
-        <i class="bi bi-chevron-left" id="panelToggleIcon"></i>
+<!-- ===== EN-TÊTE ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-map"></i> Cartographie</h1>
+    <p class="page-description mb-0">Visualisez et explorez le campus de l'UAD : espaces fonciers, bâtiments et orthophotos issues des missions drone.</p>
+  </div>
+  <div class="carto-header-chips">
+    <span class="carto-chip">
+      <span class="carto-chip-dot" style="background:#64748b;"></span>
+      {{ total_espaces }} espace{{ total_espaces|pluralize }}
+    </span>
+    <span class="carto-chip">
+      <span class="carto-chip-dot" style="background:#1E3A8A;"></span>
+      {{ total_batiments }} bâtiment{{ total_batiments|pluralize }}
+    </span>
+    <span class="carto-chip">
+      <span class="carto-chip-dot" style="background:#16A34A;"></span>
+      {{ nb_espaces_libres }} libre{{ nb_espaces_libres|pluralize }}
+    </span>
+    <span class="carto-chip">
+      <span class="carto-chip-dot" style="background:#0891b2;"></span>
+      {{ nb_orthophotos }} orthophoto{{ nb_orthophotos|pluralize }}
+    </span>
+    {% if user.can_manage_foncier %}
+    <a href="{% url 'foncier:espace_create' %}" class="btn btn-sm btn-success">
+      <i class="bi bi-plus-lg me-1"></i>Espace
+    </a>
+    <a href="{% url 'foncier:batiment_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Bâtiment
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== LAYOUT CARTE + SIDEBAR ===== -->
+<div class="carto-layout">
+
+  <!-- ======= SIDEBAR COUCHES ======= -->
+  <div class="carto-sidebar" id="cartoSidebar">
+
+    <div class="carto-sidebar-hdr">
+      <div class="carto-sidebar-title">
+        <i class="bi bi-layers-fill"></i> Couches cartographiques
+      </div>
+      <button class="carto-collapse-btn" id="collapseBtn" title="Réduire le panneau">
+        <i class="bi bi-chevron-left" id="collapseIcon"></i>
       </button>
     </div>
 
-    <div class="map-panel-body" id="mapPanelBody">
+    <div class="carto-sidebar-body">
 
       <!-- Fond de carte -->
-      <div class="map-section">
-        <div class="map-section-title">Fond de carte</div>
-        <div class="map-base-btns">
-          <button class="map-base-btn active" id="btnOsm">
-            <i class="bi bi-map"></i> Plan
-          </button>
-          <button class="map-base-btn" id="btnSatellite">
-            <i class="bi bi-globe2"></i> Satellite
-          </button>
+      <div class="cs-section">
+        <div class="cs-section-title">Fond de carte</div>
+        <div class="basemap-grid">
+          <div class="basemap-card active" id="btnOsm">
+            <div class="basemap-thumb basemap-thumb-osm"><i class="bi bi-map"></i></div>
+            <div class="basemap-lbl">Plan OSM</div>
+          </div>
+          <div class="basemap-card" id="btnSatellite">
+            <div class="basemap-thumb basemap-thumb-sat"><i class="bi bi-globe2"></i></div>
+            <div class="basemap-lbl">Satellite</div>
+          </div>
         </div>
       </div>
 
-      <!-- Orthophotos drone -->
-      <div class="map-section">
-        <div class="map-section-title">
-          Orthophotos drone
-          <span class="badge bg-info-subtle text-info border border-info-subtle ms-1"
-                style="font-size:9px;font-weight:600;padding:1px 5px;">WebODM</span>
+      <!-- Couches vecteur -->
+      <div class="cs-section">
+        <div class="cs-section-title">Couches vecteur</div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#16A34A;"></span>
+            <span class="layer-name">Espaces fonciers</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="layer-count">{{ total_espaces }}</span>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="layerEspaces" checked style="cursor:pointer;">
+            </div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#1E3A8A;"></span>
+            <span class="layer-name">Bâtiments</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="layer-count">{{ total_batiments }}</span>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="layerBatiments" checked style="cursor:pointer;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orthophotos WebODM -->
+      <div class="cs-section">
+        <div class="cs-section-title">
+          Orthophotos
+          <span class="badge bg-info-subtle text-info border border-info-subtle"
+                style="font-size:8.5px;font-weight:700;padding:2px 6px;letter-spacing:.3px;text-transform:none;">WebODM</span>
         </div>
         <div id="orthoLayers"></div>
       </div>
 
-      <!-- Couches vecteur -->
-      <div class="map-section">
-        <div class="map-section-title">Couches vecteur</div>
-        <div class="map-layer-item">
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspaces" checked>
-            <label class="form-check-label" for="layerEspaces">Espaces fonciers</label>
-          </div>
-        </div>
-        <div class="map-layer-item">
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerBatiments" checked>
-            <label class="form-check-label" for="layerBatiments">Bâtiments</label>
-          </div>
-        </div>
-      </div>
-
       <!-- Légende -->
-      <div class="map-section">
-        <div class="map-section-title">Légende</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#16A34A"></span> Espaces libres</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#DC2626"></span> Espaces occupés</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#F59E0B"></span> Espaces réservés</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#6B7280"></span> Routes / Voies</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#22C55E"></span> Espaces verts</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#0EA5E9"></span> Espaces sportifs</div>
-        <div class="map-legend-item"><span class="map-legend-color" style="background:#1E3A8A"></span> Bâtiments</div>
+      <div class="cs-section">
+        <div class="cs-section-title">Légende</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#16A34A;"></span> Espaces libres</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#DC2626;"></span> Espaces occupés</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span> Espaces réservés</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#6B7280;"></span> Routes / Voies</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#22C55E;"></span> Espaces verts</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#0EA5E9;"></span> Espaces sportifs</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Bâtiments</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#0891b2;"></span> Orthophotos drone</div>
       </div>
 
-    </div><!-- /map-panel-body -->
-  </div><!-- /map-panel -->
+    </div><!-- /sidebar-body -->
 
-  <!-- Boutons action (admin/foncier) -->
-  {% if user.can_manage_foncier %}
-  <div style="position:absolute;bottom:24px;right:10px;z-index:900;display:flex;flex-direction:column;gap:8px;">
-    <a href="{% url 'foncier:espace_create' %}" class="btn btn-success btn-sm shadow">
-      <i class="bi bi-plus-lg me-1"></i> Espace
-    </a>
-    <a href="{% url 'foncier:batiment_create' %}" class="btn btn-primary btn-sm shadow">
-      <i class="bi bi-plus-lg me-1"></i> Bâtiment
-    </a>
-  </div>
-  {% endif %}
+    <!-- Statistiques en pied -->
+    <div class="carto-sidebar-foot">
+      <div class="carto-stat-row">
+        <span><i class="bi bi-grid-3x3-gap me-1 text-muted"></i>Total espaces</span>
+        <span class="carto-stat-val">{{ total_espaces }}</span>
+      </div>
+      <div class="carto-stat-row">
+        <span><i class="bi bi-patch-check me-1 text-success"></i>Libres</span>
+        <span class="carto-stat-val text-success">{{ nb_espaces_libres }}</span>
+      </div>
+      <div class="carto-stat-row">
+        <span><i class="bi bi-building me-1 text-primary"></i>Bâtiments actifs</span>
+        <span class="carto-stat-val">{{ total_batiments }}</span>
+      </div>
+      <div class="carto-stat-row">
+        <span><i class="bi bi-camera-video me-1 text-info"></i>Orthophotos</span>
+        <span class="carto-stat-val">{{ nb_orthophotos }}</span>
+      </div>
+    </div>
 
-</div><!-- /map-container -->
+  </div><!-- /carto-sidebar -->
+
+  <!-- ======= ZONE CARTE ======= -->
+  <div class="carto-map-wrap">
+
+    <!-- Bouton réouvrir (visible quand sidebar fermée) -->
+    <button class="carto-open-sidebar d-none" id="openSidebarBtn">
+      <i class="bi bi-layers-fill"></i> Couches
+    </button>
+
+    <!-- La carte -->
+    <div id="campus-map"></div>
+
+    <!-- Barre d'outils -->
+    <div class="map-toolbar">
+      <button class="map-tool" id="btnRecentrer" title="Recentrer sur le campus">
+        <i class="bi bi-crosshair2"></i>
+      </button>
+      <button class="map-tool" id="btnZoomIn" title="Zoom +">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+      <button class="map-tool" id="btnZoomOut" title="Zoom -">
+        <i class="bi bi-dash-lg"></i>
+      </button>
+    </div>
+
+    <!-- Coordonnées curseur -->
+    <div class="map-coords" id="mapCoords">14.6963, -16.4774</div>
+
+  </div><!-- /carto-map-wrap -->
+
+</div><!-- /carto-layout -->
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  /* ---- Données orthophotos transmises par Django ---- */
-  const ORTHOPHOTOS = {{ orthophotos_json|safe }};
+(function () {
+  var ORTHOPHOTOS = {{ orthophotos_json|safe }};
 
-  /* ---- Initialisation de la carte (panneau Leaflet désactivé) ---- */
-  const map = initCampusMap('campus-map', { hideLayerControl: true });
-  const layerEspaces   = loadEspaces(map);
-  const layerBatiments = loadBatiments(map);
+  /* ---- Initialisation carte ---- */
+  var map = initCampusMap('campus-map', { hideLayerControl: true });
+  var layerEspaces   = loadEspaces(map);
+  var layerBatiments = loadBatiments(map);
 
   /* ---- Fond de carte ---- */
-  document.getElementById('btnOsm').addEventListener('click', function () {
-    map.removeLayer(map._baseLayers.satellite);
-    map._baseLayers.osm.addTo(map);
-    document.getElementById('btnSatellite').classList.remove('active');
-    this.classList.add('active');
-    map._activeBase = 'osm';
-  });
-  document.getElementById('btnSatellite').addEventListener('click', function () {
-    map.removeLayer(map._baseLayers.osm);
-    map._baseLayers.satellite.addTo(map);
-    document.getElementById('btnOsm').classList.remove('active');
-    this.classList.add('active');
-    map._activeBase = 'satellite';
-  });
+  function setBase(id) {
+    if (id === 'osm') {
+      map.removeLayer(map._baseLayers.satellite);
+      map._baseLayers.osm.addTo(map);
+      map._activeBase = 'osm';
+    } else {
+      map.removeLayer(map._baseLayers.osm);
+      map._baseLayers.satellite.addTo(map);
+      map._activeBase = 'satellite';
+    }
+    document.getElementById('btnOsm').classList.toggle('active', id === 'osm');
+    document.getElementById('btnSatellite').classList.toggle('active', id === 'satellite');
+  }
+  document.getElementById('btnOsm').addEventListener('click', function () { setBase('osm'); });
+  document.getElementById('btnSatellite').addEventListener('click', function () { setBase('satellite'); });
 
   /* ---- Couches vecteur ---- */
   document.getElementById('layerEspaces').addEventListener('change', function () {
@@ -134,43 +438,55 @@
   });
 
   /* ---- Orthophotos ---- */
-  const orthoContainer = document.getElementById('orthoLayers');
-  const orthoLayers = {};
+  var orthoContainer = document.getElementById('orthoLayers');
+  var orthoLayers    = {};
 
   if (ORTHOPHOTOS.length === 0) {
     orthoContainer.innerHTML =
-      '<p class="map-empty-msg">Aucune orthophoto disponible.<br>' +
-      'Traitez une mission avec WebODM puis configurez l\'URL des tuiles.</p>';
+      '<div class="ortho-empty">' +
+      '<i class="bi bi-camera-video-off d-block mb-1" style="font-size:22px;"></i>' +
+      'Aucune orthophoto disponible.<br>' +
+      '<span style="font-size:10.5px;">Traitez une mission via WebODM puis configurez l\'URL des tuiles.</span>' +
+      '</div>';
   } else {
     ORTHOPHOTOS.forEach(function (m) {
       orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url);
 
-      const wrap = document.createElement('div');
-      wrap.className = 'map-layer-item';
-      wrap.innerHTML =
-        '<div class="form-check form-switch mb-0">' +
-          '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '">' +
-          '<label class="form-check-label" for="ortho_' + m.id + '">' +
-            m.nom +
-            '<br><small class="text-muted fw-normal" style="font-size:10px">' + m.date_mission + '</small>' +
-          '</label>' +
+      var card = document.createElement('div');
+      card.className = 'ortho-card';
+      card.id = 'orthoCard_' + m.id;
+      card.innerHTML =
+        '<div class="ortho-card-hdr">' +
+          '<div class="ortho-card-info">' +
+            '<div class="ortho-card-name" title="' + m.nom + '">' + m.nom + '</div>' +
+            '<div class="ortho-card-date"><i class="bi bi-calendar3 me-1"></i>' + m.date_mission + '</div>' +
+          '</div>' +
+          '<div class="form-check form-switch mb-0">' +
+            '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '" style="cursor:pointer;">' +
+          '</div>' +
         '</div>' +
-        '<div class="map-opacity-wrap d-none" id="opacityWrap_' + m.id + '">' +
+        '<div class="ortho-slider-wrap" id="sliderWrap_' + m.id + '">' +
+          '<div class="ortho-slider-lbl">' +
+            '<span>Opacité</span>' +
+            '<strong id="opLabel_' + m.id + '">85</strong>%' +
+          '</div>' +
           '<input type="range" class="form-range" min="10" max="100" value="85"' +
-                 ' id="slider_' + m.id + '" style="accent-color:var(--primary)">' +
-          '<span class="map-opacity-label">Opacité : <strong id="opLabel_' + m.id + '">85</strong>%</span>' +
+                 ' id="slider_' + m.id + '">' +
         '</div>';
-      orthoContainer.appendChild(wrap);
+      orthoContainer.appendChild(card);
 
       document.getElementById('ortho_' + m.id).addEventListener('change', function () {
-        const layer = orthoLayers[m.id];
-        const opWrap = document.getElementById('opacityWrap_' + m.id);
+        var layer   = orthoLayers[m.id];
+        var wrap    = document.getElementById('sliderWrap_' + m.id);
+        var cardEl  = document.getElementById('orthoCard_' + m.id);
         if (this.checked) {
           layer.addTo(map);
-          opWrap.classList.remove('d-none');
+          wrap.classList.add('visible');
+          cardEl.classList.add('is-active');
         } else {
           map.removeLayer(layer);
-          opWrap.classList.add('d-none');
+          wrap.classList.remove('visible');
+          cardEl.classList.remove('is-active');
         }
       });
 
@@ -181,12 +497,33 @@
     });
   }
 
-  /* ---- Collapse du panneau ---- */
-  document.getElementById('panelToggle').addEventListener('click', function () {
-    const body = document.getElementById('mapPanelBody');
-    const icon = document.getElementById('panelToggleIcon');
-    const collapsed = body.classList.toggle('d-none');
-    icon.className = collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+  /* ---- Collapse sidebar ---- */
+  var sidebar     = document.getElementById('cartoSidebar');
+  var collapseBtn = document.getElementById('collapseBtn');
+  var collapseIco = document.getElementById('collapseIcon');
+  var openBtn     = document.getElementById('openSidebarBtn');
+
+  collapseBtn.addEventListener('click', function () {
+    sidebar.classList.add('is-collapsed');
+    openBtn.classList.remove('d-none');
   });
+  openBtn.addEventListener('click', function () {
+    sidebar.classList.remove('is-collapsed');
+    openBtn.classList.add('d-none');
+  });
+
+  /* ---- Barre d'outils carte ---- */
+  document.getElementById('btnRecentrer').addEventListener('click', function () {
+    map.setView([14.696291168874254, -16.477368387258974], 17);
+  });
+  document.getElementById('btnZoomIn').addEventListener('click', function () { map.zoomIn(); });
+  document.getElementById('btnZoomOut').addEventListener('click', function () { map.zoomOut(); });
+
+  /* ---- Coordonnées curseur ---- */
+  var coordsEl = document.getElementById('mapCoords');
+  map.on('mousemove', function (e) {
+    coordsEl.textContent = e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6);
+  });
+})();
 </script>
 {% endblock %}

@@ -24,6 +24,10 @@ def cartographie(request):
         m['date_mission'] = m['date_mission'].strftime('%d/%m/%Y') if m['date_mission'] else ''
     return render(request, 'cartographie/map.html', {
         'orthophotos_json': json.dumps(missions, ensure_ascii=False),
+        'nb_orthophotos': len(missions),
+        'total_espaces': Espace.objects.count(),
+        'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
+        'total_batiments': Batiment.objects.filter(est_actif=True).count(),
     })
 
 
