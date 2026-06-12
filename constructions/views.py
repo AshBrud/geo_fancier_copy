@@ -142,6 +142,20 @@ def historique_create(request):
 
 @login_required
 @foncier_required
+def construction_delete(request, pk):
+    construction = get_object_or_404(NouvelleConstruction, pk=pk)
+    if request.method == 'POST':
+        nom = construction.nom_projet
+        construction.delete()
+        messages.success(request, f'Demande « {nom} » supprimée.')
+        return redirect('constructions:list')
+    return render(request, 'constructions/construction_confirm_delete.html', {
+        'construction': construction
+    })
+
+
+@login_required
+@foncier_required
 def historique_delete(request, pk):
     h = get_object_or_404(HistoriqueConstruction, pk=pk)
     if request.method == 'POST':

@@ -15,7 +15,7 @@
 
 <div class="card mb-3">
   <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-center">
+    <form method="get" action="{% url 'constructions:list' %}" class="row g-2 align-items-center">
       <div class="col-md-5">
         <div class="input-group input-group-sm">
           <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -42,7 +42,7 @@
   <div class="card-body p-0">
     <table class="table table-uad mb-0">
       <thead>
-        <tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Disponible</th><th>Statut</th><th>Demandeur</th><th>Date</th><th>Actions</th></tr>
+        <tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Disponible</th><th>Statut</th><th>Demandeur</th><th>Date</th><th>Changer statut</th><th></th></tr>
       </thead>
       <tbody>
         {% for c in page_obj %}
@@ -71,6 +71,13 @@
                 {% endfor %}
               </select>
             </form>
+          </td>
+          <td>
+            <a href="{% url 'constructions:delete' c.pk %}"
+               class="btn btn-sm btn-outline-danger"
+               title="Supprimer cette demande">
+              <i class="bi bi-trash"></i>
+            </a>
           </td>
         </tr>
         {% empty %}
