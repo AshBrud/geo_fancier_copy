@@ -24,7 +24,14 @@ def login_view(request):
             ip_address=request.META.get('REMOTE_ADDR')
         )
         return redirect('dashboard:index')
-    return render(request, 'accounts/login.html', {'form': form})
+    from foncier.models import Espace, Batiment
+    from drones.models import MissionDrone
+    return render(request, 'accounts/login.html', {
+        'form': form,
+        'nb_espaces': Espace.objects.count(),
+        'nb_batiments': Batiment.objects.count(),
+        'nb_missions': MissionDrone.objects.count(),
+    })
 
 
 def register_view(request):
