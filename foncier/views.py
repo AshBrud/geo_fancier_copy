@@ -48,9 +48,13 @@ def espaces_list(request):
     stats = {t[0]: Espace.objects.filter(type_espace=t[0]).aggregate(
         count=Count('id'), total=Sum('superficie'))
         for t in Espace.TYPES}
+    total_espaces = Espace.objects.count()
+    total_superficie = Espace.objects.aggregate(s=Sum('superficie'))['s'] or 0
     return render(request, 'foncier/espaces_list.html', {
         'page_obj': page, 'q': q, 'type_filter': type_filter,
         'types': Espace.TYPES, 'stats': stats,
+        'total_espaces': total_espaces,
+        'total_superficie_ha': round(total_superficie / 10000, 2) if total_superficie else 0,
     })
 
 
@@ -105,10 +109,15 @@ def batiments_list(request):
         qs = qs.filter(Q(nom__icontains=q) | Q(code__icontains=q))
     paginator = Paginator(qs, 15)
     page = paginator.get_page(request.GET.get('page'))
+    total_batiments = Batiment.objects.count()
+    nb_actifs = Batiment.objects.filter(est_actif=True).count()
+    superficie_totale = Batiment.objects.aggregate(s=Sum('superficie'))['s'] or 0
     return render(request, 'foncier/batiments_list.html', {
         'page_obj': page, 'q': q,
-        'total_batiments': Batiment.objects.count(),
-        'superficie_totale': Batiment.objects.aggregate(s=Sum('superficie'))['s'] or 0,
+        'total_batiments': total_batiments,
+        'nb_actifs': nb_actifs,
+        'superficie_totale': superficie_totale,
+        'superficie_ha': round(superficie_totale / 10000, 2) if superficie_totale else 0,
     })
 
 
