@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Q
 from .models import MissionDrone, Orthophoto
 from .forms import MissionDroneForm, OrthophotoForm
 from accounts.decorators import domaine_required
@@ -11,19 +12,24 @@ from accounts.decorators import domaine_required
 @domaine_required
 def missions_list(request):
     statut = request.GET.get('statut', '')
+    q = request.GET.get('q', '')
     qs = MissionDrone.objects.prefetch_related('orthophotos').order_by('-date_mission')
     if statut:
         qs = qs.filter(statut=statut)
-    paginator = Paginator(qs, 8)
+    if q:
+        qs = qs.filter(Q(nom__icontains=q) | Q(operateur__icontains=q) | Q(drone_utilise__icontains=q))
+    paginator = Paginator(qs, 9)
     page = paginator.get_page(request.GET.get('page'))
     return render(request, 'drones/missions_list.html', {
         'page_obj': page,
         'statut_actif': statut,
+        'q': q,
         'total_missions': MissionDrone.objects.count(),
         'total_orthophotos': Orthophoto.objects.count(),
         'nb_planifiees': MissionDrone.objects.filter(statut='planifie').count(),
         'nb_realisees': MissionDrone.objects.filter(statut='realise').count(),
         'nb_traitees': MissionDrone.objects.filter(statut='traite').count(),
+        'nb_avec_tuiles': MissionDrone.objects.filter(tiles_url__gt='').count(),
     })
 
 

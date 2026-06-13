@@ -2,215 +2,443 @@
 {% block title %}Données Drones{% endblock %}
 {% block breadcrumb %}<li class="breadcrumb-item active">Données Drones</li>{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== KPI ===== */
+.fon-kpi {
+  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+  padding: 16px 18px; display: flex; align-items: center; gap: 14px;
+  transition: all .22s; height: 100%;
+}
+.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+.fon-kpi-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
+.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; }
+.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
+
+/* ===== BARRE FILTRE / RECHERCHE ===== */
+.drone-topbar {
+  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+  padding: 12px 16px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.drone-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.drone-search-ico  { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; pointer-events: none; }
+.drone-search-input {
+  width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 8px 12px 8px 36px; font-size: 13px; outline: none;
+  transition: border-color .2s;
+}
+.drone-search-input:focus { border-color: #93c5fd; }
+
+/* Tabs statut */
+.statut-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.statut-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid #e2e8f0; background: #fff; color: #64748b;
+  text-decoration: none; white-space: nowrap; transition: all .2s; cursor: pointer;
+}
+.statut-tab:hover { border-color: #93c5fd; color: #1E3A8A; background: #eff6ff; }
+.statut-tab.active-all  { border-color: #1E3A8A; background: #1E3A8A; color: #fff; }
+.statut-tab.active-plan { border-color: #D97706; background: #fef3c7; color: #D97706; }
+.statut-tab.active-real { border-color: #0891b2; background: #e0f2fe; color: #0891b2; }
+.statut-tab.active-trt  { border-color: #16A34A; background: #dcfce7; color: #16A34A; }
+.statut-tab-count {
+  background: rgba(0,0,0,.07); border-radius: 20px;
+  padding: 1px 7px; font-size: 10.5px; font-weight: 700;
+}
+.statut-tab.active-all  .statut-tab-count { background: rgba(255,255,255,.25); }
+
+/* ===== SECTION LABEL ===== */
+.section-lbl {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .9px; color: #94a3b8;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.section-lbl::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+
+/* ===== MISSION CARD ===== */
+.mc {
+  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+  border-left: 4px solid #e2e8f0;
+  overflow: hidden; transition: box-shadow .2s, transform .2s;
+}
+.mc:hover { box-shadow: 0 8px 28px rgba(0,0,0,.09); transform: translateY(-2px); }
+.mc.mc-planifie { border-left-color: #F59E0B; }
+.mc.mc-realise  { border-left-color: #0891b2; }
+.mc.mc-traite   { border-left-color: #16A34A; }
+
+.mc-body { padding: 18px 20px 14px; }
+
+/* En-tête carte */
+.mc-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.mc-icon {
+  width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 19px;
+}
+.mc-icon-planifie { background: #fef3c7; color: #D97706; }
+.mc-icon-realise  { background: #e0f2fe; color: #0891b2; }
+.mc-icon-traite   { background: #dcfce7; color: #16A34A; }
+.mc-nom  { font-size: 14.5px; font-weight: 700; color: #1e293b; margin-bottom: 2px; line-height: 1.3; }
+.mc-date { font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 5px; }
+
+/* Statut pill */
+.mc-statut {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 20px; padding: 4px 11px;
+  font-size: 11.5px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+}
+.mc-statut-planifie { background: #fef3c7; color: #D97706; }
+.mc-statut-realise  { background: #e0f2fe; color: #0891b2; }
+.mc-statut-traite   { background: #dcfce7; color: #16A34A; }
+
+/* Meta chips */
+.mc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.mc-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11.5px; color: #475569; white-space: nowrap;
+}
+.mc-chip i { font-size: 11px; color: #94a3b8; }
+.mc-chip-webodm { border-color: #bbf7d0; background: #f0fdf4; color: #16A34A; }
+.mc-chip-webodm i { color: #16A34A; }
+
+/* Orthophotos */
+.mc-ortho-hdr {
+  font-size: 11.5px; font-weight: 700; color: #64748b;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 0 6px; border-top: 1px solid #f1f5f9;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.mc-ortho-grid { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 10px; }
+.mc-ortho-thumb {
+  width: 54px; height: 44px; border-radius: 8px;
+  overflow: hidden; border: 1.5px solid #e2e8f0;
+  flex-shrink: 0; position: relative;
+}
+.mc-ortho-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mc-ortho-more {
+  width: 54px; height: 44px; border-radius: 8px;
+  background: #f1f5f9; border: 1.5px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #64748b; flex-shrink: 0;
+}
+.mc-no-ortho {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0; border-top: 1px solid #f1f5f9;
+  font-size: 12px; color: #94a3b8; font-style: italic;
+}
+.mc-no-ortho i { font-size: 16px; }
+
+/* Footer actions */
+.mc-footer {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 11px 20px; background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+.mc-footer .btn { font-size: 12px; padding: 5px 12px; }
+
+/* ===== EMPTY STATE ===== */
+.empty-drone {
+  padding: 64px 24px; text-align: center;
+  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+}
+.empty-drone-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: #94a3b8; margin: 0 auto 20px;
+}
+.empty-drone h5 { color: #374151; font-weight: 700; margin-bottom: 6px; }
+.empty-drone p  { color: #94a3b8; font-size: 13.5px; margin-bottom: 20px; }
+
+/* ===== PAGINATION ===== */
+.page-link { border-radius: 7px !important; border: 1px solid #e2e8f0; color: #374151; font-size: 12.5px; margin: 0 2px; }
+.page-item.active .page-link { background: #1E3A8A; border-color: #1E3A8A; }
+.page-link:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+</style>
+{% endblock %}
+
 {% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-airplane"></i> Données Drones</h1>
-    <p class="page-description">Gestion des missions de drone et importation des orthophotos issues de WebODM et QGIS.</p>
+    <p class="page-description">Gestion des missions de levé par drone et importation des orthophotos traitées via WebODM et QGIS pour l'analyse du campus UAD.</p>
   </div>
   <a href="{% url 'drones:mission_create' %}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-2"></i>Nouvelle mission
+    <i class="bi bi-plus-lg me-1"></i> Nouvelle mission
   </a>
 </div>
 
-<!-- KPIs -->
+<!-- ===== KPI ===== -->
 <div class="row g-3 mb-4">
+
   <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-primary">
-      <div class="kpi-icon"><i class="bi bi-airplane"></i></div>
-      <div class="kpi-value">{{ total_missions }}</div>
-      <div class="kpi-label">Missions totales</div>
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#eff6ff;">
+        <i class="bi bi-airplane-fill" style="color:#1E3A8A;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val">{{ total_missions }}</div>
+        <div class="fon-kpi-lbl">Missions totales</div>
+        <div class="fon-kpi-foot">Toutes périodes confondues</div>
+      </div>
     </div>
   </div>
+
   <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-warning">
-      <div class="kpi-icon"><i class="bi bi-clock"></i></div>
-      <div class="kpi-value">{{ nb_planifiees }}</div>
-      <div class="kpi-label">Planifiées</div>
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fef3c7;">
+        <i class="bi bi-clock-fill" style="color:#D97706;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#D97706;">{{ nb_planifiees }}</div>
+        <div class="fon-kpi-lbl">Planifiées</div>
+        <div class="fon-kpi-foot">En attente de réalisation</div>
+      </div>
     </div>
   </div>
+
   <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-info">
-      <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
-      <div class="kpi-value">{{ nb_realisees }}</div>
-      <div class="kpi-label">Réalisées</div>
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#dcfce7;">
+        <i class="bi bi-check2-all" style="color:#16A34A;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_traitees }}</div>
+        <div class="fon-kpi-lbl">Traitées</div>
+        <div class="fon-kpi-foot">{{ nb_realisees }} réalisée{{ nb_realisees|pluralize }} en cours</div>
+      </div>
     </div>
   </div>
+
   <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-secondary">
-      <div class="kpi-icon"><i class="bi bi-images"></i></div>
-      <div class="kpi-value">{{ total_orthophotos }}</div>
-      <div class="kpi-label">Orthophotos</div>
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#e0f2fe;">
+        <i class="bi bi-images" style="color:#0891b2;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#0891b2;">{{ total_orthophotos }}</div>
+        <div class="fon-kpi-lbl">Orthophotos</div>
+        <div class="fon-kpi-foot">{{ nb_avec_tuiles }} mission{{ nb_avec_tuiles|pluralize }} WebODM</div>
+      </div>
     </div>
   </div>
+
 </div>
 
-<!-- Filtres statut -->
-<div class="drone-filter-bar mb-4">
-  <a href="{% url 'drones:missions' %}"
-     class="drone-filter-btn {% if not statut_actif %}active{% endif %}">
-    <i class="bi bi-list me-1"></i>Toutes
-    <span class="drone-filter-count">{{ total_missions }}</span>
+<!-- ===== BARRE RECHERCHE + FILTRES ===== -->
+<form method="get" class="drone-topbar">
+  <div class="drone-search-wrap">
+    <i class="bi bi-search drone-search-ico"></i>
+    <input type="text" name="q" class="drone-search-input"
+           placeholder="Rechercher par nom, opérateur, drone…"
+           value="{{ q }}">
+    {% if statut_actif %}<input type="hidden" name="statut" value="{{ statut_actif }}">{% endif %}
+  </div>
+  <div class="statut-tabs">
+    <a href="{% url 'drones:missions' %}{% if q %}?q={{ q }}{% endif %}"
+       class="statut-tab {% if not statut_actif %}active-all{% endif %}">
+      <i class="bi bi-list-ul"></i> Toutes
+      <span class="statut-tab-count">{{ total_missions }}</span>
+    </a>
+    <a href="?statut=planifie{% if q %}&q={{ q }}{% endif %}"
+       class="statut-tab {% if statut_actif == 'planifie' %}active-plan{% endif %}">
+      <i class="bi bi-clock"></i> Planifiées
+      <span class="statut-tab-count">{{ nb_planifiees }}</span>
+    </a>
+    <a href="?statut=realise{% if q %}&q={{ q }}{% endif %}"
+       class="statut-tab {% if statut_actif == 'realise' %}active-real{% endif %}">
+      <i class="bi bi-check-circle"></i> Réalisées
+      <span class="statut-tab-count">{{ nb_realisees }}</span>
+    </a>
+    <a href="?statut=traite{% if q %}&q={{ q }}{% endif %}"
+       class="statut-tab {% if statut_actif == 'traite' %}active-trt{% endif %}">
+      <i class="bi bi-check2-all"></i> Traitées
+      <span class="statut-tab-count">{{ nb_traitees }}</span>
+    </a>
+  </div>
+  {% if q or statut_actif %}
+  <a href="{% url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-x-lg"></i>
   </a>
-  <a href="?statut=planifie"
-     class="drone-filter-btn {% if statut_actif == 'planifie' %}active text-warning{% endif %}">
-    <i class="bi bi-clock me-1"></i>Planifiées
-    <span class="drone-filter-count">{{ nb_planifiees }}</span>
-  </a>
-  <a href="?statut=realise"
-     class="drone-filter-btn {% if statut_actif == 'realise' %}active text-info{% endif %}">
-    <i class="bi bi-check-circle me-1"></i>Réalisées
-    <span class="drone-filter-count">{{ nb_realisees }}</span>
-  </a>
-  <a href="?statut=traite"
-     class="drone-filter-btn {% if statut_actif == 'traite' %}active text-success{% endif %}">
-    <i class="bi bi-check2-all me-1"></i>Traitées
-    <span class="drone-filter-count">{{ nb_traitees }}</span>
-  </a>
-</div>
+  {% endif %}
+</form>
 
-<!-- Liste des missions -->
+<!-- ===== LISTE MISSIONS ===== -->
 {% if page_obj.object_list %}
-<div class="d-flex flex-column gap-3">
-  {% for mission in page_obj %}
-  <div class="card drone-mission-card">
-    <div class="card-body">
 
-      <!-- En-tête de la carte -->
-      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-        <div class="d-flex align-items-center gap-3">
-          <div class="drone-mission-icon
-            {% if mission.statut == 'traite' %}bg-success-subtle text-success
-            {% elif mission.statut == 'realise' %}bg-info-subtle text-info
-            {% else %}bg-warning-subtle text-warning{% endif %}">
+<div class="section-lbl">
+  {{ page_obj.paginator.count }} mission{{ page_obj.paginator.count|pluralize }}
+  {% if statut_actif %} · filtre « {{ statut_actif }} »{% endif %}
+  {% if q %} · recherche « {{ q }} »{% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+  {% for mission in page_obj %}
+  <div class="col-lg-4 col-md-6">
+  <div class="mc mc-{{ mission.statut }} h-100 d-flex flex-column">
+
+    <div class="mc-body flex-grow-1">
+
+      <!-- En-tête -->
+      <div class="mc-hdr">
+        <div class="d-flex align-items-start gap-3">
+          <div class="mc-icon mc-icon-{{ mission.statut }}">
             <i class="bi bi-airplane-fill"></i>
           </div>
-          <div>
-            <h6 class="fw-bold mb-0">{{ mission.nom }}</h6>
-            <small class="text-muted">
-              <i class="bi bi-calendar3 me-1"></i>{{ mission.date_mission|date:"d F Y" }}
-            </small>
+          <div class="min-w-0">
+            <div class="mc-nom">{{ mission.nom }}</div>
+            <div class="mc-date">
+              <i class="bi bi-calendar3"></i>
+              {{ mission.date_mission|date:"d F Y" }}
+            </div>
           </div>
         </div>
-        <span class="badge drone-status-badge
-          {% if mission.statut == 'traite' %}bg-success
-          {% elif mission.statut == 'realise' %}bg-info
-          {% else %}bg-warning text-dark{% endif %}">
-          {% if mission.statut == 'traite' %}<i class="bi bi-check2-all me-1"></i>
-          {% elif mission.statut == 'realise' %}<i class="bi bi-check-circle me-1"></i>
-          {% else %}<i class="bi bi-clock me-1"></i>{% endif %}
+        <span class="mc-statut mc-statut-{{ mission.statut }}">
+          {% if mission.statut == 'traite' %}<i class="bi bi-check2-all"></i>
+          {% elif mission.statut == 'realise' %}<i class="bi bi-check-circle-fill"></i>
+          {% else %}<i class="bi bi-clock-fill"></i>{% endif %}
           {{ mission.get_statut_display }}
         </span>
       </div>
 
-      <!-- Détails techniques -->
-      <div class="drone-meta-row mb-3">
-        <span class="drone-meta-item">
-          <i class="bi bi-person text-primary"></i>{{ mission.operateur }}
+      <!-- Meta chips -->
+      <div class="mc-chips">
+        <span class="mc-chip">
+          <i class="bi bi-person-fill"></i>{{ mission.operateur }}
         </span>
         {% if mission.drone_utilise %}
-        <span class="drone-meta-item">
-          <i class="bi bi-joystick text-primary"></i>{{ mission.drone_utilise }}
+        <span class="mc-chip">
+          <i class="bi bi-joystick"></i>{{ mission.drone_utilise }}
         </span>
         {% endif %}
         {% if mission.altitude_vol %}
-        <span class="drone-meta-item">
-          <i class="bi bi-arrow-up-circle text-primary"></i>{{ mission.altitude_vol }} m alt.
+        <span class="mc-chip">
+          <i class="bi bi-arrow-up-circle-fill"></i>{{ mission.altitude_vol|floatformat:0 }} m
         </span>
         {% endif %}
         {% if mission.recouvrement %}
-        <span class="drone-meta-item">
-          <i class="bi bi-layers text-primary"></i>{{ mission.recouvrement }}% recouvrement
+        <span class="mc-chip">
+          <i class="bi bi-layers-fill"></i>{{ mission.recouvrement|floatformat:0 }}% recouv.
         </span>
         {% endif %}
         {% if mission.tiles_url %}
-        <span class="drone-meta-item text-success">
-          <i class="bi bi-map-fill text-success"></i>Tuiles WebODM configurées
+        <span class="mc-chip mc-chip-webodm">
+          <i class="bi bi-map-fill"></i>WebODM
         </span>
         {% endif %}
       </div>
 
       <!-- Orthophotos -->
       {% if mission.orthophotos.exists %}
-      <div class="drone-ortho-section mb-3">
-        <div class="drone-ortho-label">
-          <i class="bi bi-images me-1"></i>
-          {{ mission.orthophotos.count }} orthophoto{{ mission.orthophotos.count|pluralize }}
+      <div class="mc-ortho-hdr">
+        <i class="bi bi-images"></i>
+        {{ mission.orthophotos.count }} orthophoto{{ mission.orthophotos.count|pluralize }}
+      </div>
+      <div class="mc-ortho-grid">
+        {% for ortho in mission.orthophotos.all|slice:":4" %}
+        <div class="mc-ortho-thumb" title="{{ ortho.nom }} — {{ ortho.date_prise|date:'d/m/Y' }}">
+          <img src="{{ ortho.fichier.url }}" alt="{{ ortho.nom }}">
         </div>
-        <div class="drone-ortho-grid">
-          {% for ortho in mission.orthophotos.all|slice:":5" %}
-          <div class="drone-ortho-thumb" title="{{ ortho.nom }} — {{ ortho.date_prise|date:'d/m/Y' }}">
-            <img src="{{ ortho.fichier.url }}" alt="{{ ortho.nom }}">
-          </div>
-          {% endfor %}
-          {% if mission.orthophotos.count > 5 %}
-          <div class="drone-ortho-more">+{{ mission.orthophotos.count|add:"-5" }}</div>
-          {% endif %}
-        </div>
+        {% endfor %}
+        {% if mission.orthophotos.count > 4 %}
+        <div class="mc-ortho-more">+{{ mission.orthophotos.count|add:"-4" }}</div>
+        {% endif %}
       </div>
       {% else %}
-      <div class="drone-ortho-empty mb-3">
-        <i class="bi bi-image text-muted me-2"></i>
-        <span class="text-muted small">Aucune orthophoto importée</span>
+      <div class="mc-no-ortho">
+        <i class="bi bi-image-alt"></i>
+        Aucune orthophoto importée
       </div>
       {% endif %}
 
-      <!-- Actions -->
-      <div class="d-flex align-items-center gap-2 flex-wrap pt-2 border-top">
-        <a href="{% url 'drones:mission_detail' mission.pk %}"
-           class="btn btn-sm btn-primary">
-          <i class="bi bi-eye me-1"></i>Voir détail
-        </a>
-        <a href="{% url 'drones:orthophoto_add' mission.pk %}"
-           class="btn btn-sm btn-success">
-          <i class="bi bi-cloud-upload me-1"></i>Importer orthophoto
-        </a>
-        <a href="{% url 'drones:mission_update' mission.pk %}"
-           class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-pencil me-1"></i>Modifier
-        </a>
-        <a href="{% url 'drones:mission_delete' mission.pk %}"
-           class="btn btn-sm btn-outline-danger ms-auto"
-           data-confirm="Supprimer la mission « {{ mission.nom }} » ?">
-          <i class="bi bi-trash"></i>
-        </a>
-      </div>
+    </div><!-- /mc-body -->
 
+    <!-- Footer actions -->
+    <div class="mc-footer">
+      <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-eye me-1"></i>Détail
+      </a>
+      <a href="{% url 'drones:orthophoto_add' mission.pk %}" class="btn btn-sm btn-success">
+        <i class="bi bi-cloud-upload me-1"></i>Importer
+      </a>
+      <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-pencil me-1"></i>Modifier
+      </a>
+      <a href="{% url 'drones:mission_delete' mission.pk %}"
+         class="btn btn-sm btn-outline-danger ms-auto">
+        <i class="bi bi-trash"></i>
+      </a>
     </div>
+
+  </div>
   </div>
   {% endfor %}
 </div>
 
 <!-- Pagination -->
 {% if page_obj.has_other_pages %}
-<nav class="mt-4"><ul class="pagination pagination-sm justify-content-center mb-0">
-  {% if page_obj.has_previous %}
-  <li class="page-item"><a class="page-link" href="?{% if statut_actif %}statut={{ statut_actif }}&{% endif %}page={{ page_obj.previous_page_number }}">‹</a></li>
-  {% endif %}
-  {% for num in page_obj.paginator.page_range %}
-  <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-    <a class="page-link" href="?{% if statut_actif %}statut={{ statut_actif }}&{% endif %}page={{ num }}">{{ num }}</a>
-  </li>
-  {% endfor %}
-  {% if page_obj.has_next %}
-  <li class="page-item"><a class="page-link" href="?{% if statut_actif %}statut={{ statut_actif }}&{% endif %}page={{ page_obj.next_page_number }}">›</a></li>
-  {% endif %}
-</ul></nav>
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <small class="text-muted">
+    Page <strong>{{ page_obj.number }}</strong> / {{ page_obj.paginator.num_pages }}
+    &nbsp;·&nbsp; {{ page_obj.paginator.count }} mission{{ page_obj.paginator.count|pluralize }}
+  </small>
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if statut_actif %}&statut={{ statut_actif }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          <i class="bi bi-chevron-left" style="font-size:10px;"></i>
+        </a>
+      </li>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+      <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+        <a class="page-link" href="?page={{ num }}{% if statut_actif %}&statut={{ statut_actif }}{% endif %}{% if q %}&q={{ q }}{% endif %}">{{ num }}</a>
+      </li>
+      {% endfor %}
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if statut_actif %}&statut={{ statut_actif }}{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          <i class="bi bi-chevron-right" style="font-size:10px;"></i>
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
 {% endif %}
 
 {% else %}
-<!-- État vide -->
-<div class="card">
-  <div class="card-body text-center py-5">
-    <i class="bi bi-airplane fs-1 text-muted d-block mb-3"></i>
-    <h5 class="text-muted fw-semibold">Aucune mission
-      {% if statut_actif %}{{ statut_actif }}{% endif %}
-    </h5>
-    <p class="text-muted small mb-4">Commencez par enregistrer une mission de drone sur le campus.</p>
-    <a href="{% url 'drones:mission_create' %}" class="btn btn-primary">
-      <i class="bi bi-plus-lg me-2"></i>Créer une mission
-    </a>
-  </div>
+<!-- ===== ÉTAT VIDE ===== -->
+<div class="empty-drone">
+  <div class="empty-drone-icon"><i class="bi bi-airplane"></i></div>
+  {% if q or statut_actif %}
+  <h5>Aucune mission trouvée</h5>
+  <p>
+    {% if q %}Aucun résultat pour « {{ q }} »{% endif %}
+    {% if statut_actif %}avec le statut « {{ statut_actif }} »{% endif %}.
+    <br>Modifiez les filtres ou effacez la recherche.
+  </p>
+  <a href="{% url 'drones:missions' %}" class="btn btn-outline-primary">
+    <i class="bi bi-x-lg me-1"></i>Effacer les filtres
+  </a>
+  {% else %}
+  <h5>Aucune mission enregistrée</h5>
+  <p>Commencez par enregistrer une mission de levé drone sur le campus UAD.</p>
+  <a href="{% url 'drones:mission_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Créer une mission
+  </a>
+  {% endif %}
 </div>
 {% endif %}
+
 {% endblock %}
