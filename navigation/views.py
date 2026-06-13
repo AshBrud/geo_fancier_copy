@@ -10,17 +10,20 @@ def recherche(request):
     batiments = []
     espaces = []
     if q:
-        batiments = Batiment.objects.filter(
+        batiments = list(Batiment.objects.filter(
             Q(nom__icontains=q) | Q(code__icontains=q) |
             Q(description__icontains=q)
-        ).select_related('fonction')[:10]
-        espaces = Espace.objects.filter(
+        ).select_related('fonction')[:10])
+        espaces = list(Espace.objects.filter(
             Q(nom__icontains=q) | Q(code__icontains=q) |
             Q(usage__icontains=q)
-        )[:10]
+        )[:10])
     return render(request, 'navigation/recherche.html', {
         'q': q, 'batiments': batiments, 'espaces': espaces,
         'nb_resultats': len(batiments) + len(espaces),
+        'nb_batiments_campus': Batiment.objects.filter(est_actif=True).count(),
+        'nb_espaces_campus': Espace.objects.count(),
+        'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
     })
 
 

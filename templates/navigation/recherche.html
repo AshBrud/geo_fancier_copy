@@ -1,150 +1,459 @@
 {% extends 'base.html' %}
 {% block title %}Recherche & Navigation{% endblock %}
 {% block breadcrumb %}<li class="breadcrumb-item active">Recherche</li>{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* ===== HERO SEARCH ===== */
+.srch-hero {
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563eb 100%);
+  border-radius: 16px; padding: 32px 28px; margin-bottom: 24px;
+}
+.srch-hero-eyebrow {
+  color: rgba(255,255,255,.65); font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+}
+.srch-hero-eyebrow::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.15); }
+.srch-hero-title {
+  color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 6px; line-height: 1.25;
+}
+.srch-hero-sub { color: rgba(255,255,255,.7); font-size: 13px; margin-bottom: 22px; }
+
+.srch-input-row { display: flex; gap: 8px; }
+.srch-input-wrap { flex: 1; position: relative; }
+.srch-input {
+  width: 100%; border: none; border-radius: 12px;
+  padding: 14px 50px 14px 18px;
+  font-size: 14.5px; box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  outline: none;
+}
+.srch-input:focus { box-shadow: 0 0 0 3px rgba(147,197,253,.5), 0 4px 24px rgba(0,0,0,.18); }
+.srch-input-ico {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; font-size: 15px; pointer-events: none;
+}
+.srch-btn-hero {
+  border-radius: 12px; padding: 0 24px; font-weight: 600; font-size: 14px;
+  background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.3);
+  color: #fff; white-space: nowrap; transition: all .2s; flex-shrink: 0;
+}
+.srch-btn-hero:hover { background: rgba(255,255,255,.28); color: #fff; }
+.srch-clear-btn {
+  border-radius: 12px; padding: 0 16px; font-size: 13px;
+  background: transparent; border: 1.5px solid rgba(255,255,255,.25);
+  color: rgba(255,255,255,.7); white-space: nowrap; transition: all .2s; flex-shrink: 0;
+}
+.srch-clear-btn:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+
+/* Suggestions dropdown */
+#searchSuggestions {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1050;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.16);
+  border: 1px solid #e2e8f0; overflow: hidden;
+  display: none;
+}
+#searchSuggestions.show { display: block; }
+#searchSuggestions a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; color: #1e293b; text-decoration: none;
+  font-size: 13px; transition: background .15s;
+  border-bottom: 1px solid #f8fafc;
+}
+#searchSuggestions a:last-child { border-bottom: none; }
+#searchSuggestions a:hover { background: #f8fafc; }
+
+/* ===== CAMPUS STATS ===== */
+.campus-stats { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.campus-stat-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: 5px 12px;
+  color: rgba(255,255,255,.9); font-size: 12px; font-weight: 600;
+}
+.campus-stat-chip i { font-size: 13px; }
+
+/* ===== COMPACT SEARCH BAR (with results) ===== */
+.srch-compact {
+  background: #fff; border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 12px 16px; margin-bottom: 20px;
+  display: flex; gap: 8px; align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.srch-compact-input-wrap { flex: 1; position: relative; }
+.srch-compact-input {
+  width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 9px 40px 9px 14px; font-size: 13.5px; outline: none;
+  transition: border-color .2s;
+}
+.srch-compact-input:focus { border-color: #93c5fd; }
+
+/* ===== RÉSUMÉ RÉSULTATS ===== */
+.results-summary {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.results-summary-q { font-size: 15px; font-weight: 700; color: #1e293b; }
+.results-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11.5px; font-weight: 600;
+}
+.chip-bat  { background: #eff6ff; color: #1E3A8A; }
+.chip-esp  { background: #dcfce7; color: #16A34A; }
+.chip-zero { background: #fef2f2; color: #DC2626; }
+
+/* ===== RÉSULTAT ITEM ===== */
+.srch-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: pointer; transition: background .15s;
+  border-bottom: 1px solid #f1f5f9; text-decoration: none; color: inherit;
+}
+.srch-item:last-child { border-bottom: none; }
+.srch-item:hover { background: #f8fafc; }
+.srch-item-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.srch-item-body { flex: 1; min-width: 0; }
+.srch-item-name {
+  font-size: 13.5px; font-weight: 600; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.srch-item-meta { font-size: 11.5px; color: #94a3b8; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.srch-item-arrow { color: #cbd5e1; font-size: 12px; flex-shrink: 0; }
+
+/* Section header */
+.srch-section-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px 8px; background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9;
+}
+.srch-section-hdr:first-child { border-top: none; }
+.srch-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: #64748b;
+  display: flex; align-items: center; gap: 6px;
+}
+.srch-count-pill {
+  background: #e2e8f0; color: #374151;
+  border-radius: 20px; padding: 2px 8px; font-size: 10.5px; font-weight: 700;
+}
+
+/* ===== RÉSULTATS PANEL ===== */
+.results-panel {
+  border-radius: 14px; border: 1px solid #e2e8f0;
+  overflow: hidden; background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  max-height: 540px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+}
+.results-panel::-webkit-scrollbar { width: 4px; }
+.results-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ===== CARTE ===== */
+.map-card { border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+.map-card-hdr {
+  background: #fff; padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 600; color: #374151;
+}
+#result-map { display: block; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { padding: 52px 24px; text-align: center; }
+.empty-state-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: #94a3b8; margin: 0 auto 16px;
+}
+.empty-state h6 { color: #374151; font-weight: 700; margin-bottom: 4px; }
+.empty-state p { color: #94a3b8; font-size: 13px; margin: 0; }
+
+/* ===== TIPS LANDING ===== */
+.srch-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.srch-tip {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: flex-start; gap: 10px;
+  color: rgba(255,255,255,.85); font-size: 12px;
+}
+.srch-tip i { font-size: 16px; color: rgba(255,255,255,.6); flex-shrink: 0; margin-top: 1px; }
+.srch-tip-title { font-weight: 600; margin-bottom: 1px; }
+.srch-tip-sub { color: rgba(255,255,255,.55); font-size: 11px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .srch-hero { padding: 22px 18px; }
+  .srch-btn-hero { padding: 0 14px; font-size: 13px; }
+  .campus-stats .campus-stat-chip:nth-child(n+3) { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
 
 {% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-search"></i> Recherche & Navigation</h1>
-    <p class="page-description">Trouvez rapidement un bâtiment ou un espace par nom, code ou usage et localisez-le sur la carte.</p>
+    <p class="page-description">Trouvez rapidement un bâtiment ou un espace par nom, code ou usage, et localisez-le instantanément sur la carte du campus.</p>
   </div>
 </div>
 
-<!-- Barre de recherche principale -->
-<div class="card mb-4">
-  <div class="card-body py-3">
-    <form method="get" class="row g-2 align-items-center">
-      <div class="col-md-8 position-relative">
-        <div class="input-group">
-          <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" id="searchInput" class="form-control form-control-lg"
-                 placeholder="Rechercher un bâtiment, un espace, une infrastructure..."
-                 value="{{ q }}" autocomplete="off">
-          <div id="searchSuggestions" class="dropdown-menu w-100 d-none shadow" style="top:100%;position:absolute;z-index:1050;max-height:300px;overflow-y:auto;"></div>
-        </div>
+<!-- ===== HERO SEARCH ===== -->
+<div class="srch-hero">
+  <div class="srch-hero-eyebrow">
+    <i class="bi bi-geo-alt-fill"></i> Campus UAD Bambey
+  </div>
+  <div class="srch-hero-title">Explorez le patrimoine immobilier de l'UAD</div>
+  <div class="srch-hero-sub">Recherchez parmi les bâtiments et espaces fonciers du campus</div>
+
+  <form method="get" action="{% url 'navigation:recherche' %}">
+    <div class="srch-input-row">
+      <div class="srch-input-wrap">
+        <input type="text" name="q" id="searchInput" class="srch-input"
+               placeholder="Nom d'un bâtiment, code, usage…"
+               value="{{ q }}" autocomplete="off">
+        <i class="bi bi-search srch-input-ico"></i>
+        <div id="searchSuggestions"></div>
       </div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-primary btn-lg px-4">Rechercher</button>
-      </div>
+      <button type="submit" class="btn srch-btn-hero">
+        <i class="bi bi-search me-1"></i> Rechercher
+      </button>
       {% if q %}
-      <div class="col-auto">
-        <a href="{% url 'navigation:recherche' %}" class="btn btn-outline-secondary btn-lg">Effacer</a>
-      </div>
+      <a href="{% url 'navigation:recherche' %}" class="btn srch-clear-btn">
+        <i class="bi bi-x-lg me-1"></i> Effacer
+      </a>
       {% endif %}
-    </form>
+    </div>
+  </form>
+
+  <!-- Stats campus -->
+  <div class="campus-stats">
+    <span class="campus-stat-chip">
+      <i class="bi bi-buildings-fill"></i> {{ nb_batiments_campus }} bâtiment{{ nb_batiments_campus|pluralize }}
+    </span>
+    <span class="campus-stat-chip">
+      <i class="bi bi-grid-3x3-gap-fill"></i> {{ nb_espaces_campus }} espace{{ nb_espaces_campus|pluralize }}
+    </span>
+    <span class="campus-stat-chip">
+      <i class="bi bi-check-circle-fill"></i> {{ nb_espaces_libres }} libre{{ nb_espaces_libres|pluralize }}
+    </span>
+    {% if not q %}
+    <span class="campus-stat-chip">
+      <i class="bi bi-info-circle"></i> Tapez un mot-clé pour commencer
+    </span>
+    {% endif %}
   </div>
+
+  <!-- Tips (uniquement sans requête) -->
+  {% if not q %}
+  <div class="srch-tips mt-3">
+    <div class="srch-tip">
+      <i class="bi bi-building"></i>
+      <div><div class="srch-tip-title">Par nom</div><div class="srch-tip-sub">Ex : « Bibliothèque », « Amphi A »</div></div>
+    </div>
+    <div class="srch-tip">
+      <i class="bi bi-upc-scan"></i>
+      <div><div class="srch-tip-title">Par code</div><div class="srch-tip-sub">Ex : « BAT-001 », « ESP-012 »</div></div>
+    </div>
+    <div class="srch-tip">
+      <i class="bi bi-tags"></i>
+      <div><div class="srch-tip-title">Par usage</div><div class="srch-tip-sub">Ex : « Enseignement », « Administratif »</div></div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
+<!-- ===== RÉSULTATS + CARTE ===== -->
 {% if q %}
-<div class="row g-4">
-  <!-- Résultats texte -->
-  <div class="col-lg-5">
-    <h5 class="fw-semibold mb-3">
-      {{ nb_resultats }} résultat(s) pour « {{ q }} »
-    </h5>
 
+  <!-- Résumé des résultats -->
+  <div class="results-summary">
+    <span class="results-summary-q">
+      {% if nb_resultats > 0 %}
+        {{ nb_resultats }} résultat{{ nb_resultats|pluralize }} pour «&nbsp;{{ q }}&nbsp;»
+      {% else %}
+        Aucun résultat pour «&nbsp;{{ q }}&nbsp;»
+      {% endif %}
+    </span>
     {% if batiments %}
-    <div class="card mb-3">
-      <div class="card-header"><i class="bi bi-building me-2 text-primary"></i>Bâtiments ({{ batiments|length }})</div>
-      <div class="list-group list-group-flush">
+    <span class="results-chip chip-bat">
+      <i class="bi bi-building"></i> {{ batiments|length }} bâtiment{{ batiments|length|pluralize }}
+    </span>
+    {% endif %}
+    {% if espaces %}
+    <span class="results-chip chip-esp">
+      <i class="bi bi-grid-3x3-gap"></i> {{ espaces|length }} espace{{ espaces|length|pluralize }}
+    </span>
+    {% endif %}
+    {% if nb_resultats == 0 %}
+    <span class="results-chip chip-zero">
+      <i class="bi bi-x-circle"></i> Aucun résultat
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ===== PANNEAU RÉSULTATS ===== -->
+    <div class="col-lg-5">
+      {% if nb_resultats > 0 %}
+      <div class="results-panel">
+
+        {% if batiments %}
+        <div class="srch-section-hdr">
+          <div class="srch-section-title">
+            <i class="bi bi-building text-primary"></i> Bâtiments
+          </div>
+          <span class="srch-count-pill">{{ batiments|length }}</span>
+        </div>
         {% for b in batiments %}
         <a href="{% url 'foncier:batiment_detail' b.pk %}"
-           class="list-group-item list-group-item-action search-result-item"
+           class="srch-item search-result-item"
            data-lat="{% if b.geometrie %}{{ b.geometrie.centroid.y }}{% endif %}"
            data-lng="{% if b.geometrie %}{{ b.geometrie.centroid.x }}{% endif %}"
            data-nom="{{ b.nom }}">
-          <div class="search-icon bg-primary bg-opacity-10 text-primary">
-            <i class="bi bi-building"></i>
+          <div class="srch-item-icon" style="background:#eff6ff;">
+            <i class="bi bi-building" style="color:#1E3A8A;"></i>
           </div>
-          <div>
-            <div class="fw-semibold">{{ b.nom }}</div>
-            <small class="text-muted">{{ b.code }} · {{ b.fonction|default:"Bâtiment" }}</small>
+          <div class="srch-item-body">
+            <div class="srch-item-name">{{ b.nom }}</div>
+            <div class="srch-item-meta">
+              <code style="background:#f1f5f9; border-radius:4px; padding:1px 5px; font-size:10.5px; color:#475569;">{{ b.code }}</code>
+              <span>{{ b.fonction|default:"Bâtiment" }}</span>
+              {% if b.est_actif %}
+              <span style="color:#16A34A; font-size:10.5px;"><i class="bi bi-circle-fill" style="font-size:7px;"></i> Actif</span>
+              {% endif %}
+            </div>
           </div>
-          <i class="bi bi-chevron-right text-muted ms-auto"></i>
+          <i class="bi bi-chevron-right srch-item-arrow"></i>
         </a>
         {% endfor %}
-      </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    {% if espaces %}
-    <div class="card">
-      <div class="card-header"><i class="bi bi-grid-3x3-gap me-2 text-success"></i>Espaces ({{ espaces|length }})</div>
-      <div class="list-group list-group-flush">
+        {% if espaces %}
+        <div class="srch-section-hdr">
+          <div class="srch-section-title">
+            <i class="bi bi-grid-3x3-gap text-success"></i> Espaces fonciers
+          </div>
+          <span class="srch-count-pill">{{ espaces|length }}</span>
+        </div>
         {% for e in espaces %}
-        <div class="list-group-item search-result-item result-espace"
+        <div class="srch-item search-result-item"
              data-lat="{% if e.geometrie %}{{ e.geometrie.centroid.y }}{% endif %}"
              data-lng="{% if e.geometrie %}{{ e.geometrie.centroid.x }}{% endif %}"
-             data-nom="{{ e.nom }}" style="cursor:pointer">
-          <div class="search-icon bg-success bg-opacity-10 text-success">
-            <i class="bi bi-grid-3x3-gap"></i>
+             data-nom="{{ e.nom }}">
+          <div class="srch-item-icon"
+               style="background:{% if e.type_espace == 'libre' %}#dcfce7{% elif e.type_espace == 'occupe' %}#fee2e2{% elif e.type_espace == 'reserve' %}#fef3c7{% else %}#f1f5f9{% endif %};">
+            <i class="bi bi-{% if e.type_espace == 'libre' %}check-circle-fill{% elif e.type_espace == 'occupe' %}x-circle-fill{% elif e.type_espace == 'reserve' %}clock-fill{% else %}signpost-2-fill{% endif %}"
+               style="color:{% if e.type_espace == 'libre' %}#16A34A{% elif e.type_espace == 'occupe' %}#DC2626{% elif e.type_espace == 'reserve' %}#D97706{% else %}#6B7280{% endif %};"></i>
           </div>
-          <div>
-            <div class="fw-semibold">{{ e.nom }}</div>
-            <small class="text-muted">{{ e.code }} · <span class="badge-espace badge-{{ e.type_espace }}">{{ e.get_type_espace_display }}</span></small>
+          <div class="srch-item-body">
+            <div class="srch-item-name">{{ e.nom }}</div>
+            <div class="srch-item-meta">
+              <code style="background:#f1f5f9; border-radius:4px; padding:1px 5px; font-size:10.5px; color:#475569;">{{ e.code }}</code>
+              <span class="badge-espace badge-{{ e.type_espace }}" style="font-size:10.5px; padding:1px 7px;">{{ e.get_type_espace_display }}</span>
+              {% if e.superficie %}<span>{{ e.superficie|floatformat:0 }} m²</span>{% endif %}
+            </div>
           </div>
         </div>
         {% endfor %}
+        {% endif %}
+
+      </div><!-- /results-panel -->
+
+      {% else %}
+      <!-- EMPTY STATE -->
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+        <h6>Aucun résultat trouvé</h6>
+        <p>Aucun bâtiment ni espace ne correspond à « {{ q }} ».<br>
+          Essayez un autre mot-clé ou vérifiez l'orthographe.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== CARTE ===== -->
+    <div class="col-lg-7">
+      <div class="map-card">
+        <div class="map-card-hdr">
+          <span><i class="bi bi-map me-2 text-primary"></i>Localisation sur le campus</span>
+          {% if nb_resultats > 0 %}
+          <span style="font-size:11.5px; color:#94a3b8;">Cliquez sur un résultat pour zoomer</span>
+          {% endif %}
+        </div>
+        <div id="result-map" style="height:492px;"></div>
       </div>
     </div>
-    {% endif %}
 
-    {% if not batiments and not espaces %}
-    <div class="card"><div class="card-body text-center py-5 text-muted">
-      <i class="bi bi-search fs-2 d-block mb-2"></i>
-      Aucun résultat pour « {{ q }} »
-    </div></div>
-    {% endif %}
-  </div>
+  </div><!-- /row -->
 
-  <!-- Carte résultats -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-map me-2"></i>Localisation sur le campus</div>
-      <div id="result-map" style="height:500px;border-radius:0 0 10px 10px;"></div>
-    </div>
-  </div>
-</div>
 {% else %}
-<!-- Vue carte complète quand pas de recherche -->
-<div class="card">
-  <div class="card-header"><i class="bi bi-map me-2"></i>Campus UAD</div>
-  <div id="result-map" style="height:520px;border-radius:0 0 10px 10px;"></div>
+<!-- ===== VUE CAMPUS COMPLÈTE (pas de requête) ===== -->
+<div class="map-card">
+  <div class="map-card-hdr">
+    <span><i class="bi bi-map me-2 text-primary"></i>Vue d'ensemble du campus UAD Bambey</span>
+    <span style="font-size:11.5px; color:#94a3b8;">Lancez une recherche pour localiser un élément</span>
+  </div>
+  <div id="result-map" style="height:460px;"></div>
 </div>
 {% endif %}
+
 {% endblock %}
 
-{% block extra_js_vendor %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>{% endblock %}
 {% block extra_js %}
 <script>
-  const map = initCampusMap('result-map');
+(function () {
+  var map = initCampusMap('result-map');
   loadEspaces(map);
   loadBatiments(map);
 
-  // Clic sur résultat → zoom sur la carte
-  document.querySelectorAll('.search-result-item[data-lat]').forEach(function(item) {
-    item.addEventListener('click', function(e) {
-      const lat = parseFloat(this.dataset.lat);
-      const lng = parseFloat(this.dataset.lng);
-      if (lat && lng) {
-        map.setView([lat, lng], 19);
-        L.popup().setLatLng([lat, lng])
-          .setContent('<strong>' + this.dataset.nom + '</strong>')
+  /* ---- Clic sur résultat → zoom ---- */
+  var resultBounds = [];
+
+  document.querySelectorAll('.search-result-item').forEach(function (item) {
+    var lat = parseFloat(item.dataset.lat);
+    var lng = parseFloat(item.dataset.lng);
+    if (lat && lng) { resultBounds.push([lat, lng]); }
+
+    item.addEventListener('click', function (e) {
+      if (item.tagName === 'A') { /* lien bâtiment : on laisse naviguer */ }
+      var rlat = parseFloat(this.dataset.lat);
+      var rlng = parseFloat(this.dataset.lng);
+      if (rlat && rlng) {
+        map.setView([rlat, rlng], 19);
+        L.popup({ maxWidth: 220 })
+          .setLatLng([rlat, rlng])
+          .setContent(
+            '<div style="font-size:13px;font-weight:600;padding:2px 0;">' +
+            '<i class="bi bi-geo-alt-fill text-primary me-1"></i>' +
+            this.dataset.nom + '</div>'
+          )
           .openOn(map);
       }
     });
   });
 
-  // Autocomplete
+  /* Auto-zoom si résultats */
+  if (resultBounds.length === 1) {
+    map.setView(resultBounds[0], 19);
+  } else if (resultBounds.length > 1) {
+    map.fitBounds(resultBounds, { padding: [40, 40] });
+  }
+
+  /* ---- Autocomplete ---- */
   initSearchAutocomplete('searchInput', 'searchSuggestions');
-  document.querySelectorAll('#searchSuggestions a').forEach(function(a) {
-    a.addEventListener('click', function(e) {
-      e.preventDefault();
-      const lat = parseFloat(this.dataset.lat);
-      const lng = parseFloat(this.dataset.lng);
-      if (lat && lng) { map.setView([lat, lng], 19); }
-    });
-  });
+})();
 </script>
 {% endblock %}
