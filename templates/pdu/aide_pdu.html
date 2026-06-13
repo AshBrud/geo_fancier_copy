@@ -5,74 +5,79 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-/* ===== KPI FONCIER (réutilisé) ===== */
+/* ===== RECOMMANDATION CARDS ===== */
+.rec-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 18px; border-radius: 12px; border-left: 4px solid;
+  margin-bottom: 10px;
+}
+.rec-card:last-child { margin-bottom: 0; }
+.rec-card.success { background:#f0fdf4; border-color:#16A34A; }
+.rec-card.warning { background:#fffbeb; border-color:#D97706; }
+.rec-card.danger  { background:#fef2f2; border-color:#DC2626; }
+.rec-card.info    { background:#eff6ff; border-color:#1d4ed8; }
+.rec-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.rec-card.success .rec-icon { background:#dcfce7; color:#16A34A; }
+.rec-card.warning .rec-icon { background:#fef3c7; color:#D97706; }
+.rec-card.danger  .rec-icon { background:#fee2e2; color:#DC2626; }
+.rec-card.info    .rec-icon { background:#dbeafe; color:#1d4ed8; }
+.rec-titre { font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:3px; }
+.rec-texte { font-size:12.5px; color:#475569; line-height:1.5; margin:0; }
+
+/* ===== KPI FONCIER ===== */
 .fon-kpi {
   background:#fff; border-radius:14px; border:1px solid #e2e8f0;
   padding:16px 18px; display:flex; align-items:center; gap:14px;
   transition:all .22s; height:100%;
 }
 .fon-kpi:hover { box-shadow:0 6px 20px rgba(0,0,0,.09); transform:translateY(-2px); }
-.fon-kpi-icon { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-.fon-kpi-val  { font-size:24px; font-weight:700; color:#1e293b; line-height:1; }
+.fon-kpi-icon {
+  width:46px; height:46px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.fon-kpi-val  { font-size:22px; font-weight:700; color:#1e293b; line-height:1; }
 .fon-kpi-lbl  { font-size:12px; color:#64748b; margin-top:3px; }
 .fon-kpi-foot { font-size:10.5px; color:#94a3b8; margin-top:4px; }
 
-/* Taux libre mini-barre */
-.taux-bar-wrap { margin-top:7px; }
-.taux-bar-track { height:5px; background:#f1f5f9; border-radius:99px; overflow:hidden; }
-.taux-bar-fill  { height:100%; border-radius:99px; transition:width .6s ease; }
-
-/* ===== INSIGHT CARDS (recommandations) ===== */
-.insight-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
-.insight-card {
-  flex:1; min-width:220px;
-  background:#fff; border-radius:14px; border:1px solid #e2e8f0;
-  padding:16px 18px; display:flex; align-items:flex-start; gap:14px;
-  transition:box-shadow .2s;
+/* ===== SECTION LABELS ===== */
+.stat-section-lbl {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.9px; color:#94a3b8;
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
 }
-.insight-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); }
-.insight-card.lvl-success { border-left:4px solid #16A34A; }
-.insight-card.lvl-warning { border-left:4px solid #D97706; }
-.insight-card.lvl-danger  { border-left:4px solid #DC2626; }
-.insight-card.lvl-info    { border-left:4px solid #0891b2; }
-.insight-icon { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
-.insight-title { font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:3px; }
-.insight-text  { font-size:12px; color:#64748b; line-height:1.55; margin:0; }
+.stat-section-lbl::after { content:''; flex:1; height:1px; background:#f1f5f9; }
 
-/* ===== CARD HEADER STANDARD ===== */
-.pdu-card-hdr {
-  padding:13px 18px; border-bottom:1px solid #f1f5f9;
-  font-size:13px; font-weight:700; color:#1e293b;
-  display:flex; align-items:center; justify-content:space-between;
-}
-.pdu-card-hdr-left { display:flex; align-items:center; gap:8px; }
-
-/* ===== OCCUPATION DU SOL ===== */
-.occ-legend-item { margin-bottom:12px; }
-.occ-legend-item:last-child { margin-bottom:0; }
-.occ-legend-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-.occ-legend-lbl { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:500; color:#374151; }
-.occ-swatch { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.occ-legend-vals { font-size:12px; color:#64748b; }
-.occ-progress { height:7px; background:#f1f5f9; border-radius:99px; overflow:hidden; }
-.occ-progress-fill { height:100%; border-radius:99px; }
+/* ===== OCCUPATION BARS ===== */
+.occ-row { padding:9px 0; border-bottom:1px solid #f8fafc; }
+.occ-row:last-child { border-bottom:none; }
+.occ-row-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
+.occ-label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#374151; }
+.occ-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.occ-meta { font-size:11.5px; color:#64748b; }
+.occ-pct  { font-size:13px; font-weight:700; color:#1e293b; }
+.occ-bar-wrap { background:#f1f5f9; border-radius:6px; height:7px; overflow:hidden; }
+.occ-bar-fill { height:100%; border-radius:6px; transition:width .7s cubic-bezier(.4,0,.2,1); }
 
 /* ===== ZONES LIBRES ===== */
 .zone-item {
-  display:flex; align-items:center; gap:11px;
-  padding:10px 16px; border-bottom:1px solid #f8fafc; transition:background .15s;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 16px; border-bottom:1px solid #f8fafc;
 }
 .zone-item:last-child { border-bottom:none; }
-.zone-item:hover { background:#f8fafc; }
-.zone-dot { width:9px; height:9px; border-radius:50%; background:#16A34A; flex-shrink:0; }
-.zone-nom { font-size:12.5px; font-weight:500; color:#374151; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.zone-sup { font-size:11px; background:#dcfce7; color:#16A34A; border-radius:20px; padding:2px 8px; font-weight:600; white-space:nowrap; }
-.zones-body { max-height:340px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; }
-.zones-body::-webkit-scrollbar { width:3px; }
-.zones-body::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+.zone-nom { font-size:13px; font-weight:600; color:#1e293b; }
+.zone-sup { font-size:11.5px; font-weight:700; background:#dcfce7; color:#16A34A; border-radius:20px; padding:2px 9px; }
 
-/* ===== CARTE ===== */
-#pdu-map { display:block; }
+/* ===== MAP CARD ===== */
+.map-card-hdr {
+  background:#fff; padding:12px 16px; border-bottom:1px solid #f1f5f9;
+  font-size:13px; font-weight:600; color:#374151;
+  display:flex; align-items:center; gap:8px;
+}
 </style>
 {% endblock %}
 
@@ -87,138 +92,122 @@
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-diagram-3"></i> Aide à la Planification (PDU)</h1>
-    <p class="page-description">Outils d'aide à la décision pour planifier le développement et l'aménagement durable du campus de l'UAD Bambey.</p>
+    <p class="page-description">Outils d'aide à la décision pour planifier le développement et l'aménagement du campus de l'UAD — analyse d'occupation, recommandations et cartographie des zones disponibles.</p>
   </div>
   <a href="{% url 'pdu:statistiques' %}" class="btn btn-outline-primary btn-sm">
-    <i class="bi bi-bar-chart-line me-1"></i>Statistiques détaillées
+    <i class="bi bi-bar-chart-line me-1"></i> Statistiques détaillées
   </a>
 </div>
 
-<!-- ===== KPI ROW ===== -->
-<div class="row g-3 mb-4">
-
-  <div class="col-6 col-md-4 col-lg">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-rulers" style="color:#1E3A8A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val">{{ total_superficie }}</div>
-        <div class="fon-kpi-lbl">Superficie totale</div>
-        <div class="fon-kpi-foot">en hectares</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-check2-square" style="color:#16A34A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ superficie_constructible }}</div>
-        <div class="fon-kpi-lbl">Superficie constructible</div>
-        <div class="fon-kpi-foot">hectares disponibles</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:{% if taux_libre > 30 %}#dcfce7{% elif taux_libre > 10 %}#fef3c7{% else %}#fee2e2{% endif %};">
-        <i class="bi bi-percent" style="color:{% if taux_libre > 30 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};"></i>
-      </div>
-      <div style="flex:1;">
-        <div class="fon-kpi-val" style="color:{% if taux_libre > 30 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};">{{ taux_libre }}%</div>
-        <div class="fon-kpi-lbl">Taux terrain libre</div>
-        <div class="taux-bar-wrap">
-          <div class="taux-bar-track">
-            <div class="taux-bar-fill" style="width:{{ taux_libre }}%; background:{% if taux_libre > 30 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-buildings-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val">{{ nb_batiments }}</div>
-        <div class="fon-kpi-lbl">Bâtiments</div>
-        <div class="fon-kpi-foot">sur le campus</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#f0fdf4;">
-        <i class="bi bi-geo-alt-fill" style="color:#16A34A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ zones_constructibles.count }}</div>
-        <div class="fon-kpi-lbl">Parcelles libres</div>
-        <div class="fon-kpi-foot">zones disponibles</div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
 <!-- ===== RECOMMANDATIONS ===== -->
-<div class="insight-row">
+<div class="stat-section-lbl">Recommandations basées sur les données</div>
+<div class="mb-4">
   {% for rec in recommandations %}
-  <div class="insight-card lvl-{{ rec.niveau }}">
-    <div class="insight-icon"
-         style="background:{% if rec.niveau == 'success' %}#dcfce7{% elif rec.niveau == 'danger' %}#fee2e2{% elif rec.niveau == 'warning' %}#fef3c7{% else %}#e0f2fe{% endif %};">
-      <i class="bi bi-{% if rec.niveau == 'success' %}check-circle-fill{% elif rec.niveau == 'danger' %}x-circle-fill{% elif rec.niveau == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"
-         style="color:{% if rec.niveau == 'success' %}#16A34A{% elif rec.niveau == 'danger' %}#DC2626{% elif rec.niveau == 'warning' %}#D97706{% else %}#0891b2{% endif %};"></i>
+  <div class="rec-card {{ rec.niveau }}">
+    <div class="rec-icon">
+      <i class="bi bi-{% if rec.niveau == 'success' %}check-circle-fill{% elif rec.niveau == 'danger' %}x-circle-fill{% elif rec.niveau == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
     </div>
     <div>
-      <div class="insight-title">{{ rec.titre }}</div>
-      <p class="insight-text">{{ rec.texte }}</p>
+      <div class="rec-titre">{{ rec.titre }}</div>
+      <p class="rec-texte">{{ rec.texte }}</p>
     </div>
   </div>
   {% endfor %}
 </div>
 
-<!-- ===== CONTENU PRINCIPAL ===== -->
+<!-- ===== KPI ROW ===== -->
+<div class="stat-section-lbl">Indicateurs fonciers</div>
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#eff6ff;">
+        <i class="bi bi-map-fill" style="color:#1E3A8A;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val">{{ total_superficie }}</div>
+        <div class="fon-kpi-lbl">Superficie totale (ha)</div>
+        <div class="fon-kpi-foot">Ensemble du foncier</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#dcfce7;">
+        <i class="bi bi-check-circle-fill" style="color:#16A34A;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ superficie_constructible }}</div>
+        <div class="fon-kpi-lbl">Zones constructibles (ha)</div>
+        <div class="fon-kpi-foot">{{ zones_constructibles.count }} parcelle{{ zones_constructibles.count|pluralize }} libre{{ zones_constructibles.count|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon"
+           style="background:{% if taux_libre > 20 %}#dcfce7{% elif taux_libre > 10 %}#fef3c7{% else %}#fee2e2{% endif %};">
+        <i class="bi bi-percent"
+           style="color:{% if taux_libre > 20 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val"
+             style="color:{% if taux_libre > 20 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};">
+          {{ taux_libre }}%
+        </div>
+        <div class="fon-kpi-lbl">Taux de terrain libre</div>
+        <div class="fon-kpi-foot">Potentiel de développement</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fef3c7;">
+        <i class="bi bi-buildings-fill" style="color:#D97706;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#D97706;">{{ nb_batiments }}</div>
+        <div class="fon-kpi-lbl">Bâtiments recensés</div>
+        <div class="fon-kpi-foot">Sur l'ensemble du campus</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== OCCUPATION + CARTE + ZONES ===== -->
+<div class="stat-section-lbl">Analyse spatiale</div>
 <div class="row g-4">
 
   <!-- Occupation du sol -->
-  <div class="col-lg-5">
+  <div class="col-lg-4">
     <div class="card h-100">
-      <div class="pdu-card-hdr">
-        <div class="pdu-card-hdr-left">
-          <i class="bi bi-pie-chart-fill text-primary"></i>
-          Occupation du sol
-        </div>
-        <span style="font-size:11px; color:#94a3b8; font-weight:400;">En hectares</span>
+      <div class="card-header">
+        <i class="bi bi-pie-chart me-2 text-primary"></i>Occupation du sol
       </div>
       <div class="card-body">
-        <!-- Donut -->
-        <div style="height:220px; margin-bottom:20px;">
+        <div style="height:200px; max-width:240px; margin:0 auto;">
           <canvas id="pduChart"></canvas>
         </div>
-        <!-- Légende avec barres -->
-        <div>
+        <div class="mt-4">
           {% for item in occupation %}
-          <div class="occ-legend-item">
-            <div class="occ-legend-hdr">
-              <div class="occ-legend-lbl">
-                <span class="occ-swatch" style="background:{{ item.couleur }};"></span>
+          <div class="occ-row">
+            <div class="occ-row-top">
+              <span class="occ-label">
+                <span class="occ-dot" style="background:{{ item.couleur }};"></span>
                 {{ item.type }}
-              </div>
-              <div class="occ-legend-vals">
-                <span style="font-weight:600; color:#1e293b;">{{ item.superficie }} ha</span>
-                <span class="ms-2" style="color:#94a3b8;">({{ item.pourcentage }}%)</span>
+              </span>
+              <div class="d-flex align-items-center gap-3">
+                <span class="occ-meta">{{ item.superficie }} ha · {{ item.count }} esp.</span>
+                <span class="occ-pct">{{ item.pourcentage }}%</span>
               </div>
             </div>
-            <div class="occ-progress">
-              <div class="occ-progress-fill" style="width:{{ item.pourcentage }}%; background:{{ item.couleur }};"></div>
+            <div class="occ-bar-wrap">
+              <div class="occ-bar-fill" data-width="{{ item.pourcentage }}"
+                   style="width:0%; background:{{ item.couleur }};"></div>
             </div>
           </div>
           {% endfor %}
@@ -227,76 +216,74 @@
     </div>
   </div>
 
-  <!-- Zones libres disponibles -->
+  <!-- Carte PDU -->
+  <div class="col-lg-5">
+    <div class="card h-100" style="overflow:hidden;">
+      <div class="map-card-hdr">
+        <i class="bi bi-map text-primary"></i> Carte d'occupation du campus
+      </div>
+      <div id="pdu-map" style="height:100%; min-height:420px;"></div>
+    </div>
+  </div>
+
+  <!-- Zones libres -->
   <div class="col-lg-3">
-    <div class="card h-100 d-flex flex-column">
-      <div class="pdu-card-hdr">
-        <div class="pdu-card-hdr-left">
-          <i class="bi bi-geo-alt-fill text-success"></i>
-          Zones constructibles
-        </div>
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-geo-alt me-2 text-success"></i>Zones disponibles</span>
+        <span class="badge bg-success-subtle text-success border border-success-subtle"
+              style="font-size:11px;">{{ zones_constructibles.count }}</span>
+      </div>
+      <div style="max-height:400px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent;">
         {% if zones_constructibles %}
-        <span style="font-size:11px; background:#dcfce7; color:#16A34A; border-radius:20px; padding:2px 8px; font-weight:700;">
-          {{ zones_constructibles.count }}
-        </span>
+          {% for z in zones_constructibles %}
+          <div class="zone-item">
+            <span class="zone-nom">{{ z.nom }}</span>
+            <span class="zone-sup">{{ z.superficie|floatformat:0 }} m²</span>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div style="padding:32px 16px; text-align:center; color:#94a3b8;">
+          <i class="bi bi-inbox d-block mb-2" style="font-size:28px; opacity:.4;"></i>
+          <p style="font-size:13px; margin:0;">Aucune zone libre disponible</p>
+        </div>
         {% endif %}
       </div>
-
       {% if zones_constructibles %}
-      <div class="zones-body flex-grow-1">
-        {% for z in zones_constructibles %}
-        <div class="zone-item">
-          <span class="zone-dot"></span>
-          <span class="zone-nom" title="{{ z.nom }}">{{ z.nom }}</span>
-          <span class="zone-sup">{{ z.superficie|floatformat:0 }} m²</span>
+      <div style="padding:10px 16px; border-top:1px solid #f1f5f9; background:#f8fafc;">
+        <div style="font-size:11.5px; color:#64748b;">
+          <i class="bi bi-rulers me-1"></i>
+          Total disponible : <strong class="text-success">{{ superficie_constructible }} ha</strong>
         </div>
-        {% endfor %}
-      </div>
-      <div style="padding:10px 16px; border-top:1px solid #f1f5f9; background:#f8fffe;">
-        <div style="font-size:11.5px; color:#16A34A; font-weight:600;">
-          <i class="bi bi-rulers me-1"></i>Total : {{ superficie_constructible }} ha disponibles
-        </div>
-      </div>
-      {% else %}
-      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 20px; text-align:center; color:#94a3b8;">
-        <i class="bi bi-exclamation-circle" style="font-size:32px; margin-bottom:10px; opacity:.5;"></i>
-        <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:4px;">Aucune zone libre</div>
-        <div style="font-size:12px;">Tous les espaces sont actuellement occupés ou réservés.</div>
       </div>
       {% endif %}
     </div>
   </div>
 
-  <!-- Carte PDU -->
-  <div class="col-lg-4">
-    <div class="card h-100">
-      <div class="pdu-card-hdr">
-        <div class="pdu-card-hdr-left">
-          <i class="bi bi-map-fill text-primary"></i>
-          Carte d'occupation
-        </div>
-        <span style="font-size:11px; color:#94a3b8; font-weight:400;">Campus UAD</span>
-      </div>
-      <div id="pdu-map" style="height:480px; border-radius:0 0 var(--radius) var(--radius);"></div>
-    </div>
-  </div>
-
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 (function () {
-  /* Carte */
+  /* ---- Carte ---- */
   var map = initCampusMap('pdu-map');
   loadEspaces(map);
   loadBatiments(map);
 
-  /* Donut */
+  /* ---- Donut chart ---- */
   var labels = {{ chart_labels|safe }};
   var data   = {{ chart_data|safe }};
   var colors = {{ chart_colors|safe }};
   if (labels.length) createDonutChart('pduChart', labels, data, colors);
+
+  /* ---- Barres animées ---- */
+  requestAnimationFrame(function () {
+    document.querySelectorAll('.occ-bar-fill[data-width]').forEach(function (el) {
+      el.style.width = el.dataset.width + '%';
+    });
+  });
 })();
 </script>
 {% endblock %}

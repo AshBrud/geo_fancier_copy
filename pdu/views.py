@@ -84,27 +84,59 @@ def aide_pdu(request):
 @login_required
 @foncier_required
 def statistiques(request):
-    espaces_stats = Espace.objects.values('type_espace').annotate(
+    from django.db.models.functions import ExtractYear
+    from constructions.models import HistoriqueConstruction as HC
+
+    # Données brutes espaces
+    espaces_raw = Espace.objects.values('type_espace').annotate(
         count=Count('id'), superficie=Sum('superficie')
     )
-    total_sup = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 0
+    total_sup_m2 = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 0
+    total_sup_ha = round(total_sup_m2 / 10000, 2) if total_sup_m2 else 0
 
-    from django.db.models.functions import ExtractYear
-    histo = (
-        HistoriqueConstruction.objects
+    # Stats enrichies (superficie en ha + pourcentage corrects)
+    stats_enrichis = []
+    for item in espaces_raw:
+        sup_ha = round((item['superficie'] or 0) / 10000, 2)
+        pct = round((item['superficie'] or 0) / total_sup_m2 * 100, 1) if total_sup_m2 else 0
+        stats_enrichis.append({
+            'type_espace': item['type_espace'],
+            'label': dict(Espace.TYPES).get(item['type_espace'], item['type_espace']),
+            'couleur': Espace.COULEURS.get(item['type_espace'], '#94a3b8'),
+            'count': item['count'],
+            'superficie_ha': sup_ha,
+            'pourcentage': pct,
+        })
+    stats_enrichis.sort(key=lambda x: x['superficie_ha'], reverse=True)
+
+    # Taux libre / occupé
+    sup_libre_m2 = Espace.objects.filter(
+        type_espace=Espace.TYPE_LIBRE).aggregate(s=Sum('superficie'))['s'] or 0
+    taux_libre = round(sup_libre_m2 / total_sup_m2 * 100, 1) if total_sup_m2 else 0
+
+    # Historique travaux
+    types_travaux_dict = dict(HC.TYPES_TRAVAUX)
+    histo = list(
+        HC.objects
         .annotate(annee=ExtractYear('date_debut'))
         .values('annee', 'type_travaux')
         .annotate(count=Count('id'))
         .order_by('annee')
     )
+    for h in histo:
+        h['label_travaux'] = types_travaux_dict.get(h['type_travaux'], h['type_travaux'])
 
     context = {
-        'espaces_stats': list(espaces_stats),
-        'total_superficie': round(total_sup / 10000, 2),
+        'stats_enrichis': stats_enrichis,
+        'total_superficie': total_sup_ha,
         'total_batiments': Batiment.objects.count(),
         'total_espaces': Espace.objects.count(),
-        'historique_stats': list(histo),
-        'types_espaces': Espace.TYPES,
-        'couleurs_espaces': Espace.COULEURS,
+        'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
+        'taux_libre': taux_libre,
+        'taux_occupe': round(100 - taux_libre, 1),
+        'historique_stats': histo,
+        'chart_labels': json.dumps([s['label'] for s in stats_enrichis]),
+        'chart_data': json.dumps([s['superficie_ha'] for s in stats_enrichis]),
+        'chart_colors': json.dumps([s['couleur'] for s in stats_enrichis]),
     }
     return render(request, 'pdu/statistiques.html', context)
