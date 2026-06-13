@@ -3,6 +3,10 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.utils import timezone
+import datetime
 from .models import CustomUser, ActivityLog
 from .forms import LoginForm, RegisterForm, UserUpdateForm, ProfileForm
 from .decorators import admin_required
@@ -60,8 +64,38 @@ def profile_view(request):
 @login_required
 @admin_required
 def users_list(request):
-    users = CustomUser.objects.all().order_by('-date_joined')
-    return render(request, 'accounts/users_list.html', {'users': users})
+    qs = CustomUser.objects.all()
+    q = request.GET.get('q', '')
+    role_filter = request.GET.get('role', '')
+    statut_filter = request.GET.get('statut', '')
+
+    if q:
+        qs = qs.filter(
+            Q(username__icontains=q) | Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) | Q(email__icontains=q)
+        )
+    if role_filter:
+        qs = qs.filter(role=role_filter)
+    if statut_filter == 'actif':
+        qs = qs.filter(is_active=True)
+    elif statut_filter == 'inactif':
+        qs = qs.filter(is_active=False)
+
+    qs = qs.order_by('-date_joined')
+    paginator = Paginator(qs, 15)
+    page = paginator.get_page(request.GET.get('page'))
+
+    seuil_recent = timezone.now() - datetime.timedelta(days=30)
+    context = {
+        'page_obj': page,
+        'q': q, 'role_filter': role_filter, 'statut_filter': statut_filter,
+        'roles': CustomUser.ROLES,
+        'total_users': CustomUser.objects.count(),
+        'nb_actifs': CustomUser.objects.filter(is_active=True).count(),
+        'nb_admins': CustomUser.objects.filter(role=CustomUser.ROLE_ADMIN).count(),
+        'nb_recents': CustomUser.objects.filter(last_login__gte=seuil_recent).count(),
+    }
+    return render(request, 'accounts/users_list.html', context)
 
 
 @login_required
