@@ -1,20 +1,83 @@
 {% extends 'base.html' %}
-{% block title %}Suppression{% endblock %}
+{% block title %}Confirmer la suppression{% endblock %}
+
+{% block extra_css %}
+<style>
+.del-box {
+  max-width:480px; margin:40px auto 0;
+  background:#fff; border-radius:14px;
+  border:1px solid #fecaca;
+  box-shadow:0 4px 24px rgba(220,38,38,.10);
+  overflow:hidden;
+}
+.del-hdr {
+  background:linear-gradient(135deg,#fef2f2 0%,#fee2e2 100%);
+  padding:28px 24px 22px; text-align:center; border-bottom:1px solid #fecaca;
+}
+.del-icon {
+  width:64px; height:64px; border-radius:50%;
+  background:rgba(220,38,38,.12);
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; color:#DC2626; margin:0 auto 14px;
+}
+.del-title { font-size:17px; font-weight:700; color:#1e293b; margin:0 0 5px; }
+.del-sub   { font-size:13px; color:#64748b; margin:0; }
+.del-body  { padding:22px 24px; }
+.del-name  {
+  font-size:14px; font-weight:700; color:#1e293b;
+  background:#f8fafc; border:1px solid #e2e8f0;
+  border-radius:10px; padding:10px 14px; margin-bottom:14px;
+  display:flex; align-items:center; gap:10px;
+}
+.del-warn {
+  display:flex; align-items:flex-start; gap:9px;
+  background:#fef2f2; border:1px solid #fecaca;
+  border-radius:9px; padding:10px 14px;
+  font-size:12.5px; color:#7f1d1d; line-height:1.5;
+}
+.del-warn i { color:#DC2626; font-size:14px; flex-shrink:0; margin-top:1px; }
+.del-footer {
+  padding:14px 24px; border-top:1px solid #f1f5f9; background:#f8fafc;
+  display:flex; justify-content:flex-end; gap:10px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-5">
-    <div class="card border-danger">
-      <div class="card-body text-center p-5">
-        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem"></i>
-        <h4 class="mt-3 fw-bold">Confirmer la suppression</h4>
-        <p class="text-muted mt-2">Supprimer <strong>« {{ obj }} »</strong> ?</p>
-        <form method="post" class="mt-4 d-flex justify-content-center gap-3">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-danger px-4"><i class="bi bi-trash me-2"></i>Supprimer</button>
-          <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Annuler</a>
-        </form>
-      </div>
+<div class="del-box">
+
+  <div class="del-hdr">
+    <div class="del-icon">
+      <i class="bi bi-trash3-fill"></i>
+    </div>
+    <p class="del-title">Confirmer la suppression</p>
+    <p class="del-sub">Cette action est définitive et irréversible</p>
+  </div>
+
+  <div class="del-body">
+    <div class="del-name">
+      <i class="bi bi-airplane text-secondary"></i>
+      {{ obj }}
+    </div>
+    <div class="del-warn">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      Supprimer cet élément effacera définitivement toutes les données associées,
+      y compris les orthophotos et l'historique de la mission.
+      Cette opération ne peut pas être annulée.
     </div>
   </div>
+
+  <div class="del-footer">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Annuler
+    </a>
+    <form method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash3 me-1"></i>Supprimer définitivement
+      </button>
+    </form>
+  </div>
+
 </div>
 {% endblock %}

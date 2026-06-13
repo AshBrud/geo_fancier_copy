@@ -8,61 +8,40 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="page-header">
   <div>
-    <h1 class="page-title"><i class="bi bi-cloud-upload me-2"></i>Importer une orthophoto</h1>
+    <h1 class="page-title"><i class="bi bi-cloud-upload me-1"></i>Importer une orthophoto</h1>
     <p class="page-description">Ajoutez un fichier image issu du traitement WebODM ou QGIS à la mission sélectionnée.</p>
   </div>
+  <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Retour à la mission
+  </a>
 </div>
 
-<div class="row justify-content-center g-4">
+<div class="row g-4">
 
-  <!-- Carte mission résumé -->
-  <div class="col-lg-4 order-lg-2">
-    <div class="card mb-3">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-airplane text-primary"></i> Mission associée
-      </div>
-      <div class="card-body">
-        <h6 class="fw-bold mb-1">{{ mission.nom }}</h6>
-        <p class="text-muted small mb-2">
-          <i class="bi bi-calendar3 me-1"></i>{{ mission.date_mission|date:"d F Y" }}<br>
-          <i class="bi bi-person me-1"></i>{{ mission.operateur }}
-        </p>
-        <span class="badge
-          {% if mission.statut == 'traite' %}bg-success
-          {% elif mission.statut == 'realise' %}bg-info
-          {% else %}bg-warning text-dark{% endif %}">
-          {{ mission.get_statut_display }}
-        </span>
-      </div>
-    </div>
+  <!-- Formulaire principal -->
+  <div class="col-lg-8 order-lg-1">
+    <div class="card" style="overflow:hidden;">
 
-    <div class="card bg-info-subtle border-info-subtle">
-      <div class="card-body">
-        <h6 class="fw-semibold text-info mb-2">
-          <i class="bi bi-lightbulb me-1"></i>Formats acceptés
-        </h6>
-        <ul class="small text-muted mb-0 ps-3">
-          <li>Images standards : JPG, PNG</li>
-          <li>GeoTIFF : .tif, .tiff</li>
-          <li>Exports WebODM / QGIS</li>
-        </ul>
+      <div style="padding:14px 20px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
+                  display:flex; align-items:center; gap:10px;">
+        <div style="width:36px; height:36px; border-radius:9px; background:#dcfce7;
+                    display:flex; align-items:center; justify-content:center; font-size:16px;">
+          <i class="bi bi-images" style="color:#16A34A;"></i>
+        </div>
+        <div>
+          <p style="font-size:13.5px; font-weight:700; color:#1e293b; margin:0;">Nouvelle orthophoto</p>
+          <p style="font-size:11.5px; color:#64748b; margin:0;">Mission · {{ mission.nom }}</p>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Formulaire avec drag-and-drop -->
-  <div class="col-lg-7 order-lg-1">
-    <div class="card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-images text-primary"></i> Nouvelle orthophoto
-      </div>
       <div class="card-body">
         <form method="post" enctype="multipart/form-data" novalidate id="orthoForm">
           {% csrf_token %}
 
-          <!-- Zone de dépôt de fichier -->
+          <!-- Zone de dépôt -->
           <div class="upload-zone mb-4" id="uploadZone">
             <i class="bi bi-cloud-upload upload-zone-icon"></i>
             <p class="upload-zone-title">Glissez votre fichier ici</p>
@@ -81,28 +60,22 @@
             </div>
           </div>
 
-          <!-- Champs du formulaire (sans le champ fichier) -->
+          <!-- Champs -->
           <div class="row g-3">
             <div class="col-md-8">
               <label class="form-label fw-semibold small">Mission</label>
               {{ form.mission }}
-              {% if form.mission.errors %}
-              <div class="invalid-feedback d-block">{{ form.mission.errors }}</div>
-              {% endif %}
+              {% if form.mission.errors %}<div class="invalid-feedback d-block">{{ form.mission.errors }}</div>{% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold small">Date de prise de vue</label>
               {{ form.date_prise }}
-              {% if form.date_prise.errors %}
-              <div class="invalid-feedback d-block">{{ form.date_prise.errors }}</div>
-              {% endif %}
+              {% if form.date_prise.errors %}<div class="invalid-feedback d-block">{{ form.date_prise.errors }}</div>{% endif %}
             </div>
             <div class="col-md-8">
               <label class="form-label fw-semibold small">Nom de l'orthophoto</label>
               {{ form.nom }}
-              {% if form.nom.errors %}
-              <div class="invalid-feedback d-block">{{ form.nom.errors }}</div>
-              {% endif %}
+              {% if form.nom.errors %}<div class="invalid-feedback d-block">{{ form.nom.errors }}</div>{% endif %}
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold small">
@@ -111,25 +84,69 @@
               {{ form.resolution }}
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold small">Description (optionnel)</label>
+              <label class="form-label fw-semibold small">Description <small class="text-muted fw-normal">(optionnel)</small></label>
               {{ form.description }}
             </div>
           </div>
 
-          <div class="d-flex gap-2 mt-4">
+          <div class="d-flex gap-2 mt-4 pt-3" style="border-top:1px solid #f1f5f9;">
             <button type="submit" class="btn btn-success px-4" id="submitBtn" disabled>
               <i class="bi bi-cloud-upload me-2"></i>Importer
             </button>
-            <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-light">
-              Annuler
+            <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-outline-secondary">
+              <i class="bi bi-x me-1"></i>Annuler
             </a>
           </div>
         </form>
       </div>
+
     </div>
   </div>
 
+  <!-- Sidebar mission -->
+  <div class="col-lg-4 order-lg-2">
+
+    <div class="card mb-3" style="overflow:hidden;">
+      <div style="padding:12px 16px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
+                  display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#374151;">
+        <i class="bi bi-airplane text-primary"></i> Mission associée
+      </div>
+      <div class="card-body">
+        <p class="fw-bold mb-1" style="font-size:14px;">{{ mission.nom }}</p>
+        <div style="font-size:12.5px; color:#64748b; line-height:1.8;">
+          <div><i class="bi bi-calendar3 me-2"></i>{{ mission.date_mission|date:"d F Y" }}</div>
+          <div><i class="bi bi-person me-2"></i>{{ mission.operateur }}</div>
+          {% if mission.drone_utilise %}
+          <div><i class="bi bi-airplane me-2"></i>{{ mission.drone_utilise }}</div>
+          {% endif %}
+        </div>
+        <div class="mt-2">
+          <span class="badge
+            {% if mission.statut == 'traite' %}bg-success
+            {% elif mission.statut == 'realise' %}bg-info
+            {% else %}bg-warning text-dark{% endif %}"
+            style="font-size:11.5px;">
+            {{ mission.get_statut_display }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px 16px;">
+      <p style="font-size:12.5px; font-weight:700; color:#1d4ed8; margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+        <i class="bi bi-lightbulb-fill"></i> Formats acceptés
+      </p>
+      <ul style="font-size:12px; color:#475569; margin:0; padding-left:16px; line-height:1.8;">
+        <li>Images standards : JPG, PNG</li>
+        <li>GeoTIFF : .tif, .tiff</li>
+        <li>Exports WebODM / QGIS</li>
+      </ul>
+    </div>
+
+  </div>
+
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -158,7 +175,6 @@
   input.addEventListener('change', function () {
     if (this.files[0]) showFile(this.files[0]);
   });
-
   clearBtn.addEventListener('click', clearFile);
 
   zone.addEventListener('dragover', function (e) {
@@ -180,7 +196,6 @@
     }
   });
 
-  // Remplir automatiquement le nom si vide
   input.addEventListener('change', function () {
     const nomField = document.querySelector('[name="nom"]');
     if (this.files[0] && !nomField.value) {
