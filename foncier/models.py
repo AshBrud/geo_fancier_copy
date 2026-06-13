@@ -9,16 +9,11 @@ class Espace(models.Model):
     TYPE_OCCUPE = 'occupe'
     TYPE_RESERVE = 'reserve'
     TYPE_ROUTE = 'route'
-    TYPE_VERT = 'vert'
-    TYPE_SPORTIF = 'sportif'
-
     TYPES = [
         (TYPE_LIBRE, 'Espace libre'),
         (TYPE_OCCUPE, 'Espace occupé'),
         (TYPE_RESERVE, 'Espace réservé'),
         (TYPE_ROUTE, 'Route / Voie'),
-        (TYPE_VERT, 'Espace vert'),
-        (TYPE_SPORTIF, 'Espace sportif'),
     ]
 
     COULEURS = {
@@ -26,8 +21,6 @@ class Espace(models.Model):
         TYPE_OCCUPE: '#DC2626',
         TYPE_RESERVE: '#F59E0B',
         TYPE_ROUTE: '#6B7280',
-        TYPE_VERT: '#22C55E',
-        TYPE_SPORTIF: '#0EA5E9',
     }
 
     nom = models.CharField(max_length=200, verbose_name='Nom')

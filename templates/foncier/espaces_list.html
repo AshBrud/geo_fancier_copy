@@ -9,7 +9,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-grid-3x3-gap"></i> Espaces Fonciers</h1>
-    <p class="page-description">Gestion des zones du campus : espaces libres, occupés, réservés, routes et espaces verts.</p>
+    <p class="page-description">Gestion des zones du campus : espaces libres, occupés, réservés et routes.</p>
   </div>
   {% if user.can_manage_foncier %}
   <a href="{% url 'foncier:espace_create' %}" class="btn btn-primary">
