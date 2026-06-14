@@ -17,8 +17,8 @@
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="user-avatar-sm" style="width:28px;height:28px;font-size:12px;">{{ log.user.username|first|upper }}</div>
-              <span class="fw-semibold small">{{ log.user.username|default:"—" }}</span>
+              <div class="user-avatar-sm" style="width:28px;height:28px;font-size:12px;">{% if log.user %}{{ log.user.username|first|upper }}{% else %}?{% endif %}</div>
+              <span class="fw-semibold small">{% if log.user %}{{ log.user.username }}{% else %}—{% endif %}</span>
             </div>
           </td>
           <td class="fw-medium">{{ log.action }}</td>

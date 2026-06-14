@@ -60,7 +60,7 @@
             {% endif %}
           </td>
           <td><span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span></td>
-          <td class="text-muted small">{{ c.demandeur.get_full_name|default:c.demandeur.username|default:"—" }}</td>
+          <td class="text-muted small">{% if c.demandeur %}{{ c.demandeur.get_full_name|default:c.demandeur.username }}{% else %}—{% endif %}</td>
           <td class="text-muted small">{{ c.date_demande|date:"d/m/Y" }}</td>
           <td>
             <form method="post" action="{% url 'constructions:update_statut' c.pk %}" class="d-inline">

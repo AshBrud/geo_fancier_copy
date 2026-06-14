@@ -467,10 +467,10 @@
       {% if activites %}
         {% for log in activites %}
         <div class="tl-item">
-          <div class="tl-av">{{ log.user.username|first|upper }}</div>
+          <div class="tl-av">{% if log.user %}{{ log.user.username|first|upper }}{% else %}?{% endif %}</div>
           <div class="flex-grow-1 min-w-0">
             <div class="tl-action text-truncate">{{ log.action }}</div>
-            <div class="tl-user">{{ log.user.get_full_name|default:log.user.username }}</div>
+            <div class="tl-user">{% if log.user %}{{ log.user.get_full_name|default:log.user.username }}{% else %}<em>Utilisateur supprimé</em>{% endif %}</div>
           </div>
           <div class="tl-when">{{ log.timestamp|timesince }}</div>
         </div>
@@ -581,7 +581,7 @@
           <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
             <span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span>
             <small class="text-muted" style="font-size:10.5px;">
-              {{ c.demandeur.get_full_name|default:c.demandeur.username|default:"—" }}
+              {% if c.demandeur %}{{ c.demandeur.get_full_name|default:c.demandeur.username }}{% else %}—{% endif %}
             </small>
           </div>
         </div>
