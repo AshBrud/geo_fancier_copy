@@ -179,7 +179,6 @@
           <th>Fonction</th>
           <th class="text-center">Étages</th>
           <th>Superficie</th>
-          <th class="text-center">Capacité</th>
           <th>Année</th>
           <th>Statut</th>
           {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
@@ -220,9 +219,6 @@
             <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td class="text-center">
-            <span class="text-muted" style="font-size:12.5px;">{{ bat.capacite|default:"—" }}</span>
-          </td>
           <td>
             <span class="text-muted" style="font-size:12.5px;">{{ bat.annee_construction|default:"—" }}</span>
           </td>
@@ -257,7 +253,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if user.is_domaine_foncier %}9{% else %}8{% endif %}">
+          <td colspan="{% if user.is_domaine_foncier %}8{% else %}7{% endif %}">
             <div class="empty-state">
               <i class="bi bi-building-x"></i>
               <p>Aucun bâtiment trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>
