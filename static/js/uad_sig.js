@@ -1,4 +1,4 @@
-/* UAD SIG — Scripts principaux */
+/* GéoFoncier UAD — Scripts principaux */
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -117,7 +117,7 @@ function loadOrthophoto(map, tilesUrl, opts) {
     maxZoom: opts.maxZoom || 22,
     maxNativeZoom: opts.maxNativeZoom || 20,
     tms: opts.tms || false,
-    attribution: 'Orthophoto UAD SIG — WebODM/QGIS',
+    attribution: 'Orthophoto GéoFoncier UAD — WebODM/QGIS',
   });
 }
 

@@ -120,7 +120,7 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # E-mail (console en développement — remplacer par SMTP en production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'UAD SIG <noreply@uad.edu.sn>'
+DEFAULT_FROM_EMAIL = 'GéoFoncier UAD <noreply@uad.edu.sn>'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
