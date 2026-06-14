@@ -45,7 +45,7 @@ class BatimentForm(forms.ModelForm):
     class Meta:
         model = Batiment
         fields = ['nom', 'code', 'fonction', 'etages', 'annee_construction',
-                  'capacite', 'description', 'photo', 'est_actif', 'geometrie']
+                  'description', 'photo', 'est_actif', 'geometrie']
         labels = {
             'nom': 'Nom du bâtiment',
             'code': 'Code unique',
@@ -73,7 +73,7 @@ class BatimentForm(forms.ModelForm):
             Row(Column('nom', css_class='col-md-8'), Column('code', css_class='col-md-4')),
             Row(Column('fonction', css_class='col-md-6'), Column('etages', css_class='col-md-3'),
                 Column('annee_construction', css_class='col-md-3')),
-            Row(Column('capacite', css_class='col-md-4'), Column('est_actif', css_class='col-md-4')),
+            Row(Column('est_actif', css_class='col-md-4')),
             'description', 'photo', 'geometrie',
             ButtonHolder(
                 Submit('submit', 'Enregistrer', css_class='btn btn-primary'),
