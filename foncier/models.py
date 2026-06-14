@@ -3,6 +3,9 @@ from django.contrib.gis.db.models.functions import Area
 from django.contrib.gis.measure import A
 from django.utils import timezone
 
+# Superficie officielle du campus UAD Bambey (55 ha)
+SUPERFICIE_CAMPUS_M2 = 550000
+
 
 class Espace(models.Model):
     TYPE_LIBRE = 'libre'

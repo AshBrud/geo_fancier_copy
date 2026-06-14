@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
 import json
-from .models import Espace, Batiment, FonctionBatiment
+from .models import Espace, Batiment, FonctionBatiment, SUPERFICIE_CAMPUS_M2
 from .forms import EspaceForm, BatimentForm
 from accounts.decorators import foncier_required, domaine_required
 
@@ -55,6 +55,7 @@ def espaces_list(request):
         'types': Espace.TYPES, 'stats': stats,
         'total_espaces': total_espaces,
         'total_superficie_ha': round(total_superficie / 10000, 2) if total_superficie else 0,
+        'superficie_campus_ha': round(SUPERFICIE_CAMPUS_M2 / 10000, 2),
     })
 
 

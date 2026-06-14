@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count
-from foncier.models import Espace, Batiment
+from foncier.models import Espace, Batiment, SUPERFICIE_CAMPUS_M2
 from constructions.models import HistoriqueConstruction
 from accounts.decorators import foncier_required
 import json
@@ -14,7 +14,7 @@ def aide_pdu(request):
     espaces_par_type = Espace.objects.values('type_espace').annotate(
         count=Count('id'), superficie=Sum('superficie')
     )
-    total_superficie = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 1
+    total_superficie = SUPERFICIE_CAMPUS_M2  # superficie officielle campus UAD
 
     occupation = []
     for e in espaces_par_type:
@@ -91,8 +91,8 @@ def statistiques(request):
     espaces_raw = Espace.objects.values('type_espace').annotate(
         count=Count('id'), superficie=Sum('superficie')
     )
-    total_sup_m2 = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 0
-    total_sup_ha = round(total_sup_m2 / 10000, 2) if total_sup_m2 else 0
+    total_sup_m2 = SUPERFICIE_CAMPUS_M2  # superficie officielle campus UAD
+    total_sup_ha = round(total_sup_m2 / 10000, 2)
 
     # Stats enrichies (superficie en ha + pourcentage corrects)
     stats_enrichis = []
@@ -112,7 +112,7 @@ def statistiques(request):
     # Taux libre / occupé
     sup_libre_m2 = Espace.objects.filter(
         type_espace=Espace.TYPE_LIBRE).aggregate(s=Sum('superficie'))['s'] or 0
-    taux_libre = round(sup_libre_m2 / total_sup_m2 * 100, 1) if total_sup_m2 else 0
+    taux_libre = round(sup_libre_m2 / total_sup_m2 * 100, 1)
 
     # Historique travaux
     types_travaux_dict = dict(HC.TYPES_TRAVAUX)

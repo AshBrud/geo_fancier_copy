@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
-from foncier.models import Espace, Batiment
+from foncier.models import Espace, Batiment, SUPERFICIE_CAMPUS_M2
 from drones.models import MissionDrone, Orthophoto
 from constructions.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
@@ -11,8 +11,7 @@ import json
 @login_required
 def index(request):
     # KPIs fonciers
-    # Superficie totale du campus : valeur officielle (55 ha)
-    superficie_totale = 550000  # m² — 55 hectares exacts
+    superficie_totale = SUPERFICIE_CAMPUS_M2  # superficie officielle campus UAD
     superficie_occupee = Espace.objects.filter(
         type_espace=Espace.TYPE_OCCUPE).aggregate(t=Sum('superficie'))['t'] or 0
     superficie_libre = Espace.objects.filter(
