@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="UAD SIG — Système d'Information Géographique">
+  <defs>
+    <linearGradient id="bgG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b1c6f"/>
+      <stop offset="100%" stop-color="#2845d8"/>
+    </linearGradient>
+    <linearGradient id="dotG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#00e5a0"/>
+      <stop offset="100%" stop-color="#00c4d8"/>
+    </linearGradient>
+    <radialGradient id="glowG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00e5a0" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#00e5a0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fond dégradé bleu -->
+  <rect width="64" height="64" rx="14" fill="url(#bgG)"/>
+
+  <!-- Grille cartographique subtile -->
+  <g stroke="#ffffff" stroke-width="0.55" opacity="0.09">
+    <line x1="5"  y1="21" x2="59" y2="21"/>
+    <line x1="5"  y1="32" x2="59" y2="32"/>
+    <line x1="5"  y1="43" x2="59" y2="43"/>
+    <line x1="21" y1="5"  x2="21" y2="59"/>
+    <line x1="32" y1="5"  x2="32" y2="59"/>
+    <line x1="43" y1="5"  x2="43" y2="59"/>
+  </g>
+
+  <!-- Halo vert diffus derrière le pin -->
+  <circle cx="32" cy="22" r="16" fill="url(#glowG)"/>
+
+  <!-- Pin de localisation (blanc) -->
+  <path d="M32 8.5 C24.5 8.5 18.5 14.5 18.5 22
+           C18.5 32.8 32 55.5 32 55.5
+           C32 55.5 45.5 32.8 45.5 22
+           C45.5 14.5 39.5 8.5 32 8.5Z"
+        fill="white" opacity="0.93"/>
+
+  <!-- Cercle accent vert néon -->
+  <circle cx="32" cy="22" r="8.5" fill="url(#dotG)" filter="url(#glow)"/>
+
+  <!-- Viseur GPS (crosshair) -->
+  <g stroke="#0b1c6f" stroke-width="1.7" stroke-linecap="round" opacity="0.85">
+    <line x1="32" y1="15.5" x2="32" y2="19"/>
+    <line x1="32" y1="25"   x2="32" y2="28.5"/>
+    <line x1="25.5" y1="22" x2="29"  y2="22"/>
+    <line x1="35"   y1="22" x2="38.5" y2="22"/>
+  </g>
+
+  <!-- Point central -->
+  <circle cx="32" cy="22" r="2.2" fill="#0b1c6f" opacity="0.85"/>
+</svg>
