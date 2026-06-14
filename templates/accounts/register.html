@@ -2,10 +2,294 @@
 {% load static %}
 {% block title %}Créer un compte — GéoFoncier UAD{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ════════════════════════════════════════════════════
+   AUTH PAGE — DESIGN GÉOFONCIER UAD (identique connexion)
+════════════════════════════════════════════════════ */
+.auth-page { min-height:100vh; display:flex; background:#020c1b; }
+
+/* ════════ PANNEAU GAUCHE ════════ */
+.auth-left-panel {
+  flex:1; position:relative; overflow:hidden;
+  min-height:100vh; display:flex; flex-direction:column;
+  background:#020c1b;
+}
+.auth-drone-img {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:center 35%;
+  opacity:0.55; filter:saturate(1.1);
+}
+.auth-left-overlay {
+  position:absolute; inset:0;
+  background:linear-gradient(170deg,
+    rgba(2,12,27,0.96) 0%, rgba(8,28,78,0.78) 38%,
+    rgba(3,52,36,0.68) 72%, rgba(2,12,27,0.97) 100%);
+}
+.auth-left-panel::before {
+  content:''; position:absolute; inset:0; z-index:1;
+  background-image:radial-gradient(circle,rgba(0,230,160,0.07) 1px,transparent 1px);
+  background-size:30px 30px; pointer-events:none;
+  animation:gridFade 6s ease-in-out infinite alternate;
+}
+@keyframes gridFade { from{opacity:.5} to{opacity:1} }
+
+.auth-left-body {
+  position:relative; z-index:2; flex:1;
+  display:flex; flex-direction:column;
+  padding:2.5rem 3rem;
+  animation:fadeInLeft .7s ease both;
+}
+.auth-univ-badge {
+  display:inline-flex; align-items:center; gap:10px;
+  background:rgba(0,230,160,0.07); backdrop-filter:blur(16px);
+  border:1px solid rgba(0,230,160,0.18); border-radius:50px;
+  padding:7px 18px 7px 7px; margin-bottom:2.25rem; width:fit-content;
+  animation:fadeSlideDown .6s .1s ease both;
+}
+.auth-univ-badge .uv-dot {
+  width:30px; height:30px;
+  background:linear-gradient(135deg,#00e5a0,#00b4d8);
+  border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:13px; flex-shrink:0;
+}
+.auth-univ-badge span { font-size:.74rem; font-weight:600; color:rgba(255,255,255,.88); }
+
+.auth-app-title {
+  font-size:3.4rem; font-weight:900; letter-spacing:-2px;
+  line-height:1; color:#fff; margin-bottom:.4rem;
+  animation:fadeSlideDown .6s .15s ease both;
+}
+.auth-app-title .accent {
+  color:#00e5a0;
+  text-shadow:0 0 24px rgba(0,229,160,.55),0 0 56px rgba(0,229,160,.28),0 0 100px rgba(0,229,160,.12);
+}
+.auth-title-rule {
+  display:flex; align-items:center; gap:12px;
+  margin:.9rem 0 1.4rem;
+  animation:fadeSlideDown .6s .2s ease both;
+}
+.auth-title-rule .rule-line {
+  height:2px; width:38px;
+  background:linear-gradient(90deg,#00e5a0,transparent); border-radius:2px;
+}
+.auth-title-rule span {
+  font-size:.68rem; font-weight:700; letter-spacing:3.5px;
+  text-transform:uppercase; color:rgba(255,255,255,.40);
+}
+.auth-app-sub {
+  font-size:.93rem; font-weight:400; color:rgba(255,255,255,.65);
+  line-height:1.72; max-width:370px; margin-bottom:2rem;
+  animation:fadeSlideDown .6s .25s ease both;
+}
+.auth-feat-container {
+  display:flex; gap:.65rem; height:210px; overflow:hidden; margin-bottom:auto;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 82%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,black 18%,black 82%,transparent 100%);
+  animation:fadeSlideDown .6s .3s ease both;
+}
+.auth-feat-container:hover .auth-marquee-track { animation-play-state:paused; }
+.auth-marquee-col { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.auth-marquee-track { display:flex; flex-direction:column; gap:.6rem; animation:scroll-down 16s linear infinite; }
+.auth-marquee-track.up { animation:scroll-up 20s linear infinite; }
+.auth-feat-item {
+  display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:.6rem .85rem; flex-shrink:0; transition:all .25s;
+}
+.auth-feat-item:hover { background:rgba(0,229,160,.09); border-color:rgba(0,229,160,.26); }
+.auth-feat-icon {
+  width:28px; height:28px; background:rgba(0,229,160,.12); border-radius:7px;
+  display:flex; align-items:center; justify-content:center; font-size:13px; color:#00e5a0; flex-shrink:0;
+}
+.auth-feat-item span { font-size:.77rem; font-weight:500; color:rgba(255,255,255,.80); }
+.auth-left-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:2rem; padding-top:1.25rem;
+  border-top:1px solid rgba(255,255,255,.07);
+  animation:fadeSlideDown .6s .35s ease both;
+}
+.auth-left-footer .footer-copy { font-size:.68rem; color:rgba(255,255,255,.30); }
+.auth-left-footer .footer-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(0,229,160,.09); border:1px solid rgba(0,229,160,.20);
+  border-radius:20px; padding:3px 10px;
+  font-size:.62rem; font-weight:700; color:#00e5a0;
+  text-transform:uppercase; letter-spacing:.6px;
+}
+
+/* ════════ PANNEAU DROIT ════════ */
+.auth-right-panel {
+  width:500px; flex-shrink:0; min-height:100vh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:2rem 1.75rem; overflow-y:auto; position:relative;
+  background:#f0f4fb;
+}
+.auth-right-panel::before {
+  content:''; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(30,58,138,.030) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(30,58,138,.030) 1px,transparent 1px);
+  background-size:36px 36px; pointer-events:none;
+}
+.auth-right-panel::after {
+  content:''; position:absolute;
+  width:340px; height:340px; border-radius:50%;
+  background:radial-gradient(circle,rgba(59,91,219,.07) 0%,transparent 70%);
+  top:-80px; right:-80px; pointer-events:none;
+}
+
+/* Logo */
+.auth-right-logo {
+  background:transparent !important; box-shadow:none !important;
+  border-radius:0 !important; padding:0 !important;
+  width:auto !important; height:auto !important;
+  overflow:visible !important; position:relative; z-index:2;
+  margin-bottom:16px; animation:fadeScaleIn .5s ease both;
+}
+.auth-right-logo::before {
+  content:''; position:absolute; inset:-6px; border-radius:24px;
+  border:2px solid rgba(40,69,216,.22);
+  animation:ringPulse 3.5s ease-in-out infinite;
+}
+.auth-right-logo::after {
+  content:''; position:absolute; inset:-13px; border-radius:31px;
+  border:1.5px solid rgba(40,69,216,.10);
+  animation:ringPulse 3.5s .5s ease-in-out infinite;
+}
+.logo-img {
+  width:72px; height:72px; display:block; border-radius:18px;
+  filter:drop-shadow(0 10px 28px rgba(14,36,160,.48)) drop-shadow(0 2px 6px rgba(14,36,160,.22));
+}
+
+/* Brand */
+.auth-right-brand {
+  position:relative; z-index:2; text-align:center; margin-bottom:20px;
+  animation:fadeScaleIn .5s .05s ease both;
+}
+.auth-right-brand h2 { font-size:21px; font-weight:800; color:#0f172a; margin:0 0 3px; letter-spacing:-.5px; }
+.auth-right-brand p  { font-size:11.5px; color:#94a3b8; margin:0; }
+
+/* Carte formulaire */
+.auth-card-box {
+  position:relative; z-index:2; width:100%; max-width:430px;
+  background:#fff; border-radius:22px; padding:1.75rem 2rem;
+  box-shadow:
+    0 0 0 1px rgba(30,58,138,.055),
+    0 2px 4px rgba(0,0,0,.03),
+    0 12px 32px rgba(30,58,138,.10),
+    0 32px 64px rgba(30,58,138,.06);
+  animation:fadeScaleIn .5s .1s ease both;
+}
+.auth-card-header {
+  display:flex; align-items:center; gap:14px;
+  margin-bottom:1.4rem; padding-bottom:1.2rem;
+  border-bottom:1px solid #f1f5f9;
+}
+.auth-card-icon {
+  width:44px; height:44px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.15rem; color:#fff; flex-shrink:0;
+}
+.auth-card-icon.register-icon {
+  background:linear-gradient(135deg,#15803d 0%,#22c55e 100%);
+  box-shadow:0 6px 18px rgba(21,128,61,.32);
+}
+.auth-card-header-text h3 { font-size:1.1rem; font-weight:700; color:#0f172a; margin:0 0 2px; }
+.auth-card-header-text p  { font-size:.77rem; color:#94a3b8; margin:0; }
+
+.auth-field { margin-bottom:.9rem; }
+.auth-field label {
+  display:block; font-size:.73rem; font-weight:700; color:#374151;
+  text-transform:uppercase; letter-spacing:.8px; margin-bottom:.35rem;
+}
+.auth-input-wrap { position:relative; display:flex; align-items:center; }
+.auth-input-wrap .field-icon {
+  position:absolute; left:13px; color:#94a3b8;
+  font-size:14px; pointer-events:none; z-index:1; transition:color .2s;
+}
+.auth-input-wrap input {
+  width:100%; height:44px; padding:0 12px 0 40px;
+  border:1.5px solid #e2e8f0; border-radius:12px;
+  font-size:.88rem; color:#0f172a; background:#f8fafc; transition:all .2s; outline:none;
+}
+.auth-input-wrap input:focus {
+  border-color:#3b5bdb; background:#fff;
+  box-shadow:0 0 0 4px rgba(59,91,219,.10);
+}
+.auth-input-wrap:focus-within .field-icon { color:#3b5bdb; }
+.auth-input-wrap input.is-invalid { border-color:#ef4444; background:#fff5f5; }
+.auth-input-wrap .toggle-eye {
+  position:absolute; right:10px; background:none; border:none;
+  padding:4px 8px; color:#94a3b8; cursor:pointer; border-radius:6px; transition:color .2s;
+}
+.auth-input-wrap .toggle-eye:hover { color:#475569; }
+.auth-invalid-msg { font-size:.72rem; color:#ef4444; margin-top:4px; display:flex; align-items:center; gap:4px; }
+.auth-alert {
+  display:flex; align-items:center; gap:9px;
+  background:#fef2f2; border:1px solid #fecaca;
+  border-radius:10px; padding:10px 14px;
+  font-size:.8rem; color:#b91c1c; margin-top:.6rem;
+}
+.auth-btn {
+  width:100%; height:48px; border:none; border-radius:12px;
+  font-size:.92rem; font-weight:700; color:#fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  margin-top:1.25rem; transition:all .22s; position:relative; overflow:hidden;
+}
+.auth-btn::after {
+  content:''; position:absolute; top:0; left:-100%; width:60%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:skewX(-20deg); transition:left .55s ease;
+}
+.auth-btn:hover::after { left:160%; }
+.auth-btn:hover { transform:translateY(-2px); }
+.auth-btn:active { transform:translateY(0); }
+.auth-btn.btn-register {
+  background:linear-gradient(135deg,#15803d 0%,#22c55e 60%,#4ade80 100%);
+  box-shadow:0 8px 28px rgba(21,128,61,.40);
+}
+.auth-switch-link {
+  text-align:center; margin-top:1.1rem; padding-top:1.1rem;
+  border-top:1px solid #f1f5f9; font-size:.82rem; color:#64748b;
+}
+.auth-switch-link a { color:#15803d; font-weight:700; text-decoration:none; margin-left:4px; }
+.auth-switch-link a:hover { text-decoration:underline; }
+.auth-right-footer { position:relative; z-index:2; margin-top:1.1rem; font-size:.67rem; color:#94a3b8; text-align:center; }
+
+/* ════════ ANIMATIONS ════════ */
+@keyframes fadeSlideDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeScaleIn  { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+@keyframes fadeInLeft   { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes ringPulse    { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.06);opacity:1} }
+@keyframes scroll-down  { 0%{transform:translateY(0)} 100%{transform:translateY(-50%)} }
+@keyframes scroll-up    { 0%{transform:translateY(-50%)} 100%{transform:translateY(0)} }
+
+/* ════════ RESPONSIVE ════════ */
+@media (max-width:960px) {
+  .auth-left-panel { display:none; }
+  .auth-right-panel {
+    width:100%; min-height:100vh;
+    background:linear-gradient(160deg,#060f2e 0%,#0b1d5e 100%);
+  }
+  .auth-right-panel::before, .auth-right-panel::after { display:none; }
+  .auth-right-brand h2 { color:#fff; }
+  .auth-right-brand p  { color:rgba(255,255,255,.55); }
+}
+@media (max-width:480px) {
+  .auth-right-panel { padding:1.5rem 1rem; }
+  .auth-card-box    { padding:1.75rem 1.5rem; border-radius:18px; }
+}
+</style>
+{% endblock %}
+
 {% block auth_content %}
 <div style="display:contents">
 
-<!-- ══════════════ PANNEAU GAUCHE ══════════════ -->
+<!-- ══════════════════════════════════════
+     PANNEAU GAUCHE
+══════════════════════════════════════ -->
 <div class="auth-left-panel">
   <img src="{% static 'images/drone_campus.jpg' %}" alt="Campus UAD vue drone"
        class="auth-drone-img" onerror="this.style.display='none'">
@@ -14,11 +298,11 @@
   <div class="auth-left-body">
 
     <div class="auth-univ-badge">
-      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white"></i></div>
+      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white" style="font-size:13px;"></i></div>
       <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
     </div>
 
-    <div class="auth-app-title">UAD <span class="accent">SIG</span></div>
+    <div class="auth-app-title">Géo<span class="accent">Foncier</span></div>
 
     <div class="auth-title-rule">
       <div class="rule-line"></div>
@@ -31,16 +315,13 @@
       aménagements du campus universitaire.
     </p>
 
-    <!-- Colonnes verticales animées -->
     <div class="auth-feat-container">
-      <!-- Colonne gauche : descend -->
       <div class="auth-marquee-col">
         <div class="auth-marquee-track">
           {% include 'accounts/_feat_items.html' %}
           {% include 'accounts/_feat_items.html' %}
         </div>
       </div>
-      <!-- Colonne droite : monte -->
       <div class="auth-marquee-col">
         <div class="auth-marquee-track up">
           {% include 'accounts/_feat_items_alt.html' %}
@@ -50,21 +331,31 @@
     </div>
 
     <div class="auth-left-footer">
-      <span class="footer-copy">
-        &copy; 2026 GéoFoncier UAD &mdash; UFR SATIC &mdash; Licence 3 SRT
-      </span>
-      <span class="footer-badge">
-        <i class="bi bi-shield-check"></i> Sécurisé
-      </span>
+      <span class="footer-copy">&copy; 2026 GéoFoncier UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
+      <span class="footer-badge"><i class="bi bi-shield-check"></i> Sécurisé</span>
     </div>
 
   </div>
 </div>
 
-<!-- ══════════════ PANNEAU DROIT ══════════════ -->
+<!-- ══════════════════════════════════════
+     PANNEAU DROIT
+══════════════════════════════════════ -->
 <div class="auth-right-panel">
 
-  <div class="auth-card-box" style="max-width:430px">
+  <!-- Logo avec anneaux pulsants -->
+  <div class="auth-right-logo">
+    <img src="{% static 'images/logo_uad_sig.svg' %}" alt="GéoFoncier UAD" class="logo-img">
+  </div>
+
+  <!-- Branding -->
+  <div class="auth-right-brand">
+    <h2>Géo<span style="color:#15803d; font-weight:900;">Foncier</span> <span style="font-size:14px; color:#94a3b8; font-weight:500;">UAD</span></h2>
+    <p>Système d'Information Géographique</p>
+  </div>
+
+  <!-- Carte formulaire -->
+  <div class="auth-card-box">
 
     <div class="auth-card-header">
       <div class="auth-card-icon register-icon">
@@ -88,13 +379,13 @@
       {% csrf_token %}
 
       <!-- Prénom + Nom -->
-      <div class="row g-3 mb-1">
+      <div class="row g-2 mb-0">
         <div class="col-6">
           <div class="auth-field">
             <label>Prénom</label>
             <div class="auth-input-wrap">
               <i class="bi bi-person field-icon"></i>
-              <input type="text" name="first_name" placeholder="Votre prénom"
+              <input type="text" name="first_name" placeholder="Prénom"
                      value="{{ form.first_name.value|default:'' }}"
                      class="{% if form.first_name.errors %}is-invalid{% endif %}">
             </div>
@@ -108,7 +399,7 @@
             <label>Nom</label>
             <div class="auth-input-wrap">
               <i class="bi bi-person field-icon"></i>
-              <input type="text" name="last_name" placeholder="Votre nom"
+              <input type="text" name="last_name" placeholder="Nom"
                      value="{{ form.last_name.value|default:'' }}"
                      class="{% if form.last_name.errors %}is-invalid{% endif %}">
             </div>
