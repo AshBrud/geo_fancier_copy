@@ -74,7 +74,7 @@
     <h1 class="page-title"><i class="bi bi-grid-3x3-gap"></i> Espaces Fonciers</h1>
     <p class="page-description">Gestion et visualisation des zones du campus : libres, occupés, réservés et routes.</p>
   </div>
-  {% if user.can_manage_foncier %}
+  {% if user.is_domaine_foncier %}
   <a href="{% url 'foncier:espace_create' %}" class="btn btn-primary">
     <i class="bi bi-plus-lg me-1"></i> Ajouter un espace
   </a>
@@ -204,7 +204,7 @@
           <th>Superficie</th>
           <th>Usage</th>
           <th>Ajouté le</th>
-          {% if user.can_manage_foncier %}<th class="text-center">Actions</th>{% endif %}
+          {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -243,7 +243,7 @@
           <td>
             <span class="text-muted" style="font-size:12px;">{{ esp.date_creation|date:"d/m/Y" }}</span>
           </td>
-          {% if user.can_manage_foncier %}
+          {% if user.is_domaine_foncier %}
           <td class="text-center">
             <div class="d-flex gap-1 justify-content-center">
               <a href="{% url 'foncier:espace_update' esp.pk %}"
@@ -262,7 +262,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7">
+          <td colspan="{% if user.is_domaine_foncier %}7{% else %}6{% endif %}">
             <div class="empty-state">
               <i class="bi bi-inbox"></i>
               <p>Aucun espace trouvé{% if q %} pour « {{ q }} »{% endif %}{% if type_filter %} avec ce type{% endif %}.</p>

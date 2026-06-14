@@ -7,7 +7,7 @@ from django.db.models import Q, Sum, Count
 import json
 from .models import Espace, Batiment, FonctionBatiment
 from .forms import EspaceForm, BatimentForm
-from accounts.decorators import foncier_required
+from accounts.decorators import foncier_required, domaine_required
 
 
 # --- Cartographie ---
@@ -59,7 +59,7 @@ def espaces_list(request):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def espace_create(request):
     form = EspaceForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -72,7 +72,7 @@ def espace_create(request):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def espace_update(request, pk):
     espace = get_object_or_404(Espace, pk=pk)
     form = EspaceForm(request.POST or None, instance=espace)
@@ -86,7 +86,7 @@ def espace_update(request, pk):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def espace_delete(request, pk):
     espace = get_object_or_404(Espace, pk=pk)
     if request.method == 'POST':
@@ -128,7 +128,7 @@ def batiment_detail(request, pk):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def batiment_create(request):
     form = BatimentForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
@@ -141,7 +141,7 @@ def batiment_create(request):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def batiment_update(request, pk):
     bat = get_object_or_404(Batiment, pk=pk)
     form = BatimentForm(request.POST or None, request.FILES or None, instance=bat)
@@ -155,7 +155,7 @@ def batiment_update(request, pk):
 
 
 @login_required
-@foncier_required
+@domaine_required
 def batiment_delete(request, pk):
     bat = get_object_or_404(Batiment, pk=pk)
     if request.method == 'POST':

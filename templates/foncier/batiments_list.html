@@ -80,7 +80,7 @@
     <h1 class="page-title"><i class="bi bi-buildings"></i> Bâtiments</h1>
     <p class="page-description">Répertoire complet des bâtiments du campus de l'UAD Bambey : superficies, fonctions et capacités.</p>
   </div>
-  {% if user.can_manage_foncier %}
+  {% if user.is_domaine_foncier %}
   <a href="{% url 'foncier:batiment_create' %}" class="btn btn-primary">
     <i class="bi bi-plus-lg me-1"></i> Ajouter un bâtiment
   </a>
@@ -182,7 +182,7 @@
           <th class="text-center">Capacité</th>
           <th>Année</th>
           <th>Statut</th>
-          <th class="text-center">Actions</th>
+          {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -233,6 +233,7 @@
             <span class="statut-inactif"><i class="bi bi-circle" style="font-size:7px;"></i> Inactif</span>
             {% endif %}
           </td>
+          {% if user.is_domaine_foncier %}
           <td class="text-center">
             <div class="d-flex gap-1 justify-content-center">
               <a href="{% url 'foncier:batiment_detail' bat.pk %}"
@@ -240,7 +241,6 @@
                  data-bs-toggle="tooltip" title="Voir le détail">
                 <i class="bi bi-eye"></i>
               </a>
-              {% if user.can_manage_foncier %}
               <a href="{% url 'foncier:batiment_update' bat.pk %}"
                  class="btn btn-icon btn-outline-primary btn-sm"
                  data-bs-toggle="tooltip" title="Modifier">
@@ -251,13 +251,13 @@
                  data-bs-toggle="tooltip" title="Supprimer">
                 <i class="bi bi-trash"></i>
               </a>
-              {% endif %}
             </div>
           </td>
+          {% endif %}
         </tr>
         {% empty %}
         <tr>
-          <td colspan="9">
+          <td colspan="{% if user.is_domaine_foncier %}9{% else %}8{% endif %}">
             <div class="empty-state">
               <i class="bi bi-building-x"></i>
               <p>Aucun bâtiment trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>

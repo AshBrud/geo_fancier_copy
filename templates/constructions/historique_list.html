@@ -34,7 +34,9 @@
       </div>
       <div class="col-auto">
         <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+        {% if user.is_domaine_foncier %}
         <a href="{% url 'constructions:historique' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+        {% endif %}
       </div>
     </form>
   </div>
