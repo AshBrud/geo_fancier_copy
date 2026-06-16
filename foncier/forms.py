@@ -1,36 +1,40 @@
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Field, ButtonHolder, Button
+from django.contrib.gis.forms import GeometryField as GeoFormField
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from .models import Espace, Batiment, FonctionBatiment
 
+GEO_WIDGET_ATTRS = {
+    'class': 'form-control geom-input',
+    'rows': 4,
+    'placeholder': 'Collez le GeoJSON ici ou dessinez sur la carte...',
+}
+
 
 def _to_multipolygon(geom):
-    """Convertit un Polygon en MultiPolygon si nécessaire."""
     if isinstance(geom, Polygon):
-        return MultiPolygon(geom, srid=geom.srid)
+        return MultiPolygon(geom, srid=geom.srid or 4326)
     return geom
 
 
-
 class EspaceForm(forms.ModelForm):
+    # Champ géométrie générique : accepte Polygon ET MultiPolygon
+    geometrie = GeoFormField(
+        widget=forms.Textarea(attrs=GEO_WIDGET_ATTRS),
+        label='Géométrie (GeoJSON)',
+        required=True,
+    )
+
     class Meta:
         model = Espace
         fields = ['nom', 'code', 'type_espace', 'description', 'usage', 'geometrie']
         labels = {
-            'nom': 'Nom de l\'espace',
+            'nom': "Nom de l'espace",
             'code': 'Code unique',
-            'type_espace': 'Type d\'espace',
+            'type_espace': "Type d'espace",
             'description': 'Description',
             'usage': 'Usage actuel',
-            'geometrie': 'Géométrie (GeoJSON)',
-        }
-        widgets = {
-            'geometrie': forms.Textarea(attrs={
-                'class': 'form-control geom-input',
-                'rows': 4,
-                'placeholder': 'Collez le GeoJSON ici ou dessinez sur la carte...'
-            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -56,6 +60,13 @@ class EspaceForm(forms.ModelForm):
 
 
 class BatimentForm(forms.ModelForm):
+    # Champ géométrie générique : accepte Polygon ET MultiPolygon
+    geometrie = GeoFormField(
+        widget=forms.Textarea(attrs=GEO_WIDGET_ATTRS),
+        label='Géométrie (GeoJSON)',
+        required=True,
+    )
+
     class Meta:
         model = Batiment
         fields = ['nom', 'code', 'fonction', 'etages', 'annee_construction',
@@ -64,20 +75,11 @@ class BatimentForm(forms.ModelForm):
             'nom': 'Nom du bâtiment',
             'code': 'Code unique',
             'fonction': 'Fonction principale',
-            'etages': 'Nombre d\'étages',
+            'etages': "Nombre d'étages",
             'annee_construction': 'Année de construction',
-            'capacite': 'Capacité (personnes)',
             'description': 'Description',
             'photo': 'Photo',
             'est_actif': 'Bâtiment actif',
-            'geometrie': 'Géométrie (GeoJSON)',
-        }
-        widgets = {
-            'geometrie': forms.Textarea(attrs={
-                'class': 'form-control geom-input',
-                'rows': 4,
-                'placeholder': 'Collez le GeoJSON ici ou dessinez sur la carte...'
-            }),
         }
 
     def __init__(self, *args, **kwargs):
