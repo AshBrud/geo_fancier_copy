@@ -1,7 +1,15 @@
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Field, ButtonHolder, Button
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from .models import Espace, Batiment, FonctionBatiment
+
+
+def _to_multipolygon(geom):
+    """Convertit un Polygon en MultiPolygon si nécessaire."""
+    if isinstance(geom, Polygon):
+        return MultiPolygon(geom, srid=geom.srid)
+    return geom
 
 
 
@@ -39,6 +47,12 @@ class EspaceForm(forms.ModelForm):
                        onclick='window.history.back()'),
             )
         )
+
+    def clean_geometrie(self):
+        geom = self.cleaned_data.get('geometrie')
+        if geom is None:
+            raise forms.ValidationError("Veuillez dessiner la géométrie sur la carte.")
+        return _to_multipolygon(geom)
 
 
 class BatimentForm(forms.ModelForm):
@@ -81,3 +95,9 @@ class BatimentForm(forms.ModelForm):
                        onclick='window.history.back()'),
             )
         )
+
+    def clean_geometrie(self):
+        geom = self.cleaned_data.get('geometrie')
+        if geom is None:
+            raise forms.ValidationError("Veuillez dessiner la géométrie sur la carte.")
+        return _to_multipolygon(geom)
