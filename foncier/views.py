@@ -99,14 +99,14 @@ def espaces_list(request):
             sc  = (esp.superficie or 0) * (esp.taux_occupation / 100)
             se  = nc_engagee_par_espace.get(esp.pk, 0.0)
             pct = round(se / sc * 100, 1) if sc else 0.0
-            esp._sup_constructible = round(sc)
-            esp._sup_engagee       = round(se)
-            esp._sup_nette         = round(max(0.0, sc - se))
-            esp._pct_utilise       = pct
-            esp._cap_niveau        = 'danger' if pct >= 80 else ('warning' if pct >= 50 else 'success')
+            esp.cap_constructible = round(sc)
+            esp.cap_engagee       = round(se)
+            esp.cap_nette         = round(max(0.0, sc - se))
+            esp.cap_pct           = pct
+            esp.cap_niveau        = 'danger' if pct >= 80 else ('warning' if pct >= 50 else 'success')
         else:
-            esp._sup_constructible = None
-        esp._nb_constructions = nc_count_par_espace.get(esp.pk, 0)
+            esp.cap_constructible = None
+        esp.nb_constructions = nc_count_par_espace.get(esp.pk, 0)
 
     return render(request, 'foncier/espaces_list.html', {
         'page_obj':      page,
