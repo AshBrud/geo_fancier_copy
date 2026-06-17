@@ -295,6 +295,105 @@
 
 </div>
 
+<!-- ===== CAPACITÉ CONSTRUCTIBLE ===== -->
+<div class="dash-section-lbl">Capacité constructible de l'université</div>
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="ch-card">
+      <div class="ch-card-hdr">
+        <div class="ch-card-title">
+          <i class="bi bi-layers-fill text-primary"></i>
+          Bilan de la superficie constructible — mis à jour automatiquement à chaque approbation
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:11px;">
+          <i class="bi bi-arrow-repeat me-1"></i>Temps réel
+        </span>
+      </div>
+      <div class="card-body pb-3">
+
+        <!-- Tuiles de métriques -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="text-center p-3" style="background:#eff6ff;border-radius:12px;">
+              <div style="font-size:12.5px;color:#64748b;font-weight:600;margin-bottom:6px;">
+                <i class="bi bi-rulers text-primary me-1"></i>Total constructible
+              </div>
+              <div style="font-size:32px;font-weight:800;color:#1e3a8a;line-height:1;">
+                {{ sup_constructible_totale_ha }}<small style="font-size:15px;font-weight:600;"> ha</small>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                {{ sup_constructible_totale|floatformat:0 }} m²
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center p-3" style="background:#fff7ed;border-radius:12px;">
+              <div style="font-size:12.5px;color:#64748b;font-weight:600;margin-bottom:6px;">
+                <i class="bi bi-building-fill text-warning me-1"></i>Allouée aux projets
+              </div>
+              <div style="font-size:32px;font-weight:800;color:#c2410c;line-height:1;">
+                {{ sup_allouee_ha }}<small style="font-size:15px;font-weight:600;"> ha</small>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                {{ nb_engagees }} projet{{ nb_engagees|pluralize }} · {{ pct_alloue }}%
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center p-3" style="background:#f0fdf4;border-radius:12px;">
+              <div style="font-size:12.5px;color:#64748b;font-weight:600;margin-bottom:6px;">
+                <i class="bi bi-check2-circle text-success me-1"></i>Disponible nette
+              </div>
+              <div style="font-size:32px;font-weight:800;color:#15803d;line-height:1;">
+                {{ sup_constr_nette_ha }}<small style="font-size:15px;font-weight:600;"> ha</small>
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:4px;">
+                {{ sup_constr_nette|floatformat:0 }} m²
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barre de progression empilée -->
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <span style="font-size:12.5px;font-weight:700;color:#334155;">Utilisation de la capacité constructible</span>
+          <span style="font-size:11.5px;color:#94a3b8;">{{ pct_alloue }}% engagé</span>
+        </div>
+        <div style="height:18px;border-radius:99px;background:#f1f5f9;overflow:hidden;display:flex;">
+          <div style="width:{{ pct_terminee }}%;background:#6b7280;" title="Terminée"></div>
+          <div style="width:{{ pct_en_cours }}%;background:#0891b2;" title="En cours"></div>
+          <div style="width:{{ pct_approuvee }}%;background:#f59e0b;" title="Approuvée"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#94a3b8;margin-top:3px;">
+          <span>0 m²</span>
+          <span>{{ sup_constructible_totale|floatformat:0 }} m²</span>
+        </div>
+
+        <!-- Légende -->
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:11.5px;color:#64748b;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="width:10px;height:10px;border-radius:3px;background:#6b7280;flex-shrink:0;"></span>
+            Terminée — {{ sup_terminee|floatformat:0 }} m²
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="width:10px;height:10px;border-radius:3px;background:#0891b2;flex-shrink:0;"></span>
+            En cours — {{ sup_en_cours|floatformat:0 }} m²
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;flex-shrink:0;"></span>
+            Approuvée — {{ sup_approuvee|floatformat:0 }} m²
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="width:10px;height:10px;border-radius:3px;background:#f1f5f9;border:1px solid #e2e8f0;flex-shrink:0;"></span>
+            Disponible — {{ sup_constr_nette|floatformat:0 }} m²
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== GRAPHIQUES & ANALYSE ===== -->
 <div class="dash-section-lbl">Analyse foncière</div>
 <div class="row g-3 mb-4">
