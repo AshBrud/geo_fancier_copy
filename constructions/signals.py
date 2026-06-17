@@ -4,6 +4,12 @@ from django.dispatch import receiver
 from .models import NouvelleConstruction
 from foncier.models import Espace
 
+# Statuts qui réduisent la superficie affichée comme disponible (engagement formel)
+_STATUTS_ENGAGES = NouvelleConstruction.STATUTS_ENGAGES
+
+# Statuts qui occupent physiquement l'espace (travaux démarrés ou terminés)
+_STATUTS_EFFECTIFS = [NouvelleConstruction.STATUT_EN_COURS, NouvelleConstruction.STATUT_TERMINE]
+
 
 @receiver(pre_save, sender=NouvelleConstruction)
 def construction_pre_save(sender, instance, **kwargs):
@@ -22,63 +28,102 @@ def construction_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=NouvelleConstruction)
 def construction_post_save(sender, instance, created, **kwargs):
     """
-    Recalcule la superficie disponible des espaces fonciers concernés
+    Recalcule le type (LIBRE/OCCUPE) des espaces fonciers concernés
     à chaque changement de statut d'une construction.
 
-    Règles :
-    - L'espace reste LIBRE tant qu'il reste de la superficie constructible.
-    - Le champ 'usage' est mis à jour avec le bilan : constructible / engagée / disponible.
-    - Si la superficie disponible nette atteint 0, l'espace passe à OCCUPE.
-    - Si une annulation libère de nouveau de la superficie, l'espace repasse à LIBRE.
+    Deux niveaux :
+    - Approuvée + En cours + Terminée → réduit la superficie affichée comme disponible.
+    - En cours + Terminée uniquement  → peut marquer l'espace comme OCCUPÉ si la
+      superficie constructible est entièrement consommée par des travaux réels.
     """
     ancien = getattr(instance, '_ancien_statut', None)
     nouveau = instance.statut
 
-    if ancien == nouveau or not instance.zone_souhaitee:
+    if ancien == nouveau:
         return
 
-    # Espaces (libres ou occupés par constructions) qui intersectent la zone
-    espaces = Espace.objects.filter(
-        geometrie__intersects=instance.zone_souhaitee,
-        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
+    # Collecter tous les espaces concernés (sans doublons)
+    espaces_pks = set()
+
+    # 1. Via la FK directe (espace sélectionné depuis la liste)
+    if instance.espace_souhaitee_id:
+        espaces_pks.add(instance.espace_souhaitee_id)
+
+    # 2. Via l'intersection géométrique (zone dessinée ou convex_hull de l'espace)
+    if instance.zone_souhaitee:
+        espaces_pks.update(
+            Espace.objects.filter(
+                geometrie__intersects=instance.zone_souhaitee,
+                type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
+            ).values_list('pk', flat=True)
+        )
+
+    for espace in Espace.objects.filter(pk__in=espaces_pks):
+        _recalculer_espace(espace)
+
+
+def _pks_constructions(espace, statuts):
+    """
+    Retourne l'ensemble des PKs des constructions dans les statuts donnés
+    qui concernent cet espace (via FK directe OU intersection géométrique).
+    Déduplique automatiquement via un set.
+    """
+    pks = set()
+
+    # Via FK directe
+    pks.update(
+        NouvelleConstruction.objects.filter(
+            statut__in=statuts,
+            espace_souhaitee=espace,
+        ).values_list('pk', flat=True)
     )
 
-    for espace in espaces:
-        _recalculer_espace(espace)
+    # Via intersection géométrique
+    if espace.geometrie:
+        pks.update(
+            NouvelleConstruction.objects.filter(
+                statut__in=statuts,
+                zone_souhaitee__isnull=False,
+                zone_souhaitee__intersects=espace.geometrie,
+            ).values_list('pk', flat=True)
+        )
+
+    return pks
 
 
 def _recalculer_espace(espace):
     """
-    Recalcule la superficie disponible nette d'un espace
-    et met à jour son type et son usage en conséquence.
+    Recalcule et met à jour le type de l'espace (LIBRE / OCCUPE).
+
+    Règles :
+    - Si la superficie constructible est entièrement consommée par des constructions
+      physiquement en cours ou terminées → OCCUPE.
+    - Dans tous les autres cas → LIBRE (annulations ou simples approbations libèrent l'espace).
+    - Les espaces de type RESERVE ne sont jamais modifiés automatiquement.
     """
-    # Constructions approuvées / en cours / terminées dans cet espace
-    # Le filtre zone_souhaitee__isnull=False évite les comportements inattendus
-    # de PostGIS quand zone_souhaitee est NULL
-    constructions = NouvelleConstruction.objects.filter(
-        statut__in=NouvelleConstruction.STATUTS_ENGAGES,
-        zone_souhaitee__isnull=False,
-        zone_souhaitee__intersects=espace.geometrie,
-    )
-    sup_engagee     = sum(c.superficie_souhaitee or 0 for c in constructions)
-    sup_brute       = espace.superficie or 0
+    if espace.type_espace == Espace.TYPE_RESERVE:
+        return
+
+    sup_brute = espace.superficie or 0
     sup_constructible = sup_brute * (espace.taux_occupation / 100)
-    sup_disponible  = max(0.0, sup_constructible - sup_engagee)
 
-    if sup_engagee == 0:
-        # Aucune construction engagée → espace entièrement libre
-        if espace.type_espace == Espace.TYPE_OCCUPE:
-            espace.type_espace = Espace.TYPE_LIBRE
-            espace.save()
+    if sup_constructible <= 0:
+        return
 
-    elif sup_disponible <= 0:
-        # Toute la superficie constructible est allouée → occupé
+    # Superficies des constructions physiquement actives (en cours + terminées)
+    pks_effectifs = _pks_constructions(espace, _STATUTS_EFFECTIFS)
+    sup_effective = sum(
+        c.superficie_souhaitee or 0
+        for c in NouvelleConstruction.objects.filter(pk__in=pks_effectifs)
+    ) if pks_effectifs else 0.0
+
+    if sup_effective >= sup_constructible:
+        # Toute la superficie constructible est physiquement occupée
         if espace.type_espace != Espace.TYPE_OCCUPE:
             espace.type_espace = Espace.TYPE_OCCUPE
             espace.save()
-
     else:
-        # Partiellement alloué → reste libre
+        # De l'espace est encore disponible (ou libéré après annulation)
         if espace.type_espace == Espace.TYPE_OCCUPE:
             espace.type_espace = Espace.TYPE_LIBRE
             espace.save()
