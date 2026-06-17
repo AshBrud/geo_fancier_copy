@@ -117,8 +117,11 @@ def _recalculer_espace(espace):
         for c in NouvelleConstruction.objects.filter(pk__in=pks_effectifs)
     ) if pks_effectifs else 0.0
 
-    if sup_effective >= sup_constructible:
-        # Toute la superficie constructible est physiquement occupée
+    # Superficie nette restante (tolérance de 1 m² pour les arrondis flottants)
+    sup_nette = max(0.0, sup_constructible - sup_effective)
+
+    if sup_nette < 1.0:
+        # Toute la superficie constructible est physiquement occupée (à 1 m² près)
         if espace.type_espace != Espace.TYPE_OCCUPE:
             espace.type_espace = Espace.TYPE_OCCUPE
             espace.save()
