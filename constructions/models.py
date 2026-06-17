@@ -31,6 +31,13 @@ class NouvelleConstruction(models.Model):
     superficie_souhaitee = models.FloatField(verbose_name='Superficie souhaitée (m²)')
     zone_souhaitee = models.PolygonField(srid=4326, blank=True, null=True,
                                           verbose_name='Zone souhaitée')
+    espace_souhaitee = models.ForeignKey(
+        'foncier.Espace',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        verbose_name='Espace sélectionné',
+        related_name='constructions_demandees',
+    )
     disponible = models.BooleanField(null=True, blank=True, verbose_name='Zone disponible')
     statut = models.CharField(max_length=20, choices=STATUTS, default=STATUT_ATTENTE)
     rapport_faisabilite = models.TextField(blank=True, verbose_name='Rapport de faisabilité')
@@ -100,26 +107,39 @@ class NouvelleConstruction(models.Model):
         faute de superficie nette suffisante.
         Retourne la liste des constructions auto-rejetées.
         """
-        if not self.zone_souhaitee or self.statut not in self.STATUTS_ENGAGES:
+        # Déterminer la zone de référence pour cette construction
+        if self.espace_souhaitee_id and self.espace_souhaitee and self.espace_souhaitee.geometrie:
+            zone_ref = self.espace_souhaitee.geometrie
+        elif self.zone_souhaitee:
+            zone_ref = self.zone_souhaitee
+        else:
             return []
 
-        concurrentes = self._qs_en_attente(self.zone_souhaitee)
+        if self.statut not in self.STATUTS_ENGAGES:
+            return []
+
+        concurrentes = self._qs_en_attente(zone_ref)
         auto_rejetees = []
 
         for concurrent in concurrentes:
-            if not concurrent.zone_souhaitee:
+            # Déterminer la zone de référence pour le concurrent
+            if concurrent.espace_souhaitee_id and concurrent.espace_souhaitee and concurrent.espace_souhaitee.geometrie:
+                zone_concurrent = concurrent.espace_souhaitee.geometrie
+            elif concurrent.zone_souhaitee:
+                zone_concurrent = concurrent.zone_souhaitee
+            else:
                 continue
 
             # Recalculer la superficie nette pour cette demande concurrente
             espaces_libres = Espace.objects.filter(
                 type_espace=Espace.TYPE_LIBRE,
-                geometrie__intersects=concurrent.zone_souhaitee,
+                geometrie__intersects=zone_concurrent,
             )
             sup_brute = sum(e.superficie or 0 for e in espaces_libres)
             sup_constructible = sum(
                 (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_libres
             )
-            sup_engagee = concurrent._superficie_engagee(concurrent.zone_souhaitee)
+            sup_engagee = concurrent._superficie_engagee(zone_concurrent)
             sup_nette = max(0, sup_constructible - sup_engagee)
             taux_moy = (sup_constructible / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
@@ -147,26 +167,56 @@ class NouvelleConstruction(models.Model):
     def analyser_disponibilite(self):
         """
         Analyse intelligente et complète :
-          1. Calcule la superficie brute des espaces libres dans la zone.
-          2. Soustrait les constructions déjà approuvées/en cours/terminées.
-          3. Avertit sur les demandes concurrentes en attente.
-          4. Détermine si la construction est faisable (superficie nette).
-          5. Propose des alternatives réellement disponibles si non faisable.
-        Retourne (disponible, rapport, zones_alternatives_qs).
+          1. Si espace_souhaitee est défini, utilise directement cet espace
+             (pas d'intersection approchée), sinon intersecte la zone dessinée.
+          2. Calcule la superficie brute des espaces libres dans la zone.
+          3. Soustrait les constructions déjà approuvées/en cours/terminées.
+          4. Avertit sur les demandes concurrentes en attente.
+          5. Détermine si la construction est faisable (superficie nette).
+          6. Propose des alternatives réellement disponibles si non faisable.
+        Retourne (disponible, rapport, zones_alternatives_qs, stats).
         """
         alternatives = Espace.objects.none()
 
-        if not self.zone_souhaitee:
+        # Vérification de la superficie souhaitée
+        sup_requise = self.superficie_souhaitee or 0
+        if sup_requise <= 0:
+            self.disponible = False
+            self.rapport_faisabilite = "Erreur : la superficie souhaitée doit être supérieure à 0."
+            self.save()
+            return False, self.rapport_faisabilite, alternatives, {}
+
+        # ---- Chemin 1 : espace sélectionné depuis la liste ----
+        if self.espace_souhaitee_id and self.espace_souhaitee:
+            espace_obj = self.espace_souhaitee
+            zone_analyse = espace_obj.geometrie  # MultiPolygon exact
+
+            # Vérifier que l'espace est encore libre
+            if espace_obj.type_espace != Espace.TYPE_LIBRE:
+                self.disponible = False
+                self.rapport_faisabilite = (
+                    f"L'espace « {espace_obj.nom} » ({espace_obj.code}) n'est plus disponible "
+                    f"(statut actuel : {espace_obj.get_type_espace_display()})."
+                )
+                self.zones_alternatives = ''
+                alternatives = self._proposer_alternatives()
+                self.save()
+                return False, self.rapport_faisabilite, alternatives, {}
+
+            espaces = [espace_obj]
+
+        # ---- Chemin 2 : zone dessinée ----
+        elif self.zone_souhaitee:
+            zone_analyse = self.zone_souhaitee
+            espaces = list(Espace.objects.filter(
+                type_espace=Espace.TYPE_LIBRE,
+                geometrie__intersects=zone_analyse,
+            ))
+        else:
             self.disponible = False
             self.rapport_faisabilite = "Aucune zone dessinée sur la carte."
             self.save()
             return False, self.rapport_faisabilite, alternatives, {}
-
-        # ---- 1. Espaces libres dans la zone (évalué une seule fois) ----
-        espaces = list(Espace.objects.filter(
-            type_espace=Espace.TYPE_LIBRE,
-            geometrie__intersects=self.zone_souhaitee,
-        ))
 
         if not espaces:
             self.disponible = False
@@ -191,16 +241,15 @@ class NouvelleConstruction(models.Model):
         taux_moyen    = (sup_construct / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
         # ---- 3. Superficie engagée (approuvées/en cours/terminées) ----
-        list_eng    = list(self._qs_engagees(self.zone_souhaitee))
+        list_eng    = list(self._qs_engagees(zone_analyse))
         sup_engagee = sum(c.superficie_souhaitee or 0 for c in list_eng)
         nb_engagees = len(list_eng)
 
         # ---- 4. Demandes concurrentes en attente ----
-        sup_attente, nb_attente = self._superficie_en_attente(self.zone_souhaitee)
+        sup_attente, nb_attente = self._superficie_en_attente(zone_analyse)
 
         # ---- 5. Superficie nette réelle ----
         sup_nette   = max(0.0, sup_construct - sup_engagee)
-        sup_requise = self.superficie_souhaitee or 0
 
         # ---- 6. Construction du rapport structuré ----
         lignes = ["=" * 48]

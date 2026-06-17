@@ -53,8 +53,11 @@ def _recalculer_espace(espace):
     et met à jour son type et son usage en conséquence.
     """
     # Constructions approuvées / en cours / terminées dans cet espace
+    # Le filtre zone_souhaitee__isnull=False évite les comportements inattendus
+    # de PostGIS quand zone_souhaitee est NULL
     constructions = NouvelleConstruction.objects.filter(
         statut__in=NouvelleConstruction.STATUTS_ENGAGES,
+        zone_souhaitee__isnull=False,
         zone_souhaitee__intersects=espace.geometrie,
     )
     sup_engagee     = sum(c.superficie_souhaitee or 0 for c in constructions)

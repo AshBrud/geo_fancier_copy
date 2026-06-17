@@ -739,7 +739,10 @@
   ESPACES_DATA.forEach(function(e) {
     var opt = document.createElement('option');
     opt.value = e.id;
-    opt.textContent = e.nom + '  —  ' + Math.round(e.superficie).toLocaleString('fr-FR') + ' m²  (' + e.code + ')';
+    var disponibleStr = Math.round(e.sup_disponible).toLocaleString('fr-FR');
+    var pctDispo = e.sup_constructible > 0 ? Math.round(e.sup_disponible / e.sup_constructible * 100) : 0;
+    opt.textContent = e.nom + '  —  ' + disponibleStr + ' m² disponibles (' + pctDispo + '%)  [' + e.code + ']';
+    if (e.sup_disponible <= 0) opt.disabled = true;
     espaceSelect.appendChild(opt);
   });
 
@@ -756,7 +759,7 @@
     }).addTo(map);
     map.fitBounds(highlightLayer.getBounds(), { padding: [50, 50] });
     espaceInput.value = id;
-    setZoneOk('Espace sélectionné : ' + espace.nom + ' (' + Math.round(espace.superficie).toLocaleString('fr-FR') + ' m²)');
+    setZoneOk('Espace : ' + espace.nom + ' — ' + Math.round(espace.sup_disponible).toLocaleString('fr-FR') + ' m² disponibles (' + Math.round(espace.sup_constructible).toLocaleString('fr-FR') + ' m² constructibles)');
   });
 
   /* ---- Leaflet Draw ---- */

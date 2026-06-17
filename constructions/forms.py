@@ -26,6 +26,18 @@ class NouvelleConstructionForm(forms.ModelForm):
             )
         )
 
+    def clean_superficie_souhaitee(self):
+        superficie = self.cleaned_data.get('superficie_souhaitee')
+        if superficie is None:
+            return superficie
+        if superficie <= 0:
+            raise forms.ValidationError("La superficie souhaitée doit être supérieure à 0 m².")
+        if superficie > 550000:
+            raise forms.ValidationError(
+                "La superficie souhaitée ne peut pas dépasser 550 000 m² (55 ha, superficie du campus UAD)."
+            )
+        return superficie
+
 
 class HistoriqueConstructionForm(forms.ModelForm):
     class Meta:

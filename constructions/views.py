@@ -21,16 +21,30 @@ def nouvelle_construction(request):
     resultat = None
     zones_alternatives = []
 
-    # Sérialiser les espaces libres pour la carte
+    # Sérialiser les espaces libres pour la carte, avec calcul de superficie disponible
     espaces_libres = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).order_by('nom')
     espaces_data = []
     for e in espaces_libres:
         if e.geometrie:
+            sup_engagee = sum(
+                c.superficie_souhaitee or 0
+                for c in NouvelleConstruction.objects.filter(
+                    statut__in=NouvelleConstruction.STATUTS_ENGAGES,
+                    zone_souhaitee__intersects=e.geometrie,
+                )
+            )
+            sup_constructible = (e.superficie or 0) * (e.taux_occupation / 100)
+            sup_disponible = max(0.0, sup_constructible - sup_engagee)
+
             espaces_data.append({
                 'id': e.pk,
                 'nom': e.nom,
                 'code': e.code,
                 'superficie': e.superficie or 0,
+                'taux_occupation': e.taux_occupation,
+                'sup_constructible': sup_constructible,
+                'sup_engagee': sup_engagee,
+                'sup_disponible': sup_disponible,
                 'geojson': json.loads(e.geometrie.geojson),
             })
 
@@ -46,6 +60,7 @@ def nouvelle_construction(request):
                 espace_obj = Espace.objects.get(pk=int(espace_id))
                 if espace_obj.geometrie:
                     construction.zone_souhaitee = espace_obj.geometrie.convex_hull
+                construction.espace_souhaitee_id = int(espace_id)
             except (Espace.DoesNotExist, ValueError):
                 messages.warning(request, 'Espace sélectionné introuvable.')
         elif zone_geojson:
@@ -108,8 +123,9 @@ def construction_update_statut(request, pk):
             messages.success(request, f'Statut mis à jour : {construction.get_statut_display()}')
 
             # Rejet automatique des demandes concurrentes incompatibles
+            # Se déclenche depuis n'importe quel statut non-engagé vers un statut engagé
             if (nouveau_statut in NouvelleConstruction.STATUTS_ENGAGES
-                    and ancien_statut == NouvelleConstruction.STATUT_ATTENTE):
+                    and ancien_statut not in NouvelleConstruction.STATUTS_ENGAGES):
                 auto_rejetees = construction.rejeter_concurrents()
                 if auto_rejetees:
                     liste = ', '.join(f'« {c.nom_projet} »' for c in auto_rejetees)
