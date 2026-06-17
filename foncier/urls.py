@@ -7,6 +7,7 @@ urlpatterns = [
     path('cartographie/', views.cartographie, name='cartographie'),
     path('espaces/', views.espaces_list, name='espaces'),
     path('espaces/ajouter/', views.espace_create, name='espace_create'),
+    path('espaces/<int:pk>/', views.espace_detail, name='espace_detail'),
     path('espaces/<int:pk>/modifier/', views.espace_update, name='espace_update'),
     path('espaces/<int:pk>/supprimer/', views.espace_delete, name='espace_delete'),
     path('batiments/', views.batiments_list, name='batiments'),

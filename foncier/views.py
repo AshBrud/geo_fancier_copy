@@ -36,27 +36,154 @@ def cartographie(request):
 @login_required
 @foncier_required
 def espaces_list(request):
+    from constructions.models import NouvelleConstruction as NC
+
     qs = Espace.objects.all()
-    q = request.GET.get('q', '')
-    type_filter = request.GET.get('type', '')
+    q            = request.GET.get('q', '')
+    type_filter  = request.GET.get('type', '')
+    sort         = request.GET.get('sort', 'nom')
+
     if q:
         qs = qs.filter(Q(nom__icontains=q) | Q(code__icontains=q))
     if type_filter:
         qs = qs.filter(type_espace=type_filter)
+
+    _VALID_SORTS = {'nom', '-nom', 'code', '-code', 'superficie', '-superficie'}
+    qs = qs.order_by(sort if sort in _VALID_SORTS else 'nom')
+
     paginator = Paginator(qs, 15)
     page = paginator.get_page(request.GET.get('page'))
+
+    # Stats globales par type
     stats = {t[0]: Espace.objects.filter(type_espace=t[0]).aggregate(
         count=Count('id'), total=Sum('superficie'))
         for t in Espace.TYPES}
-    total_espaces = Espace.objects.count()
+    total_espaces    = Espace.objects.count()
     total_superficie = Espace.objects.aggregate(s=Sum('superficie'))['s'] or 0
+
+    # Capacité constructible (espaces libres + occupés uniquement)
+    espaces_actifs = list(Espace.objects.filter(
+        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE]
+    ))
+    sup_constructible_totale = sum(
+        (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_actifs
+    )
+
+    # Constructions engagées par espace (via FK direct — 1 seule requête)
+    nc_engagee_par_espace = {}
+    for row in NC.objects.filter(
+        statut__in=NC.STATUTS_ENGAGES,
+        espace_souhaitee__isnull=False,
+    ).values('espace_souhaitee_id', 'superficie_souhaitee'):
+        eid = row['espace_souhaitee_id']
+        nc_engagee_par_espace[eid] = nc_engagee_par_espace.get(eid, 0.0) + (row['superficie_souhaitee'] or 0)
+
+    # Nb constructions totales par espace (via FK direct)
+    nc_count_par_espace = dict(
+        NC.objects.filter(espace_souhaitee__isnull=False)
+        .values('espace_souhaitee_id')
+        .annotate(n=Count('id'))
+        .values_list('espace_souhaitee_id', 'n')
+    )
+
+    # Nb espaces saturés (>= 80%) — tous espaces actifs
+    nb_espaces_satures = 0
+    for e in espaces_actifs:
+        sc = (e.superficie or 0) * (e.taux_occupation / 100)
+        if sc > 0 and (nc_engagee_par_espace.get(e.pk, 0) / sc) >= 0.80:
+            nb_espaces_satures += 1
+
+    # Enrichir chaque espace de la page avec les données de capacité
+    for esp in page.object_list:
+        if esp.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE):
+            sc  = (esp.superficie or 0) * (esp.taux_occupation / 100)
+            se  = nc_engagee_par_espace.get(esp.pk, 0.0)
+            pct = round(se / sc * 100, 1) if sc else 0.0
+            esp._sup_constructible = round(sc)
+            esp._sup_engagee       = round(se)
+            esp._sup_nette         = round(max(0.0, sc - se))
+            esp._pct_utilise       = pct
+            esp._cap_niveau        = 'danger' if pct >= 80 else ('warning' if pct >= 50 else 'success')
+        else:
+            esp._sup_constructible = None
+        esp._nb_constructions = nc_count_par_espace.get(esp.pk, 0)
+
     return render(request, 'foncier/espaces_list.html', {
-        'page_obj': page, 'q': q, 'type_filter': type_filter,
-        'types': Espace.TYPES, 'stats': stats,
+        'page_obj':      page,
+        'q':             q,
+        'type_filter':   type_filter,
+        'sort':          sort,
+        'types':         Espace.TYPES,
+        'stats':         stats,
         'total_espaces': total_espaces,
-        'total_superficie_ha': round(total_superficie / 10000, 2) if total_superficie else 0,
-        'superficie_campus_ha': round(SUPERFICIE_CAMPUS_M2 / 10000, 2),
+        'total_superficie_ha':         round(total_superficie / 10000, 2),
+        'superficie_campus_ha':        round(SUPERFICIE_CAMPUS_M2 / 10000, 2),
+        'sup_constructible_totale':    round(sup_constructible_totale),
+        'sup_constructible_totale_ha': round(sup_constructible_totale / 10000, 2),
+        'nb_espaces_satures':          nb_espaces_satures,
     })
+
+
+@login_required
+@foncier_required
+def espace_detail(request, pk):
+    from constructions.models import NouvelleConstruction as NC
+
+    espace = get_object_or_404(Espace, pk=pk)
+    sup_brute        = espace.superficie or 0
+    actif            = espace.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE)
+    sup_constructible = sup_brute * (espace.taux_occupation / 100) if actif else 0
+
+    def _pks(statuts):
+        base = NC.objects.filter(statut__in=statuts)
+        pks  = set(base.filter(espace_souhaitee=espace).values_list('pk', flat=True))
+        if espace.geometrie:
+            pks.update(base.filter(
+                zone_souhaitee__isnull=False,
+                zone_souhaitee__intersects=espace.geometrie,
+            ).values_list('pk', flat=True))
+        return pks
+
+    pks_eng = _pks(NC.STATUTS_ENGAGES)
+    pks_att = _pks([NC.STATUT_ATTENTE])
+    pks_all = _pks([s for s, _ in NC.STATUTS])
+
+    qs_eng = NC.objects.filter(pk__in=pks_eng).select_related('demandeur').order_by('-date_demande')
+    qs_att = NC.objects.filter(pk__in=pks_att).select_related('demandeur').order_by('-date_demande')
+    qs_all = NC.objects.filter(pk__in=pks_all).select_related('demandeur').order_by('-date_demande')
+
+    sup_engagee = sum(c.superficie_souhaitee or 0 for c in qs_eng)
+    sup_attente = sum(c.superficie_souhaitee or 0 for c in qs_att)
+    sup_nette   = max(0.0, sup_constructible - sup_engagee)
+    pct_utilise = round(sup_engagee / sup_constructible * 100, 1) if sup_constructible else 0.0
+
+    if pct_utilise >= 80:   niveau = 'danger'
+    elif pct_utilise >= 50: niveau = 'warning'
+    else:                   niveau = 'success'
+
+    batiments = list(
+        Batiment.objects.filter(geometrie__intersects=espace.geometrie).select_related('fonction')
+    ) if espace.geometrie else []
+
+    geom_json = json.dumps(espace.geometrie.geojson) if espace.geometrie else 'null'
+
+    context = {
+        'espace':                espace,
+        'actif':                 actif,
+        'sup_constructible':     round(sup_constructible),
+        'sup_engagee':           round(sup_engagee),
+        'sup_nette':             round(sup_nette),
+        'sup_attente':           round(sup_attente),
+        'pct_utilise':           pct_utilise,
+        'pct_nette':             round(max(0, 100 - pct_utilise), 1),
+        'niveau':                niveau,
+        'constructions_engagees': qs_eng,
+        'constructions_attente':  qs_att,
+        'toutes_constructions':   qs_all,
+        'batiments':             batiments,
+        'geom_json':             geom_json,
+    }
+    return render(request, 'foncier/espace_detail.html', context)
 
 
 @login_required

@@ -7,62 +7,67 @@
 
 {% block extra_css %}
 <style>
-/* ===== KPI FONCIER ===== */
+/* ── KPI cards ─────────────────────────────────────────────────────── */
 .fon-kpi {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 16px 18px;
-  display: flex; align-items: center; gap: 14px;
-  transition: all .22s; height: 100%;
+  background:#fff; border-radius:14px; border:1px solid #e2e8f0;
+  padding:16px 18px; display:flex; align-items:center; gap:14px;
+  transition:all .22s; height:100%;
 }
-.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+.fon-kpi:hover { box-shadow:0 6px 20px rgba(0,0,0,.09); transform:translateY(-2px); }
 .fon-kpi-icon {
-  width: 46px; height: 46px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
+  width:46px; height:46px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
 }
-.fon-kpi-body { min-width: 0; }
-.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
-.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; white-space: nowrap; }
-.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
+.fon-kpi-val  { font-size:24px; font-weight:700; color:#1e293b; line-height:1; }
+.fon-kpi-lbl  { font-size:12px; color:#64748b; margin-top:3px; white-space:nowrap; }
+.fon-kpi-foot { font-size:10.5px; color:#94a3b8; margin-top:4px; }
 
-/* ===== BARRE DE RECHERCHE INCARD ===== */
+/* ── Table card header ─────────────────────────────────────────────── */
 .table-card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap;
+  padding:14px 20px; border-bottom:1px solid #f1f5f9;
 }
 .table-card-title {
-  font-size: 14px; font-weight: 700; color: #1e293b;
-  display: flex; align-items: center; gap: 8px;
-  white-space: nowrap;
+  font-size:14px; font-weight:700; color:#1e293b;
+  display:flex; align-items:center; gap:8px; white-space:nowrap;
 }
-.table-card-title .count-pill {
-  font-size: 11px; background: #f1f5f9; color: #64748b;
-  border-radius: 20px; padding: 2px 8px; font-weight: 600;
+.count-pill {
+  font-size:11px; background:#f1f5f9; color:#64748b;
+  border-radius:20px; padding:2px 8px; font-weight:600;
 }
-.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.filter-bar { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
 
-/* ===== ROW INDICATOR ===== */
-.tr-libre   td:first-child { border-left: 3px solid #16A34A; }
-.tr-occupe  td:first-child { border-left: 3px solid #DC2626; }
-.tr-reserve td:first-child { border-left: 3px solid #F59E0B; }
-.tr-route   td:first-child { border-left: 3px solid #6B7280; }
+/* ── Row type indicator ────────────────────────────────────────────── */
+.tr-libre   td:first-child { border-left:3px solid #16A34A; }
+.tr-occupe  td:first-child { border-left:3px solid #DC2626; }
+.tr-reserve td:first-child { border-left:3px solid #F59E0B; }
+.tr-route   td:first-child { border-left:3px solid #6B7280; }
 
-/* ===== SUPERFICIE ===== */
-.sup-val { font-weight: 600; color: #1e293b; }
-.sup-ha  { font-size: 10.5px; color: #94a3b8; display: block; margin-top: 1px; }
+/* ── Superficie ────────────────────────────────────────────────────── */
+.sup-val { font-weight:600; color:#1e293b; }
+.sup-ha  { font-size:10.5px; color:#94a3b8; display:block; margin-top:1px; }
 
-/* ===== EMPTY STATE ===== */
-.empty-state { padding: 48px 24px; text-align: center; color: #94a3b8; }
-.empty-state i { font-size: 42px; display: block; margin-bottom: 10px; opacity: .45; }
-.empty-state p { margin: 0; font-size: 13.5px; }
+/* ── Capacité progress bar ─────────────────────────────────────────── */
+.cap-bar-wrap { background:#f1f5f9; border-radius:4px; height:5px; margin-top:4px; overflow:hidden; min-width:90px; }
+.cap-bar      { height:100%; border-radius:4px; transition:width .7s cubic-bezier(.4,0,.2,1); }
+.cap-success  { background:#16a34a; }
+.cap-warning  { background:#d97706; }
+.cap-danger   { background:#dc2626; }
 
-/* ===== PAGINATION ===== */
-.page-link { border-radius: 7px !important; border: 1px solid #e2e8f0; color: #374151; font-size: 12.5px; margin: 0 2px; }
-.page-item.active .page-link { background: #1E3A8A; border-color: #1E3A8A; }
-.page-link:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+/* ── Sort headers ──────────────────────────────────────────────────── */
+th a { color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+th a:hover { color:#1E3A8A; }
+th a .sort-icon { font-size:9px; opacity:.4; }
+th a.sort-active .sort-icon { opacity:1; color:#1E3A8A; }
+
+/* ── Empty / Pagination ────────────────────────────────────────────── */
+.empty-state { padding:48px 24px; text-align:center; color:#94a3b8; }
+.empty-state i { font-size:42px; display:block; margin-bottom:10px; opacity:.45; }
+.page-link { border-radius:7px !important; border:1px solid #e2e8f0; color:#374151; font-size:12.5px; margin:0 2px; }
+.page-item.active .page-link { background:#1E3A8A; border-color:#1E3A8A; }
+.page-link:hover { background:#eff6ff; color:#1E3A8A; border-color:#93c5fd; }
 </style>
 {% endblock %}
 
@@ -74,88 +79,100 @@
     <h1 class="page-title"><i class="bi bi-grid-3x3-gap"></i> Espaces Fonciers</h1>
     <p class="page-description">Gestion et visualisation des zones du campus : libres, occupés, réservés et routes.</p>
   </div>
-  {% if user.is_domaine_foncier %}
-  <a href="{% url 'foncier:espace_create' %}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i> Ajouter un espace
-  </a>
-  {% endif %}
+  <div class="d-flex gap-2">
+    <a href="{% url 'foncier:cartographie' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-map me-1"></i>Vue carte
+    </a>
+    {% if user.is_domaine_foncier %}
+    <a href="{% url 'foncier:espace_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Ajouter un espace
+    </a>
+    {% endif %}
+  </div>
 </div>
 
-<!-- ===== KPI ===== -->
+<!-- ===== KPI ROW ===== -->
 <div class="row g-3 mb-4">
 
-  <div class="col-6 col-md-4 col-lg-2">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#eff6ff;">
         <i class="bi bi-grid-3x3-gap" style="color:#1E3A8A;"></i>
       </div>
-      <div class="fon-kpi-body">
+      <div>
         <div class="fon-kpi-val">{{ total_espaces }}</div>
         <div class="fon-kpi-lbl">Total espaces</div>
-        <div class="fon-kpi-foot">{{ total_superficie_ha }} ha</div>
+        <div class="fon-kpi-foot">{{ total_superficie_ha }} ha gérés</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-lg-2">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#dcfce7;">
         <i class="bi bi-check-circle-fill" style="color:#16A34A;"></i>
       </div>
-      <div class="fon-kpi-body">
+      <div>
         <div class="fon-kpi-val" style="color:#16A34A;">{{ stats.libre.count|default:0 }}</div>
         <div class="fon-kpi-lbl">Libres</div>
-        {% if total_espaces %}
-        <div class="fon-kpi-foot">{{ stats.libre.count|default:0 }} / {{ total_espaces }}</div>
-        {% endif %}
+        <div class="fon-kpi-foot">{{ stats.libre.total|default:0|floatformat:0 }} m²</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-lg-2">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#fee2e2;">
         <i class="bi bi-x-circle-fill" style="color:#DC2626;"></i>
       </div>
-      <div class="fon-kpi-body">
+      <div>
         <div class="fon-kpi-val" style="color:#DC2626;">{{ stats.occupe.count|default:0 }}</div>
         <div class="fon-kpi-lbl">Occupés</div>
+        <div class="fon-kpi-foot">{{ stats.occupe.total|default:0|floatformat:0 }} m²</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-lg-2">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#fef3c7;">
         <i class="bi bi-clock-fill" style="color:#D97706;"></i>
       </div>
-      <div class="fon-kpi-body">
+      <div>
         <div class="fon-kpi-val" style="color:#D97706;">{{ stats.reserve.count|default:0 }}</div>
         <div class="fon-kpi-lbl">Réservés</div>
+        <div class="fon-kpi-foot">{{ stats.reserve.total|default:0|floatformat:0 }} m²</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-lg-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#f1f5f9;">
-        <i class="bi bi-signpost-2-fill" style="color:#6B7280;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#6B7280;">{{ stats.route.count|default:0 }}</div>
-        <div class="fon-kpi-lbl">Routes / Voies</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-6 col-md-4 col-lg-2">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#e0f2fe;">
         <i class="bi bi-rulers" style="color:#0891b2;"></i>
       </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#0891b2; font-size:18px;">{{ superficie_campus_ha }}</div>
-        <div class="fon-kpi-lbl">Superficie campus (ha)</div>
+      <div>
+        <div class="fon-kpi-val" style="color:#0891b2; font-size:20px;">{{ sup_constructible_totale_ha }}</div>
+        <div class="fon-kpi-lbl">Constructible (ha)</div>
+        <div class="fon-kpi-foot">{{ sup_constructible_totale|floatformat:0 }} m²</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon"
+           style="background:{% if nb_espaces_satures == 0 %}#dcfce7{% elif nb_espaces_satures < 3 %}#fef3c7{% else %}#fee2e2{% endif %};">
+        <i class="bi bi-exclamation-triangle-fill"
+           style="color:{% if nb_espaces_satures == 0 %}#16a34a{% elif nb_espaces_satures < 3 %}#d97706{% else %}#dc2626{% endif %};"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val"
+             style="color:{% if nb_espaces_satures == 0 %}#16a34a{% elif nb_espaces_satures < 3 %}#d97706{% else %}#dc2626{% endif %};">
+          {{ nb_espaces_satures }}
+        </div>
+        <div class="fon-kpi-lbl">Zones saturées (≥80%)</div>
+        <div class="fon-kpi-foot">Capacité quasi-consommée</div>
       </div>
     </div>
   </div>
@@ -172,7 +189,8 @@
       Liste des espaces
       <span class="count-pill">{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}</span>
     </div>
-    <form method="get" class="filter-bar">
+    <form method="get" class="filter-bar" id="filterForm">
+      <input type="hidden" name="sort" value="{{ sort }}">
       <div class="input-group input-group-sm" style="width:220px;">
         <span class="input-group-text bg-white border-end-0">
           <i class="bi bi-search text-muted" style="font-size:11px;"></i>
@@ -180,16 +198,21 @@
         <input type="text" name="q" class="form-control border-start-0 ps-0"
                placeholder="Nom ou code…" value="{{ q }}" style="font-size:12.5px;">
       </div>
-      <select name="type" class="form-select form-select-sm" style="width:140px; font-size:12.5px;">
+      <select name="type" class="form-select form-select-sm" style="width:140px; font-size:12.5px;"
+              onchange="this.form.submit()">
         <option value="">Tous les types</option>
         {% for t_key, t_label in types %}
         <option value="{{ t_key }}" {% if type_filter == t_key %}selected{% endif %}>{{ t_label }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
+      <button type="submit" class="btn btn-sm btn-primary px-3">
+        <i class="bi bi-search me-1"></i>Filtrer
+      </button>
+      {% if q or type_filter %}
       <a href="{% url 'foncier:espaces' %}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-x-lg"></i>
       </a>
+      {% endif %}
     </form>
   </div>
 
@@ -198,30 +221,58 @@
     <table class="table table-uad mb-0">
       <thead>
         <tr>
-          <th>Code</th>
-          <th>Nom</th>
+          <!-- Code -->
+          <th>
+            <a href="?q={{ q }}&type={{ type_filter }}&sort={% if sort == 'code' %}-code{% else %}code{% endif %}"
+               class="{% if sort == 'code' or sort == '-code' %}sort-active{% endif %}">
+              Code <i class="bi bi-arrow-{% if sort == 'code' %}up{% elif sort == '-code' %}down{% else %}up-down{% endif %} sort-icon"></i>
+            </a>
+          </th>
+          <!-- Nom -->
+          <th>
+            <a href="?q={{ q }}&type={{ type_filter }}&sort={% if sort == 'nom' %}-nom{% else %}nom{% endif %}"
+               class="{% if sort == 'nom' or sort == '-nom' %}sort-active{% endif %}">
+              Nom <i class="bi bi-arrow-{% if sort == 'nom' %}up{% elif sort == '-nom' %}down{% else %}up-down{% endif %} sort-icon"></i>
+            </a>
+          </th>
           <th>Type</th>
-          <th>Superficie</th>
+          <!-- Superficie -->
+          <th>
+            <a href="?q={{ q }}&type={{ type_filter }}&sort={% if sort == 'superficie' %}-superficie{% else %}superficie{% endif %}"
+               class="{% if sort == 'superficie' or sort == '-superficie' %}sort-active{% endif %}">
+              Superficie <i class="bi bi-arrow-{% if sort == 'superficie' %}up{% elif sort == '-superficie' %}down{% else %}up-down{% endif %} sort-icon"></i>
+            </a>
+          </th>
+          <th>Capacité constructible</th>
           <th>Usage</th>
-          <th>Ajouté le</th>
-          {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
+          <th class="text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for esp in page_obj %}
         <tr class="tr-{{ esp.type_espace }}">
+
+          <!-- Code -->
           <td>
             <code style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px;
                          padding:2px 8px; font-size:11.5px; color:#475569;">{{ esp.code }}</code>
           </td>
+
+          <!-- Nom -->
           <td>
-            <div class="fw-semibold text-dark" style="font-size:13.5px;">{{ esp.nom }}</div>
+            <a href="{% url 'foncier:espace_detail' esp.pk %}"
+               class="fw-semibold text-dark text-decoration-none" style="font-size:13.5px;">
+              {{ esp.nom }}
+            </a>
             {% if esp.description %}
-            <div class="text-muted" style="font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">
+            <div class="text-muted"
+                 style="font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">
               {{ esp.description }}
             </div>
             {% endif %}
           </td>
+
+          <!-- Type -->
           <td>
             <span class="badge-espace badge-{{ esp.type_espace }}">
               {% if esp.type_espace == 'libre' %}<i class="bi bi-check-circle-fill me-1"></i>
@@ -231,21 +282,52 @@
               {{ esp.get_type_espace_display }}
             </span>
           </td>
+
+          <!-- Superficie -->
           <td>
             {% if esp.superficie %}
               <span class="sup-val">{{ esp.superficie|floatformat:0 }} m²</span>
               <span class="sup-ha">{{ esp.superficie_ha }} ha</span>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
-          <td>
-            <span class="text-muted" style="font-size:12.5px;">{{ esp.usage|default:"—" }}</span>
+
+          <!-- Capacité constructible avec barre de progression -->
+          <td style="min-width:150px;">
+            {% if esp._sup_constructible is not None %}
+              <div class="d-flex justify-content-between align-items-center" style="font-size:11.5px;">
+                <span style="font-weight:600; color:#1e293b;">
+                  {{ esp._sup_constructible|floatformat:0 }} m²
+                </span>
+                <span style="color:{% if esp._cap_niveau == 'danger' %}#dc2626{% elif esp._cap_niveau == 'warning' %}#d97706{% else %}#16a34a{% endif %}; font-weight:700; font-size:11px;">
+                  {{ esp._pct_utilise }}%
+                </span>
+              </div>
+              <div class="cap-bar-wrap">
+                <div class="cap-bar cap-{{ esp._cap_niveau }}"
+                     style="width:{{ esp._pct_utilise }}%;"></div>
+              </div>
+              <div style="font-size:10px; color:#94a3b8; margin-top:3px;">
+                {{ esp._sup_nette|floatformat:0 }} m² nets · {{ esp._nb_constructions }} demande{{ esp._nb_constructions|pluralize }}
+              </div>
+            {% else %}
+              <span class="text-muted" style="font-size:12px;">—</span>
+            {% endif %}
           </td>
+
+          <!-- Usage -->
           <td>
-            <span class="text-muted" style="font-size:12px;">{{ esp.date_creation|date:"d/m/Y" }}</span>
+            <span class="text-muted" style="font-size:12.5px;">{{ esp.usage|default:"—"|truncatechars:30 }}</span>
           </td>
-          {% if user.is_domaine_foncier %}
+
+          <!-- Actions -->
           <td class="text-center">
             <div class="d-flex gap-1 justify-content-center">
+              <a href="{% url 'foncier:espace_detail' esp.pk %}"
+                 class="btn btn-icon btn-outline-info btn-sm"
+                 data-bs-toggle="tooltip" title="Voir le détail">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if user.is_domaine_foncier %}
               <a href="{% url 'foncier:espace_update' esp.pk %}"
                  class="btn btn-icon btn-outline-primary btn-sm"
                  data-bs-toggle="tooltip" title="Modifier">
@@ -256,13 +338,14 @@
                  data-bs-toggle="tooltip" title="Supprimer">
                 <i class="bi bi-trash"></i>
               </a>
+              {% endif %}
             </div>
           </td>
-          {% endif %}
+
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if user.is_domaine_foncier %}7{% else %}6{% endif %}">
+          <td colspan="7">
             <div class="empty-state">
               <i class="bi bi-inbox"></i>
               <p>Aucun espace trouvé{% if q %} pour « {{ q }} »{% endif %}{% if type_filter %} avec ce type{% endif %}.</p>
@@ -285,19 +368,19 @@
       <ul class="pagination pagination-sm mb-0">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ type_filter }}">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ type_filter }}&sort={{ sort }}">
             <i class="bi bi-chevron-left" style="font-size:10px;"></i>
           </a>
         </li>
         {% endif %}
         {% for num in page_obj.paginator.page_range %}
         <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-          <a class="page-link" href="?page={{ num }}&q={{ q }}&type={{ type_filter }}">{{ num }}</a>
+          <a class="page-link" href="?page={{ num }}&q={{ q }}&type={{ type_filter }}&sort={{ sort }}">{{ num }}</a>
         </li>
         {% endfor %}
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ type_filter }}">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ type_filter }}&sort={{ sort }}">
             <i class="bi bi-chevron-right" style="font-size:10px;"></i>
           </a>
         </li>
