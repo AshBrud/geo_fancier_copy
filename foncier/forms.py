@@ -28,13 +28,20 @@ class EspaceForm(forms.ModelForm):
 
     class Meta:
         model = Espace
-        fields = ['nom', 'code', 'type_espace', 'description', 'usage', 'geometrie']
+        fields = ['nom', 'code', 'type_espace', 'taux_occupation', 'description', 'usage', 'geometrie']
         labels = {
             'nom': "Nom de l'espace",
             'code': 'Code unique',
             'type_espace': "Type d'espace",
+            'taux_occupation': "Taux d'occupation max (%)",
             'description': 'Description',
             'usage': 'Usage actuel',
+        }
+        widgets = {
+            'taux_occupation': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1, 'max': 100, 'step': 1,
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -42,7 +49,7 @@ class EspaceForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(Column('nom', css_class='col-md-8'), Column('code', css_class='col-md-4')),
-            Row(Column('type_espace', css_class='col-md-6'), Column('usage', css_class='col-md-6')),
+            Row(Column('type_espace', css_class='col-md-6'), Column('taux_occupation', css_class='col-md-3'), Column('usage', css_class='col-md-3')),
             'description',
             'geometrie',
             ButtonHolder(

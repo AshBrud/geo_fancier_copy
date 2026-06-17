@@ -2,6 +2,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.db.models.functions import Area
 from django.contrib.gis.measure import A
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Superficie officielle du campus UAD Bambey (55 ha)
 SUPERFICIE_CAMPUS_M2 = 550000
@@ -31,6 +32,12 @@ class Espace(models.Model):
     type_espace = models.CharField(max_length=20, choices=TYPES, verbose_name='Type')
     geometrie = models.MultiPolygonField(srid=4326, verbose_name='Géométrie')
     superficie = models.FloatField(blank=True, null=True, verbose_name='Superficie (m²)')
+    taux_occupation = models.FloatField(
+        default=60.0,
+        validators=[MinValueValidator(1.0), MaxValueValidator(100.0)],
+        verbose_name="Taux d'occupation max (%)",
+        help_text="Pourcentage de la superficie effectivement constructible (le reste est réservé aux voiries, espaces verts, parkings…)",
+    )
     description = models.TextField(blank=True, verbose_name='Description')
     usage = models.CharField(max_length=200, blank=True, verbose_name='Usage')
     date_creation = models.DateTimeField(auto_now_add=True)

@@ -116,16 +116,19 @@ class NouvelleConstruction(models.Model):
                 geometrie__intersects=concurrent.zone_souhaitee,
             )
             sup_brute = sum(e.superficie or 0 for e in espaces_libres)
+            sup_constructible = sum(
+                (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_libres
+            )
             sup_engagee = concurrent._superficie_engagee(concurrent.zone_souhaitee)
-            sup_constructible = sup_brute * self.TAUX_OCCUPATION_MAX
             sup_nette = max(0, sup_constructible - sup_engagee)
+            taux_moy = (sup_constructible / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
             if sup_nette < (concurrent.superficie_souhaitee or 0):
                 note = (
                     f"\n[Rejet automatique le {self.date_modification.strftime('%d/%m/%Y')}] "
                     f"La construction « {self.nom_projet} » vient d'être approuvée "
                     f"et occupe {self.superficie_souhaitee:.0f} m² dans cette zone. "
-                    f"Superficie constructible ({int(self.TAUX_OCCUPATION_MAX*100)}%) : {sup_constructible:.0f} m², "
+                    f"Superficie constructible ({taux_moy:.0f}%) : {sup_constructible:.0f} m², "
                     f"nette restante : {sup_nette:.0f} m², "
                     f"insuffisante pour ce projet ({concurrent.superficie_souhaitee:.0f} m² requis)."
                 )
@@ -177,12 +180,14 @@ class NouvelleConstruction(models.Model):
             return False, self.rapport_faisabilite, Espace.objects.none()
 
         sup_brute    = sum(e.superficie or 0 for e in espaces)
-        noms_espaces = ', '.join(e.nom for e in espaces)
+        noms_espaces = ', '.join(
+            f"{e.nom} ({e.taux_occupation:.0f}%)" for e in espaces
+        )
 
-        # ---- 2. Superficie constructible (taux d'occupation) ----
-        taux         = self.TAUX_OCCUPATION_MAX
-        sup_construct = sup_brute * taux
+        # ---- 2. Superficie constructible (taux d'occupation par espace) ----
+        sup_construct = sum((e.superficie or 0) * (e.taux_occupation / 100) for e in espaces)
         sup_reservee  = sup_brute - sup_construct  # voiries, espaces verts…
+        taux_moyen    = (sup_construct / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
         # ---- 3. Superficie engagée (approuvées/en cours/terminées) ----
         qs_eng      = self._qs_engagees(self.zone_souhaitee)
@@ -212,7 +217,7 @@ class NouvelleConstruction(models.Model):
             "-" * 48,
             f"Superficie brute              : {sup_brute:>12,.0f} m²  ({sup_brute/10000:.2f} ha)",
             f"Réservée (voiries, espaces verts…) : -{sup_reservee:>8,.0f} m²  ({sup_reservee/10000:.2f} ha)",
-            f"Superficie constructible ({int(taux*100):>2}%)  : {sup_construct:>12,.0f} m²  ({sup_construct/10000:.2f} ha)",
+            f"Superficie constructible ({taux_moyen:.0f}% moy.) : {sup_construct:>12,.0f} m²  ({sup_construct/10000:.2f} ha)",
         ]
 
         if nb_engagees > 0:
@@ -265,7 +270,7 @@ class NouvelleConstruction(models.Model):
         valides = []
         for esp in candidates:
             eng = self._superficie_engagee(esp.geometrie)
-            constructible = (esp.superficie or 0) * self.TAUX_OCCUPATION_MAX
+            constructible = (esp.superficie or 0) * (esp.taux_occupation / 100)
             nette = max(0, constructible - eng)
             if nette >= (self.superficie_souhaitee or 0):
                 valides.append((esp, nette))
