@@ -162,22 +162,23 @@ class NouvelleConstruction(models.Model):
             self.save()
             return False, self.rapport_faisabilite, alternatives, {}
 
-        # ---- 1. Espaces libres dans la zone ----
-        espaces = Espace.objects.filter(
+        # ---- 1. Espaces libres dans la zone (évalué une seule fois) ----
+        espaces = list(Espace.objects.filter(
             type_espace=Espace.TYPE_LIBRE,
             geometrie__intersects=self.zone_souhaitee,
-        )
+        ))
 
-        if not espaces.exists():
+        if not espaces:
             self.disponible = False
             self.rapport_faisabilite = (
                 "La zone sélectionnée ne contient aucun espace libre. "
-                "Elle est occupée ou réservée."
+                "Elle est peut-être déjà occupée, réservée, ou sa géométrie "
+                "ne correspond à aucun espace libre enregistré."
             )
             self.zones_alternatives = ''
-            self._proposer_alternatives()
+            alternatives = self._proposer_alternatives()
             self.save()
-            return False, self.rapport_faisabilite, Espace.objects.none(), {}
+            return False, self.rapport_faisabilite, alternatives, {}
 
         sup_brute    = sum(e.superficie or 0 for e in espaces)
         noms_espaces = ', '.join(
@@ -190,9 +191,9 @@ class NouvelleConstruction(models.Model):
         taux_moyen    = (sup_construct / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
         # ---- 3. Superficie engagée (approuvées/en cours/terminées) ----
-        qs_eng      = self._qs_engagees(self.zone_souhaitee)
-        sup_engagee = sum(c.superficie_souhaitee or 0 for c in qs_eng)
-        nb_engagees = qs_eng.count()
+        list_eng    = list(self._qs_engagees(self.zone_souhaitee))
+        sup_engagee = sum(c.superficie_souhaitee or 0 for c in list_eng)
+        nb_engagees = len(list_eng)
 
         # ---- 4. Demandes concurrentes en attente ----
         sup_attente, nb_attente = self._superficie_en_attente(self.zone_souhaitee)
@@ -246,7 +247,7 @@ class NouvelleConstruction(models.Model):
 
         if nb_engagees > 0:
             lignes += ["-" * 48, "Constructions engagées dans cette zone :"]
-            for c in qs_eng:
+            for c in list_eng:
                 lignes.append(f"  • {c.nom_projet} — {c.superficie_souhaitee:,.0f} m² ({c.get_statut_display()})")
 
         lignes.append("=" * 48)
@@ -292,7 +293,7 @@ class NouvelleConstruction(models.Model):
                     'statut':    c.get_statut_display(),
                     'badge':     c.badge_couleur,
                 }
-                for c in qs_eng
+                for c in list_eng
             ],
             # Pourcentages pour la barre de progression (base = sup_construct)
             'pct_engagee': min(100.0, round(sup_engagee / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
