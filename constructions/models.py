@@ -54,119 +54,219 @@ class NouvelleConstruction(models.Model):
     def badge_couleur(self):
         return self.BADGE_COULEURS.get(self.statut, 'secondary')
 
-    # Statuts qui engagent réellement de la superficie
+    # Statuts qui engagent réellement de la superficie (espace "pris")
     STATUTS_ENGAGES = ['approuvee', 'en_cours', 'terminee']
 
-    def _superficie_deja_allouee(self, zone):
-        """Retourne la superficie (m²) déjà allouée à des constructions
-        approuvées/en cours/terminées qui intersectent la zone donnée."""
+    # ------------------------------------------------------------------ #
+    #  MÉTHODES INTERNES D'ANALYSE SPATIALE                               #
+    # ------------------------------------------------------------------ #
+
+    def _qs_engagees(self, zone):
+        """Constructions approuvées/en cours/terminées qui intersectent une zone."""
         qs = NouvelleConstruction.objects.filter(
             statut__in=self.STATUTS_ENGAGES,
             zone_souhaitee__intersects=zone,
         )
-        if self.pk:
-            qs = qs.exclude(pk=self.pk)
-        return sum(c.superficie_souhaitee or 0 for c in qs)
+        return qs.exclude(pk=self.pk) if self.pk else qs
+
+    def _qs_en_attente(self, zone):
+        """Constructions en attente concurrentes qui intersectent une zone."""
+        qs = NouvelleConstruction.objects.filter(
+            statut=self.STATUT_ATTENTE,
+            zone_souhaitee__intersects=zone,
+        )
+        return qs.exclude(pk=self.pk) if self.pk else qs
+
+    def _superficie_engagee(self, zone):
+        return sum(c.superficie_souhaitee or 0 for c in self._qs_engagees(zone))
+
+    def _superficie_en_attente(self, zone):
+        qs = self._qs_en_attente(zone)
+        return sum(c.superficie_souhaitee or 0 for c in qs), qs.count()
+
+    # ------------------------------------------------------------------ #
+    #  REJET AUTOMATIQUE DES CONCURRENTES APRÈS APPROBATION               #
+    # ------------------------------------------------------------------ #
+
+    def rejeter_concurrents(self):
+        """
+        Appelée après approbation d'une construction.
+        Parcourt toutes les demandes EN ATTENTE qui intersectent la même zone
+        et rejette automatiquement celles qui ne peuvent plus être construites
+        faute de superficie nette suffisante.
+        Retourne la liste des constructions auto-rejetées.
+        """
+        if not self.zone_souhaitee or self.statut not in self.STATUTS_ENGAGES:
+            return []
+
+        concurrentes = self._qs_en_attente(self.zone_souhaitee)
+        auto_rejetees = []
+
+        for concurrent in concurrentes:
+            if not concurrent.zone_souhaitee:
+                continue
+
+            # Recalculer la superficie nette pour cette demande concurrente
+            espaces_libres = Espace.objects.filter(
+                type_espace=Espace.TYPE_LIBRE,
+                geometrie__intersects=concurrent.zone_souhaitee,
+            )
+            sup_brute = sum(e.superficie or 0 for e in espaces_libres)
+            sup_engagee = concurrent._superficie_engagee(concurrent.zone_souhaitee)
+            sup_nette = max(0, sup_brute - sup_engagee)
+
+            if sup_nette < (concurrent.superficie_souhaitee or 0):
+                note = (
+                    f"\n[Rejet automatique le {self.date_modification.strftime('%d/%m/%Y')}] "
+                    f"La construction « {self.nom_projet} » vient d'être approuvée "
+                    f"et occupe {self.superficie_souhaitee:.0f} m² dans cette zone. "
+                    f"Superficie nette restante : {sup_nette:.0f} m², "
+                    f"insuffisante pour ce projet ({concurrent.superficie_souhaitee:.0f} m² requis)."
+                )
+                concurrent.statut = self.STATUT_REJETE
+                concurrent.rapport_faisabilite = (concurrent.rapport_faisabilite or '') + note
+                concurrent.disponible = False
+                concurrent.save()
+                auto_rejetees.append(concurrent)
+
+        return auto_rejetees
+
+    # ------------------------------------------------------------------ #
+    #  ANALYSE PRINCIPALE DE DISPONIBILITÉ                                #
+    # ------------------------------------------------------------------ #
 
     def analyser_disponibilite(self):
-        """Vérifie si la zone souhaitée peut accueillir la construction
-        en tenant compte des constructions déjà approuvées.
+        """
+        Analyse intelligente et complète :
+          1. Calcule la superficie brute des espaces libres dans la zone.
+          2. Soustrait les constructions déjà approuvées/en cours/terminées.
+          3. Avertit sur les demandes concurrentes en attente.
+          4. Détermine si la construction est faisable (superficie nette).
+          5. Propose des alternatives réellement disponibles si non faisable.
         Retourne (disponible, rapport, zones_alternatives_qs).
         """
         alternatives = Espace.objects.none()
 
         if not self.zone_souhaitee:
-            return False, "Aucune zone dessinée sur la carte.", alternatives
+            self.disponible = False
+            self.rapport_faisabilite = "Aucune zone dessinée sur la carte."
+            self.save()
+            return False, self.rapport_faisabilite, alternatives
 
-        # Espaces libres qui intersectent la zone demandée
-        espaces_intersectant = Espace.objects.filter(
+        # ---- 1. Espaces libres dans la zone ----
+        espaces = Espace.objects.filter(
             type_espace=Espace.TYPE_LIBRE,
-            geometrie__intersects=self.zone_souhaitee
+            geometrie__intersects=self.zone_souhaitee,
         )
 
-        if espaces_intersectant.exists():
-            superficie_brute = sum(e.superficie or 0 for e in espaces_intersectant)
-            noms = ', '.join(e.nom for e in espaces_intersectant)
-
-            # Soustraire la superficie déjà allouée aux constructions engagées
-            deja_allouee = self._superficie_deja_allouee(self.zone_souhaitee)
-            superficie_nette = max(0, superficie_brute - deja_allouee)
-
-            if superficie_nette >= self.superficie_souhaitee:
-                self.disponible = True
-                if deja_allouee > 0:
-                    self.rapport_faisabilite = (
-                        f"Zone disponible malgré des constructions existantes. "
-                        f"Espace(s) : {noms}. "
-                        f"Superficie brute : {superficie_brute:.0f} m² — "
-                        f"Déjà allouée : {deja_allouee:.0f} m² — "
-                        f"Disponible nette : {superficie_nette:.0f} m² "
-                        f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
-                    )
-                else:
-                    self.rapport_faisabilite = (
-                        f"La zone sélectionnée est disponible. "
-                        f"Espace(s) libre(s) : {noms}. "
-                        f"Superficie disponible : {superficie_nette:.0f} m² "
-                        f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
-                    )
-                self.zones_alternatives = ''
-            else:
-                self.disponible = False
-                detail = (
-                    f"Superficie brute de la zone : {superficie_brute:.0f} m²"
-                )
-                if deja_allouee > 0:
-                    detail += (
-                        f", dont {deja_allouee:.0f} m² déjà alloués à "
-                        f"{NouvelleConstruction.objects.filter(statut__in=self.STATUTS_ENGAGES, zone_souhaitee__intersects=self.zone_souhaitee).count()} "
-                        f"construction(s) approuvée(s)"
-                    )
-                self.rapport_faisabilite = (
-                    f"Superficie insuffisante dans la zone sélectionnée. "
-                    f"{detail}. "
-                    f"Superficie nette disponible : {superficie_nette:.0f} m², "
-                    f"superficie requise : {self.superficie_souhaitee:.0f} m²."
-                )
-        else:
+        if not espaces.exists():
             self.disponible = False
             self.rapport_faisabilite = (
                 "La zone sélectionnée ne contient aucun espace libre. "
-                "Elle est déjà occupée ou réservée."
+                "Elle est occupée ou réservée."
+            )
+            self.zones_alternatives = ''
+            self._proposer_alternatives()
+            self.save()
+            return False, self.rapport_faisabilite, Espace.objects.none()
+
+        sup_brute   = sum(e.superficie or 0 for e in espaces)
+        noms_espaces = ', '.join(e.nom for e in espaces)
+
+        # ---- 2. Superficie engagée (approuvées/en cours/terminées) ----
+        qs_eng      = self._qs_engagees(self.zone_souhaitee)
+        sup_engagee = sum(c.superficie_souhaitee or 0 for c in qs_eng)
+        nb_engagees = qs_eng.count()
+
+        # ---- 3. Demandes concurrentes en attente ----
+        sup_attente, nb_attente = self._superficie_en_attente(self.zone_souhaitee)
+
+        # ---- 4. Superficie nette réelle ----
+        sup_nette   = max(0.0, sup_brute - sup_engagee)
+        sup_requise = self.superficie_souhaitee or 0
+
+        # ---- 5. Construction du rapport structuré ----
+        lignes = ["=" * 48]
+
+        if sup_nette >= sup_requise:
+            self.disponible = True
+            lignes.append("RÉSULTAT : Zone disponible — Faisable")
+        else:
+            self.disponible = False
+            lignes.append("RÉSULTAT : Zone insuffisante — Non faisable")
+
+        lignes += [
+            "=" * 48,
+            f"Espace(s) concerné(s) : {noms_espaces}",
+            "-" * 48,
+            f"Superficie brute              : {sup_brute:>12,.0f} m²  ({sup_brute/10000:.2f} ha)",
+        ]
+
+        if nb_engagees > 0:
+            lignes.append(
+                f"Déjà allouée ({nb_engagees} construction(s)) : -{sup_engagee:>11,.0f} m²  ({sup_engagee/10000:.2f} ha)"
             )
 
-        # Proposer des zones alternatives si non disponible
+        lignes += [
+            f"Superficie nette disponible   : {sup_nette:>12,.0f} m²  ({sup_nette/10000:.2f} ha)",
+            f"Superficie requise            : {sup_requise:>12,.0f} m²  ({sup_requise/10000:.2f} ha)",
+        ]
+
         if not self.disponible:
-            # Chercher des espaces libres avec suffisamment de superficie nette
-            candidates = Espace.objects.filter(
-                type_espace=Espace.TYPE_LIBRE,
-                superficie__gte=self.superficie_souhaitee
-            ).order_by('superficie')
+            manque = sup_requise - sup_nette
+            lignes.append(f"Manque                        : {manque:>12,.0f} m²  ({manque/10000:.2f} ha)")
 
-            alternatives_list = []
-            for esp in candidates:
-                deja = self._superficie_deja_allouee(esp.geometrie)
-                superficie_nette_esp = max(0, (esp.superficie or 0) - deja)
-                if superficie_nette_esp >= self.superficie_souhaitee:
-                    alternatives_list.append(esp)
-                if len(alternatives_list) >= 6:
-                    break
+        if nb_attente > 0:
+            lignes += [
+                "-" * 48,
+                f"ATTENTION : {nb_attente} autre(s) demande(s) en attente",
+                f"totalisant {sup_attente:,.0f} m² dans cette zone.",
+                "La priorité sera accordée selon l'ordre d'approbation.",
+                "Si cette demande est approuvée, les concurrentes",
+                "incompatibles seront automatiquement rejetées.",
+            ]
 
-            if alternatives_list:
-                noms_alt = ', '.join(
-                    f"{e.nom} ({(e.superficie or 0) - self._superficie_deja_allouee(e.geometrie):.0f} m² nets)"
-                    for e in alternatives_list
-                )
-                self.zones_alternatives = noms_alt
-                # Retourner un queryset filtré sur les ids trouvés
-                ids = [e.pk for e in alternatives_list]
-                alternatives = Espace.objects.filter(pk__in=ids)
-            else:
-                self.zones_alternatives = "Aucune zone alternative avec superficie suffisante disponible."
-                alternatives = Espace.objects.none()
+        if nb_engagees > 0:
+            lignes += ["-" * 48, "Constructions engagées dans cette zone :"]
+            for c in qs_eng:
+                lignes.append(f"  • {c.nom_projet} — {c.superficie_souhaitee:,.0f} m² ({c.get_statut_display()})")
+
+        lignes.append("=" * 48)
+        self.rapport_faisabilite = "\n".join(lignes)
+        self.zones_alternatives  = ''
+
+        # ---- 6. Zones alternatives si non disponible ----
+        if not self.disponible:
+            alternatives = self._proposer_alternatives()
 
         self.save()
         return self.disponible, self.rapport_faisabilite, alternatives
+
+    def _proposer_alternatives(self):
+        """Cherche des espaces libres avec assez de superficie nette."""
+        candidates = Espace.objects.filter(
+            type_espace=Espace.TYPE_LIBRE,
+            superficie__gte=self.superficie_souhaitee,
+        ).order_by('superficie')
+
+        valides = []
+        for esp in candidates:
+            eng = self._superficie_engagee(esp.geometrie)
+            nette = max(0, (esp.superficie or 0) - eng)
+            if nette >= (self.superficie_souhaitee or 0):
+                valides.append((esp, nette))
+            if len(valides) >= 6:
+                break
+
+        if valides:
+            self.zones_alternatives = ', '.join(
+                f"{e.nom} ({nette:,.0f} m² nets disponibles)"
+                for e, nette in valides
+            )
+            return Espace.objects.filter(pk__in=[e.pk for e, _ in valides])
+
+        self.zones_alternatives = "Aucune zone alternative disponible avec superficie suffisante."
+        return Espace.objects.none()
 
     # Alias conservé pour compatibilité
     def analyser_faisabilite(self):

@@ -100,10 +100,23 @@ def construction_update_statut(request, pk):
     construction = get_object_or_404(NouvelleConstruction, pk=pk)
     if request.method == 'POST':
         nouveau_statut = request.POST.get('statut')
+        ancien_statut = construction.statut
         if nouveau_statut in dict(NouvelleConstruction.STATUTS):
             construction.statut = nouveau_statut
             construction.save()
             messages.success(request, f'Statut mis à jour : {construction.get_statut_display()}')
+
+            # Rejet automatique des demandes concurrentes incompatibles
+            if (nouveau_statut in NouvelleConstruction.STATUTS_ENGAGES
+                    and ancien_statut == NouvelleConstruction.STATUT_ATTENTE):
+                auto_rejetees = construction.rejeter_concurrents()
+                if auto_rejetees:
+                    liste = ', '.join(f'« {c.nom_projet} »' for c in auto_rejetees)
+                    messages.warning(
+                        request,
+                        f'{len(auto_rejetees)} demande(s) automatiquement rejetée(s) '
+                        f'faute de superficie suffisante dans la zone : {liste}.'
+                    )
     return redirect('constructions:list')
 
 
