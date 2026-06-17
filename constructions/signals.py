@@ -63,28 +63,19 @@ def _recalculer_espace(espace):
     sup_disponible  = max(0.0, sup_constructible - sup_engagee)
 
     if sup_engagee == 0:
-        # Aucune construction engagée → espace entièrement libre, effacer la note auto
+        # Aucune construction engagée → espace entièrement libre
         if espace.type_espace == Espace.TYPE_OCCUPE:
             espace.type_espace = Espace.TYPE_LIBRE
-        espace.usage = ''
+            espace.save()
 
     elif sup_disponible <= 0:
         # Toute la superficie constructible est allouée → occupé
-        espace.type_espace = Espace.TYPE_OCCUPE
-        espace.usage = (
-            f"Entièrement alloué — "
-            f"{sup_constructible:.0f} m² constructibles / "
-            f"{sup_engagee:.0f} m² engagés"
-        )
+        if espace.type_espace != Espace.TYPE_OCCUPE:
+            espace.type_espace = Espace.TYPE_OCCUPE
+            espace.save()
 
     else:
-        # Partiellement alloué → reste libre, mettre à jour la note
+        # Partiellement alloué → reste libre
         if espace.type_espace == Espace.TYPE_OCCUPE:
             espace.type_espace = Espace.TYPE_LIBRE
-        espace.usage = (
-            f"Disponible : {sup_disponible:.0f} m² nets "
-            f"({sup_constructible:.0f} m² constructibles "
-            f"− {sup_engagee:.0f} m² déjà alloués)"
-        )
-
-    espace.save()
+            espace.save()
