@@ -54,8 +54,23 @@ class NouvelleConstruction(models.Model):
     def badge_couleur(self):
         return self.BADGE_COULEURS.get(self.statut, 'secondary')
 
+    # Statuts qui engagent réellement de la superficie
+    STATUTS_ENGAGES = ['approuvee', 'en_cours', 'terminee']
+
+    def _superficie_deja_allouee(self, zone):
+        """Retourne la superficie (m²) déjà allouée à des constructions
+        approuvées/en cours/terminées qui intersectent la zone donnée."""
+        qs = NouvelleConstruction.objects.filter(
+            statut__in=self.STATUTS_ENGAGES,
+            zone_souhaitee__intersects=zone,
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+        return sum(c.superficie_souhaitee or 0 for c in qs)
+
     def analyser_disponibilite(self):
-        """Vérifie si la zone souhaitée peut accueillir la construction.
+        """Vérifie si la zone souhaitée peut accueillir la construction
+        en tenant compte des constructions déjà approuvées.
         Retourne (disponible, rapport, zones_alternatives_qs).
         """
         alternatives = Espace.objects.none()
@@ -63,30 +78,55 @@ class NouvelleConstruction(models.Model):
         if not self.zone_souhaitee:
             return False, "Aucune zone dessinée sur la carte.", alternatives
 
+        # Espaces libres qui intersectent la zone demandée
         espaces_intersectant = Espace.objects.filter(
             type_espace=Espace.TYPE_LIBRE,
             geometrie__intersects=self.zone_souhaitee
         )
 
         if espaces_intersectant.exists():
-            superficie_dispo = sum(e.superficie or 0 for e in espaces_intersectant)
+            superficie_brute = sum(e.superficie or 0 for e in espaces_intersectant)
             noms = ', '.join(e.nom for e in espaces_intersectant)
 
-            if superficie_dispo >= self.superficie_souhaitee:
+            # Soustraire la superficie déjà allouée aux constructions engagées
+            deja_allouee = self._superficie_deja_allouee(self.zone_souhaitee)
+            superficie_nette = max(0, superficie_brute - deja_allouee)
+
+            if superficie_nette >= self.superficie_souhaitee:
                 self.disponible = True
-                self.rapport_faisabilite = (
-                    f"La zone sélectionnée est disponible. "
-                    f"Espace(s) libre(s) : {noms}. "
-                    f"Superficie libre : {superficie_dispo:.0f} m² "
-                    f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
-                )
+                if deja_allouee > 0:
+                    self.rapport_faisabilite = (
+                        f"Zone disponible malgré des constructions existantes. "
+                        f"Espace(s) : {noms}. "
+                        f"Superficie brute : {superficie_brute:.0f} m² — "
+                        f"Déjà allouée : {deja_allouee:.0f} m² — "
+                        f"Disponible nette : {superficie_nette:.0f} m² "
+                        f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
+                    )
+                else:
+                    self.rapport_faisabilite = (
+                        f"La zone sélectionnée est disponible. "
+                        f"Espace(s) libre(s) : {noms}. "
+                        f"Superficie disponible : {superficie_nette:.0f} m² "
+                        f"pour un besoin de {self.superficie_souhaitee:.0f} m²."
+                    )
                 self.zones_alternatives = ''
             else:
                 self.disponible = False
+                detail = (
+                    f"Superficie brute de la zone : {superficie_brute:.0f} m²"
+                )
+                if deja_allouee > 0:
+                    detail += (
+                        f", dont {deja_allouee:.0f} m² déjà alloués à "
+                        f"{NouvelleConstruction.objects.filter(statut__in=self.STATUTS_ENGAGES, zone_souhaitee__intersects=self.zone_souhaitee).count()} "
+                        f"construction(s) approuvée(s)"
+                    )
                 self.rapport_faisabilite = (
                     f"Superficie insuffisante dans la zone sélectionnée. "
-                    f"Disponible : {superficie_dispo:.0f} m², "
-                    f"requis : {self.superficie_souhaitee:.0f} m²."
+                    f"{detail}. "
+                    f"Superficie nette disponible : {superficie_nette:.0f} m², "
+                    f"superficie requise : {self.superficie_souhaitee:.0f} m²."
                 )
         else:
             self.disponible = False
@@ -97,15 +137,33 @@ class NouvelleConstruction(models.Model):
 
         # Proposer des zones alternatives si non disponible
         if not self.disponible:
-            alternatives = Espace.objects.filter(
+            # Chercher des espaces libres avec suffisamment de superficie nette
+            candidates = Espace.objects.filter(
                 type_espace=Espace.TYPE_LIBRE,
                 superficie__gte=self.superficie_souhaitee
-            ).order_by('superficie')[:6]
-            if alternatives.exists():
+            ).order_by('superficie')
+
+            alternatives_list = []
+            for esp in candidates:
+                deja = self._superficie_deja_allouee(esp.geometrie)
+                superficie_nette_esp = max(0, (esp.superficie or 0) - deja)
+                if superficie_nette_esp >= self.superficie_souhaitee:
+                    alternatives_list.append(esp)
+                if len(alternatives_list) >= 6:
+                    break
+
+            if alternatives_list:
                 noms_alt = ', '.join(
-                    f"{e.nom} ({e.superficie:.0f} m²)" for e in alternatives
+                    f"{e.nom} ({(e.superficie or 0) - self._superficie_deja_allouee(e.geometrie):.0f} m² nets)"
+                    for e in alternatives_list
                 )
                 self.zones_alternatives = noms_alt
+                # Retourner un queryset filtré sur les ids trouvés
+                ids = [e.pk for e in alternatives_list]
+                alternatives = Espace.objects.filter(pk__in=ids)
+            else:
+                self.zones_alternatives = "Aucune zone alternative avec superficie suffisante disponible."
+                alternatives = Espace.objects.none()
 
         self.save()
         return self.disponible, self.rapport_faisabilite, alternatives
