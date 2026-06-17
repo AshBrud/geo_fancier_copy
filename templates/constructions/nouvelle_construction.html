@@ -112,31 +112,85 @@
 .leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
 /* ===== RÉSULTAT ===== */
-.result-banner {
-  border-radius: 14px; overflow: hidden;
-  border: 2px solid; margin-top: 1.5rem;
-}
-.result-banner.ok  { border-color: #16A34A; }
-.result-banner.nok { border-color: #DC2626; }
-.result-banner-header {
-  padding: 1.25rem 1.5rem;
-  display: flex; align-items: center; gap: 16px;
-}
-.result-banner.ok  .result-banner-header { background: #f0fdf4; }
-.result-banner.nok .result-banner-header { background: #fef2f2; }
-.result-icon-circle {
-  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 22px;
-}
-.result-banner.ok  .result-icon-circle { background: #dcfce7; color: #16A34A; }
-.result-banner.nok .result-icon-circle { background: #fee2e2; color: #DC2626; }
-.result-title-main { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 2px; }
-.result-subtitle { font-size: 12.5px; color: #6b7280; }
-.result-banner-body { padding: 1.25rem 1.5rem; background: #fff; }
-.result-rapport { font-size: 13.5px; color: #374151; line-height: 1.7; margin: 0; }
+.result-card { border-radius: 16px; overflow: hidden; border: 2px solid; margin-top: 1.75rem; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
+.result-card.ok  { border-color: #16A34A; }
+.result-card.nok { border-color: #DC2626; }
 
-/* ===== ALTERNATIVES TABLE ===== */
-.alt-table-wrap { margin-top: 1rem; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+/* Header */
+.result-header { padding: 1.25rem 1.75rem; display: flex; align-items: center; gap: 16px; }
+.result-card.ok  .result-header { background: linear-gradient(135deg,#f0fdf4,#dcfce7); }
+.result-card.nok .result-header { background: linear-gradient(135deg,#fef2f2,#fee2e2); }
+.result-icon-circle {
+  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+}
+.result-card.ok  .result-icon-circle { background: #16A34A; color: #fff; }
+.result-card.nok .result-icon-circle { background: #DC2626; color: #fff; }
+.result-title-main { font-size: 17px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+.result-subtitle   { font-size: 12px; color: #6b7280; }
+
+/* Métriques */
+.result-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+.metric-tile {
+  padding: 1.1rem 1.25rem; text-align: center;
+  border-right: 1px solid #f1f5f9;
+  position: relative;
+}
+.metric-tile:last-child { border-right: none; }
+.metric-tile-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; margin-bottom: 6px; }
+.metric-tile-val   { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+.metric-tile-sub   { font-size: 11px; color: #94a3b8; }
+.metric-tile-badge { font-size: 10px; margin-top: 5px; display: inline-block; }
+.metric-brute      { background: #f8faff; }
+.metric-brute .metric-tile-val { color: #374151; }
+.metric-construct  { background: #eff6ff; }
+.metric-construct .metric-tile-val { color: #1E3A8A; }
+.metric-engagee    { background: #fff7ed; }
+.metric-engagee .metric-tile-val { color: #c2410c; }
+.metric-nette-ok   { background: #f0fdf4; }
+.metric-nette-ok .metric-tile-val { color: #16A34A; }
+.metric-nette-nok  { background: #fef2f2; }
+.metric-nette-nok .metric-tile-val { color: #DC2626; }
+
+/* Barre de progression */
+.utilization-wrap  { padding: 1.1rem 1.75rem; background: #fff; border-top: 1px solid #f1f5f9; }
+.utilization-label { font-size: 11.5px; font-weight: 600; color: #374151; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.utilization-bar   { height: 20px; border-radius: 99px; background: #f1f5f9; overflow: visible; position: relative; display: flex; }
+.bar-engagee { border-radius: 99px 0 0 99px; background: #f97316; height: 100%; transition: width .5s; }
+.bar-nette   { height: 100%; transition: width .5s; }
+.bar-nette.ok  { background: #16A34A; border-radius: 0 99px 99px 0; }
+.bar-nette.nok { background: #DC2626; border-radius: 0 99px 99px 0; }
+.bar-requise-marker {
+  position: absolute; top: -4px; height: 28px; width: 3px;
+  background: #1E3A8A; border-radius: 2px;
+  transition: left .5s;
+}
+.bar-requise-marker::after {
+  content: 'Requis'; position: absolute; bottom: -18px; left: 50%;
+  transform: translateX(-50%); font-size: 9.5px; font-weight: 700;
+  color: #1E3A8A; white-space: nowrap;
+}
+.util-legend { display: flex; gap: 16px; margin-top: 24px; font-size: 11px; color: #6b7280; }
+.util-legend span { display: flex; align-items: center; gap: 5px; }
+.util-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* Verdict */
+.verdict-row { padding: 1rem 1.75rem; background: #fff; border-top: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.verdict-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.verdict-item-label { font-size: 10.5px; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; }
+.verdict-item-val   { font-size: 15px; font-weight: 700; }
+.verdict-sep { font-size: 20px; color: #cbd5e1; flex: 1; text-align: center; }
+.verdict-result { margin-left: auto; }
+
+/* Sections additionnelles */
+.result-section { padding: 1rem 1.75rem; border-top: 1px solid #f1f5f9; background: #fff; }
+.result-section-title { font-size: 11.5px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .5px; margin-bottom: .75rem; display: flex; align-items: center; gap: 6px; }
+
+/* Actions */
+.result-actions { padding: .875rem 1.75rem; background: #f8faff; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; }
+
+/* ALTERNATIVES TABLE */
+.alt-table-wrap { border-radius: 10px; overflow: hidden; border: 1px solid #fed7aa; }
 .alt-table-header {
   background: #fff7ed; padding: 10px 14px;
   font-size: 12.5px; font-weight: 600; color: #92400e;
@@ -318,41 +372,199 @@
 
 <!-- ===== RÉSULTAT DE L'ANALYSE ===== -->
 {% if resultat %}
-<div class="result-banner {% if resultat.disponible %}ok{% else %}nok{% endif %}">
+<div class="result-card {% if resultat.disponible %}ok{% else %}nok{% endif %}" id="resultSection">
 
-  <div class="result-banner-header">
+  <!-- ── EN-TÊTE ── -->
+  <div class="result-header">
     <div class="result-icon-circle">
-      {% if resultat.disponible %}
-        <i class="bi bi-check-circle-fill"></i>
-      {% else %}
-        <i class="bi bi-x-circle-fill"></i>
-      {% endif %}
+      {% if resultat.disponible %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-x-lg"></i>{% endif %}
     </div>
     <div>
       <div class="result-title-main">{{ resultat.construction.nom_projet }}</div>
       <div class="result-subtitle">
-        {{ resultat.construction.type_construction }} ·
-        {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m² ·
+        {{ resultat.construction.type_construction }} &nbsp;·&nbsp;
+        {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²
+        ({{ resultat.stats.sup_requise_ha }} ha) &nbsp;·&nbsp;
         Analysé le {{ resultat.construction.date_demande|date:"d/m/Y à H\hi" }}
+        {% if resultat.stats.espaces %}
+        &nbsp;·&nbsp;
+        {% for e in resultat.stats.espaces %}<strong>{{ e.nom }}</strong> ({{ e.taux }}%){% if not forloop.last %}, {% endif %}{% endfor %}
+        {% endif %}
       </div>
     </div>
-    <div class="ms-auto">
+    <div class="ms-auto flex-shrink-0">
       {% if resultat.disponible %}
-        <span class="badge fs-6 bg-success"><i class="bi bi-check-lg me-1"></i>Zone disponible</span>
+        <span class="badge fs-6 bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Zone disponible</span>
       {% else %}
-        <span class="badge fs-6 bg-danger"><i class="bi bi-x-lg me-1"></i>Zone indisponible</span>
+        <span class="badge fs-6 bg-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i>Zone insuffisante</span>
       {% endif %}
     </div>
   </div>
 
-  <div class="result-banner-body">
-    <p class="result-rapport">{{ resultat.rapport }}</p>
+  <!-- ── MÉTRIQUES ── -->
+  <div class="result-metrics border-top">
 
-    {% if not resultat.disponible and zones_alternatives %}
-    <div class="alt-table-wrap mt-3">
+    <div class="metric-tile metric-brute">
+      <div class="metric-tile-label">Superficie brute</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_brute_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_brute|floatformat:0 }} m²</div>
+    </div>
+
+    <div class="metric-tile metric-construct">
+      <div class="metric-tile-label">Constructible</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_construct_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_construct|floatformat:0 }} m²</div>
+      <span class="metric-tile-badge badge bg-primary-subtle text-primary border border-primary-subtle">{{ resultat.stats.taux_moyen }}% occupable</span>
+    </div>
+
+    <div class="metric-tile metric-engagee">
+      <div class="metric-tile-label">Déjà allouée</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_engagee_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_engagee|floatformat:0 }} m²</div>
+      {% if resultat.stats.nb_engagees > 0 %}
+      <span class="metric-tile-badge badge bg-warning-subtle text-warning border border-warning-subtle">{{ resultat.stats.nb_engagees }} construction{{ resultat.stats.nb_engagees|pluralize }}</span>
+      {% else %}
+      <span class="metric-tile-badge badge bg-secondary-subtle text-secondary border border-secondary-subtle">Aucune</span>
+      {% endif %}
+    </div>
+
+    <div class="metric-tile {% if resultat.disponible %}metric-nette-ok{% else %}metric-nette-nok{% endif %}">
+      <div class="metric-tile-label">Disponible nette</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_nette_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_nette|floatformat:0 }} m²</div>
+      {% if resultat.disponible %}
+      <span class="metric-tile-badge badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check me-1"></i>Suffisant</span>
+      {% else %}
+      <span class="metric-tile-badge badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x me-1"></i>Insuffisant</span>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ── BARRE DE PROGRESSION ── -->
+  <div class="utilization-wrap">
+    <div class="utilization-label">
+      <span><i class="bi bi-bar-chart-fill me-1 text-primary"></i>Utilisation de la superficie constructible</span>
+      <span class="text-muted">{{ resultat.stats.pct_engagee }}% allouée &nbsp;·&nbsp; {{ resultat.stats.pct_nette }}% libre</span>
+    </div>
+    <div class="utilization-bar">
+      <div class="bar-engagee" style="width:{{ resultat.stats.pct_engagee }}%"></div>
+      <div class="bar-nette {% if resultat.disponible %}ok{% else %}nok{% endif %}" style="width:{{ resultat.stats.pct_nette }}%"></div>
+      {% if resultat.stats.pct_requise <= 100 %}
+      <div class="bar-requise-marker" style="left:{{ resultat.stats.pct_requise }}%"></div>
+      {% endif %}
+    </div>
+    <div class="util-legend">
+      <span><span class="util-dot" style="background:#f97316"></span>Déjà allouée ({{ resultat.stats.sup_engagee_ha }} ha)</span>
+      <span><span class="util-dot" style="background:{% if resultat.disponible %}#16A34A{% else %}#DC2626{% endif %}"></span>Disponible nette ({{ resultat.stats.sup_nette_ha }} ha)</span>
+      <span><span class="util-dot" style="background:#f1f5f9;border:1px solid #cbd5e1"></span>Réservée voiries/espaces verts ({{ resultat.stats.sup_reservee_ha }} ha)</span>
+    </div>
+  </div>
+
+  <!-- ── VERDICT ── -->
+  <div class="verdict-row">
+    <div class="verdict-item">
+      <span class="verdict-item-label">Disponible nette</span>
+      <span class="verdict-item-val {% if resultat.disponible %}text-success{% else %}text-danger{% endif %}">
+        {{ resultat.stats.sup_nette_ha }} ha
+      </span>
+    </div>
+    <div class="verdict-sep">
+      {% if resultat.disponible %}
+        <i class="bi bi-arrow-right text-success"></i>
+      {% else %}
+        <i class="bi bi-arrow-right text-danger"></i>
+      {% endif %}
+    </div>
+    <div class="verdict-item">
+      <span class="verdict-item-label">Superficie requise</span>
+      <span class="verdict-item-val text-primary">{{ resultat.stats.sup_requise_ha }} ha</span>
+    </div>
+    <div class="verdict-result ms-auto">
+      {% if resultat.disponible %}
+        <span class="badge bg-success fs-6 px-3 py-2">
+          <i class="bi bi-check-circle-fill me-1"></i>Construction faisable
+        </span>
+      {% else %}
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-center">
+            <div style="font-size:11px;color:#94a3b8;">Manque</div>
+            <div style="font-size:18px;font-weight:800;color:#DC2626;">{{ resultat.stats.manque_ha }} ha</div>
+            <div style="font-size:11px;color:#94a3b8;">{{ resultat.stats.manque|floatformat:0 }} m²</div>
+          </div>
+          <span class="badge bg-danger fs-6 px-3 py-2">
+            <i class="bi bi-x-circle-fill me-1"></i>Construction non faisable
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── AVERTISSEMENT CONCURRENTES EN ATTENTE ── -->
+  {% if resultat.stats.nb_attente > 0 %}
+  <div class="result-section" style="background:#fffbeb;">
+    <div class="result-section-title" style="color:#92400e;">
+      <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+      Demandes concurrentes en attente
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="px-3 py-2 rounded-3" style="background:#fef3c7;border:1px solid #fde68a;">
+        <span style="font-size:22px;font-weight:800;color:#d97706;">{{ resultat.stats.nb_attente }}</span>
+        <span style="font-size:12px;color:#92400e;margin-left:4px;">demande{{ resultat.stats.nb_attente|pluralize }} en attente</span>
+      </div>
+      <div class="px-3 py-2 rounded-3" style="background:#fef3c7;border:1px solid #fde68a;">
+        <span style="font-size:22px;font-weight:800;color:#d97706;">{{ resultat.stats.sup_attente_ha }}</span>
+        <span style="font-size:12px;color:#92400e;margin-left:4px;">ha demandés</span>
+      </div>
+      <p class="mb-0 text-muted small">
+        Si cette demande est approuvée en premier, les demandes concurrentes incompatibles seront
+        <strong>automatiquement rejetées</strong>.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── CONSTRUCTIONS ENGAGÉES ── -->
+  {% if resultat.stats.constructions_engagees %}
+  <div class="result-section">
+    <div class="result-section-title">
+      <i class="bi bi-buildings-fill text-primary"></i>
+      Constructions engagées dans cette zone
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:12.5px;">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Projet</th>
+            <th>Superficie</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in resultat.stats.constructions_engagees %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ c.nom }}</td>
+            <td>{{ c.superficie|floatformat:0 }} m²</td>
+            <td><span class="badge bg-{{ c.badge }}">{{ c.statut }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── ZONES ALTERNATIVES ── -->
+  {% if not resultat.disponible and zones_alternatives %}
+  <div class="result-section">
+    <div class="result-section-title" style="color:#92400e;">
+      <i class="bi bi-lightbulb-fill text-warning"></i>
+      Zones alternatives disponibles (≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²)
+    </div>
+    <div class="alt-table-wrap">
       <div class="alt-table-header">
-        <i class="bi bi-lightbulb-fill text-warning"></i>
-        Zones alternatives pouvant accueillir votre projet (≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²)
+        <i class="bi bi-geo-alt-fill text-warning"></i>
+        {{ zones_alternatives|length }} zone{{ zones_alternatives|length|pluralize }} alternative{{ zones_alternatives|length|pluralize }} trouvée{{ zones_alternatives|length|pluralize }}
       </div>
       <div class="table-responsive">
         <table class="table table-sm mb-0" style="font-size:12.5px;">
@@ -360,26 +572,34 @@
             <tr>
               <th class="ps-3">Espace</th>
               <th>Code</th>
-              <th>Superficie disponible</th>
-              <th>Écart</th>
+              <th>Taux occupation</th>
+              <th>Superficie brute</th>
             </tr>
           </thead>
           <tbody>
             {% for espace in zones_alternatives %}
-            <tr class="recent-row">
-              <td class="ps-3 recent-projet">{{ espace.nom }}</td>
+            <tr>
+              <td class="ps-3 fw-semibold">{{ espace.nom }}</td>
               <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ espace.code }}</span></td>
+              <td>{{ espace.taux_occupation|floatformat:0 }}%</td>
               <td class="fw-semibold">{{ espace.superficie|floatformat:0 }} m²</td>
-              <td class="text-success small">
-                +{{ espace.superficie|add:"-0"|floatformat:0 }} m²
-              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ── ACTIONS ── -->
+  <div class="result-actions">
+    <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-list-ul me-1"></i>Voir toutes les demandes
+    </a>
+    <a href="{% url 'constructions:nouvelle' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>Nouvelle analyse
+    </a>
   </div>
 
 </div>
@@ -555,6 +775,14 @@
   map.on(L.Draw.Event.DELETED, function() {
     if (drawnItems.getLayers().length === 0) clearZone();
   });
+
+  // Scroll automatique vers le résultat après analyse
+  var resultSection = document.getElementById('resultSection');
+  if (resultSection) {
+    setTimeout(function() {
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
 })();
 </script>
 {% endblock %}

@@ -55,12 +55,13 @@ def nouvelle_construction(request):
                 messages.warning(request, 'Zone dessinée invalide, veuillez recommencer.')
 
         construction.save()
-        disponible, rapport, alternatives = construction.analyser_disponibilite()
+        disponible, rapport, alternatives, stats = construction.analyser_disponibilite()
         zones_alternatives = list(alternatives)
         resultat = {
             'construction': construction,
             'disponible': disponible,
             'rapport': rapport,
+            'stats': stats,
         }
         messages.success(request, 'Analyse de disponibilité effectuée.')
         form = NouvelleConstructionForm()

@@ -160,7 +160,7 @@ class NouvelleConstruction(models.Model):
             self.disponible = False
             self.rapport_faisabilite = "Aucune zone dessinée sur la carte."
             self.save()
-            return False, self.rapport_faisabilite, alternatives
+            return False, self.rapport_faisabilite, alternatives, {}
 
         # ---- 1. Espaces libres dans la zone ----
         espaces = Espace.objects.filter(
@@ -177,7 +177,7 @@ class NouvelleConstruction(models.Model):
             self.zones_alternatives = ''
             self._proposer_alternatives()
             self.save()
-            return False, self.rapport_faisabilite, Espace.objects.none()
+            return False, self.rapport_faisabilite, Espace.objects.none(), {}
 
         sup_brute    = sum(e.superficie or 0 for e in espaces)
         noms_espaces = ', '.join(
@@ -253,12 +253,54 @@ class NouvelleConstruction(models.Model):
         self.rapport_faisabilite = "\n".join(lignes)
         self.zones_alternatives  = ''
 
-        # ---- 6. Zones alternatives si non disponible ----
+        # ---- 7. Zones alternatives si non disponible ----
         if not self.disponible:
             alternatives = self._proposer_alternatives()
 
         self.save()
-        return self.disponible, self.rapport_faisabilite, alternatives
+
+        # ---- 8. Données structurées pour le rendu visuel ----
+        manque = max(0.0, sup_requise - sup_nette)
+        stats = {
+            'espaces': [
+                {'nom': e.nom, 'code': e.code, 'taux': e.taux_occupation}
+                for e in espaces
+            ],
+            'taux_moyen':       round(taux_moyen, 1),
+            'sup_brute':        sup_brute,
+            'sup_brute_ha':     round(sup_brute / 10000, 2),
+            'sup_reservee':     sup_reservee,
+            'sup_reservee_ha':  round(sup_reservee / 10000, 2),
+            'sup_construct':    sup_construct,
+            'sup_construct_ha': round(sup_construct / 10000, 2),
+            'sup_engagee':      sup_engagee,
+            'sup_engagee_ha':   round(sup_engagee / 10000, 2),
+            'nb_engagees':      nb_engagees,
+            'sup_nette':        sup_nette,
+            'sup_nette_ha':     round(sup_nette / 10000, 2),
+            'sup_requise':      sup_requise,
+            'sup_requise_ha':   round(sup_requise / 10000, 2),
+            'manque':           manque,
+            'manque_ha':        round(manque / 10000, 2),
+            'nb_attente':       nb_attente,
+            'sup_attente':      sup_attente,
+            'sup_attente_ha':   round(sup_attente / 10000, 2),
+            'constructions_engagees': [
+                {
+                    'nom':       c.nom_projet,
+                    'superficie': c.superficie_souhaitee,
+                    'statut':    c.get_statut_display(),
+                    'badge':     c.badge_couleur,
+                }
+                for c in qs_eng
+            ],
+            # Pourcentages pour la barre de progression (base = sup_construct)
+            'pct_engagee': min(100.0, round(sup_engagee / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
+            'pct_nette':   min(100.0, round(sup_nette   / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
+            'pct_requise': min(100.0, round(sup_requise / sup_construct * 100, 1)) if sup_construct > 0 else 100.0,
+        }
+
+        return self.disponible, self.rapport_faisabilite, alternatives, stats
 
     def _proposer_alternatives(self):
         """Cherche des espaces libres avec assez de superficie nette."""
@@ -289,7 +331,7 @@ class NouvelleConstruction(models.Model):
 
     # Alias conservé pour compatibilité
     def analyser_faisabilite(self):
-        disponible, rapport, _ = self.analyser_disponibilite()
+        disponible, rapport, _, _stats = self.analyser_disponibilite()
         return disponible, rapport
 
 
