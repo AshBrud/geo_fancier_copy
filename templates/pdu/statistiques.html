@@ -10,87 +10,104 @@
 
 {% block extra_css %}
 <style>
-/* ===== KPI CARDS ===== */
+/* ── KPI cards ─────────────────────────────────────────────────────── */
 .fon-kpi {
-  background: #fff; border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 18px 20px;
-  display: flex; align-items: center; gap: 16px;
-  transition: all .22s; height: 100%;
+  background:#fff; border-radius:14px; border:1px solid #e2e8f0;
+  padding:18px 20px; display:flex; align-items:center; gap:16px;
+  transition:all .22s; height:100%;
 }
-.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+.fon-kpi:hover { box-shadow:0 6px 20px rgba(0,0,0,.09); transform:translateY(-2px); }
 .fon-kpi-icon {
-  width: 50px; height: 50px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
+  width:50px; height:50px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
 }
-.fon-kpi-val  { font-size: 26px; font-weight: 700; color: #1e293b; line-height: 1; }
-.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; }
-.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 5px; }
+.fon-kpi-val  { font-size:26px; font-weight:700; color:#1e293b; line-height:1; }
+.fon-kpi-lbl  { font-size:12px; color:#64748b; margin-top:3px; }
+.fon-kpi-foot { font-size:10.5px; color:#94a3b8; margin-top:5px; }
 
-/* ===== SECTION LABELS ===== */
+/* ── Section labels ────────────────────────────────────────────────── */
 .stat-section-lbl {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .9px; color: #94a3b8;
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px;
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.9px; color:#94a3b8;
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
 }
-.stat-section-lbl::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+.stat-section-lbl::after { content:''; flex:1; height:1px; background:#f1f5f9; }
 
-/* ===== RÉPARTITION ROWS ===== */
+/* ── Répartition rows ──────────────────────────────────────────────── */
 .rep-row {
-  display: grid;
-  grid-template-columns: 160px 1fr 140px;
-  align-items: center; gap: 14px;
-  padding: 11px 0;
-  border-bottom: 1px solid #f8fafc;
+  display:grid; grid-template-columns:160px 1fr 140px;
+  align-items:center; gap:14px; padding:11px 0;
+  border-bottom:1px solid #f8fafc;
 }
-.rep-row:last-child { border-bottom: none; }
-.rep-type { display: flex; align-items: center; gap: 9px; }
-.rep-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
-.rep-name { font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap; }
-.rep-bar-wrap { background: #f1f5f9; border-radius: 6px; height: 8px; overflow: hidden; }
-.rep-bar { height: 100%; border-radius: 6px; transition: width .7s cubic-bezier(.4,0,.2,1); }
-.rep-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.rep-pct  { font-size: 14px; font-weight: 700; color: #1e293b; }
-.rep-ha   { font-size: 11px; color: #64748b; }
-.rep-cnt  { font-size: 10.5px; color: #94a3b8; }
+.rep-row:last-child { border-bottom:none; }
+.rep-type  { display:flex; align-items:center; gap:9px; }
+.rep-dot   { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+.rep-name  { font-size:13px; font-weight:600; color:#374151; white-space:nowrap; }
+.rep-bar-wrap { background:#f1f5f9; border-radius:6px; height:8px; overflow:hidden; }
+.rep-bar  { height:100%; border-radius:6px; transition:width .7s cubic-bezier(.4,0,.2,1); }
+.rep-stats { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.rep-pct  { font-size:14px; font-weight:700; color:#1e293b; }
+.rep-ha   { font-size:11px; color:#64748b; }
+.rep-cnt  { font-size:10.5px; color:#94a3b8; }
 
-/* ===== CHART LEGEND ===== */
-.chart-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
-.legend-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+/* ── Chart legend ──────────────────────────────────────────────────── */
+.chart-legend { display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+.legend-row   { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.legend-row-left { display:flex; align-items:center; gap:8px; }
+.legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.legend-lbl { font-size:12.5px; color:#374151; font-weight:500; }
+.legend-val { font-size:12px; font-weight:600; color:#1e293b; }
+
+/* ── Capacité tiles ────────────────────────────────────────────────── */
+.cap-tile {
+  border-radius:12px; padding:16px 18px;
+  display:flex; align-items:center; gap:14px;
 }
-.legend-row-left { display: flex; align-items: center; gap: 8px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-.legend-lbl { font-size: 12.5px; color: #374151; font-weight: 500; }
-.legend-val { font-size: 12px; font-weight: 600; color: #1e293b; }
+.cap-tile-icon {
+  width:44px; height:44px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.cap-tile-val  { font-size:22px; font-weight:700; line-height:1; }
+.cap-tile-sub  { font-size:11px; color:#64748b; margin-top:3px; }
+.cap-tile-ha   { font-size:10px; color:#94a3b8; margin-top:2px; }
 
-/* ===== HISTORIQUE ===== */
+/* ── Pipeline items ────────────────────────────────────────────────── */
+.pip-item {
+  border-radius:10px; padding:13px 16px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border:1px solid #e2e8f0;
+}
+.pip-badge {
+  border-radius:20px; padding:3px 10px;
+  font-size:11.5px; font-weight:600; white-space:nowrap;
+}
+.pip-count { font-size:20px; font-weight:700; color:#1e293b; }
+.pip-info  { font-size:11px; color:#64748b; }
+.pip-pct   { font-size:11px; color:#94a3b8; }
+
+/* ── Type bars ─────────────────────────────────────────────────────── */
+.type-bar-row { padding:8px 0; border-bottom:1px solid #f8fafc; }
+.type-bar-row:last-child { border-bottom:none; }
+.type-bar-label { font-size:12.5px; font-weight:600; color:#374151; margin-bottom:4px; display:flex; justify-content:space-between; }
+.type-bar-wrap  { background:#f1f5f9; border-radius:6px; height:7px; overflow:hidden; }
+.type-bar       { height:100%; border-radius:6px; background:linear-gradient(90deg,#1E3A8A,#3b82f6); transition:width .7s; }
+
+/* ── Hist badge ────────────────────────────────────────────────────── */
 .hist-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  border-radius: 20px; padding: 3px 10px;
-  font-size: 11.5px; font-weight: 600;
+  display:inline-flex; align-items:center; gap:5px;
+  border-radius:20px; padding:3px 10px;
+  font-size:11.5px; font-weight:600;
 }
-.hist-construction { background: #eff6ff; color: #1d4ed8; }
-.hist-renovation   { background: #fef3c7; color: #d97706; }
-.hist-extension    { background: #dcfce7; color: #16a34a; }
-.hist-demolition   { background: #fee2e2; color: #dc2626; }
+.hist-construction { background:#eff6ff; color:#1d4ed8; }
+.hist-renovation   { background:#fef3c7; color:#d97706; }
+.hist-extension    { background:#dcfce7; color:#16a34a; }
+.hist-demolition   { background:#fee2e2; color:#dc2626; }
 
-/* ===== TAUX GAUGE ===== */
-.taux-gauge-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 10px; }
-.taux-gauge-canvas { width: 110px; height: 110px; }
-.taux-gauge-label {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center; line-height: 1.2;
-}
-.taux-gauge-val  { font-size: 22px; font-weight: 700; color: #1e293b; }
-.taux-gauge-sub  { font-size: 10px; color: #94a3b8; display: block; }
-
-/* ===== EMPTY STATE ===== */
-.empty-state-sm { padding: 32px 16px; text-align: center; color: #94a3b8; }
-.empty-state-sm i { font-size: 30px; display: block; margin-bottom: 8px; opacity: .4; }
+/* ── Empty state ───────────────────────────────────────────────────── */
+.empty-state-sm { padding:32px 16px; text-align:center; color:#94a3b8; }
+.empty-state-sm i { font-size:30px; display:block; margin-bottom:8px; opacity:.4; }
 </style>
 {% endblock %}
 
@@ -100,81 +117,107 @@
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-bar-chart-line"></i> Statistiques Foncières</h1>
-    <p class="page-description">Indicateurs analytiques sur l'occupation, la répartition et l'évolution du foncier universitaire de l'UAD Bambey.</p>
+    <p class="page-description">Tableau de bord analytique sur l'occupation, la capacité constructible et l'évolution du foncier de l'UAD Bambey.</p>
   </div>
   <a href="{% url 'pdu:aide_pdu' %}" class="btn btn-outline-primary btn-sm">
-    <i class="bi bi-diagram-3 me-1"></i> Aide au PDU
+    <i class="bi bi-diagram-3 me-1"></i>Aide au PDU
   </a>
 </div>
 
-<!-- ===== KPI ROW ===== -->
-<div class="stat-section-lbl">Indicateurs clés</div>
-<div class="row g-3 mb-4">
+<!-- ===== KPI ROW 1 ===== -->
+<div class="stat-section-lbl">Indicateurs clés du campus</div>
+<div class="row g-3 mb-3">
 
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#eff6ff;">
         <i class="bi bi-map-fill" style="color:#1E3A8A;"></i>
       </div>
       <div>
         <div class="fon-kpi-val">{{ total_superficie }}</div>
-        <div class="fon-kpi-lbl">Superficie totale (ha)</div>
-        <div class="fon-kpi-foot">Ensemble du foncier géré</div>
+        <div class="fon-kpi-lbl">Superficie campus (ha)</div>
+        <div class="fon-kpi-foot">550 000 m² UAD</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#dcfce7;">
         <i class="bi bi-grid-3x3-gap-fill" style="color:#16A34A;"></i>
       </div>
       <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_espaces_libres }}</div>
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_libres }}</div>
         <div class="fon-kpi-lbl">Espaces libres</div>
-        <div class="fon-kpi-foot">Sur {{ total_espaces }} espace{{ total_espaces|pluralize }} au total</div>
+        <div class="fon-kpi-foot">{{ nb_occupes }} occupés · {{ nb_reserves }} réservés</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon" style="background:#fef3c7;">
         <i class="bi bi-buildings-fill" style="color:#D97706;"></i>
       </div>
       <div>
-        <div class="fon-kpi-val" style="color:#D97706;">{{ total_batiments }}</div>
-        <div class="fon-kpi-lbl">Bâtiments</div>
-        <div class="fon-kpi-foot">Bâtiments recensés</div>
+        <div class="fon-kpi-val" style="color:#D97706;">{{ batiments_actifs }}</div>
+        <div class="fon-kpi-lbl">Bâtiments actifs</div>
+        <div class="fon-kpi-foot">{{ densite_bat }} bât/ha · {{ total_batiments }} total</div>
       </div>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#cffafe;">
+        <i class="bi bi-rulers" style="color:#0e7490;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#0e7490;">{{ sup_constructible_totale_ha }}</div>
+        <div class="fon-kpi-lbl">Constructible (ha)</div>
+        <div class="fon-kpi-foot">Taux moy. {{ taux_moy_occupation }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl-2">
     <div class="fon-kpi">
       <div class="fon-kpi-icon"
-           style="background:{% if taux_libre > 20 %}#dcfce7{% elif taux_libre > 10 %}#fef3c7{% else %}#fee2e2{% endif %};">
-        <i class="bi bi-percent"
-           style="color:{% if taux_libre > 20 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};"></i>
+           style="background:{% if pct_engagee_nc < 60 %}#dcfce7{% elif pct_engagee_nc < 85 %}#fef3c7{% else %}#fee2e2{% endif %};">
+        <i class="bi bi-check2-circle"
+           style="color:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};"></i>
       </div>
       <div>
         <div class="fon-kpi-val"
-             style="color:{% if taux_libre > 20 %}#16A34A{% elif taux_libre > 10 %}#D97706{% else %}#DC2626{% endif %};">
-          {{ taux_libre }}%
+             style="color:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};">
+          {{ sup_nette_nc|floatformat:0 }} m²
         </div>
-        <div class="fon-kpi-lbl">Taux de terrain libre</div>
-        <div class="fon-kpi-foot">{{ taux_occupe }}% du campus occupé</div>
+        <div class="fon-kpi-lbl">Constructible nette</div>
+        <div class="fon-kpi-foot">{{ pct_engagee_nc }}% déjà engagé</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#ede9fe;">
+        <i class="bi bi-clipboard2-data-fill" style="color:#7c3aed;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#7c3aed;">{{ total_constructions }}</div>
+        <div class="fon-kpi-lbl">Demandes de construction</div>
+        <div class="fon-kpi-foot">Toutes années confondues</div>
       </div>
     </div>
   </div>
 
 </div>
 
-<!-- ===== RÉPARTITION + GRAPHIQUE ===== -->
+<!-- ===== OCCUPATION DU SOL ===== -->
 <div class="stat-section-lbl">Occupation du sol</div>
 <div class="row g-4 mb-4">
 
-  <!-- Répartition par type -->
+  <!-- Répartition -->
   <div class="col-lg-7">
     <div class="card h-100">
       <div class="card-header d-flex align-items-center justify-content-between">
@@ -202,6 +245,19 @@
           </div>
           {% endfor %}
         </div>
+
+        <!-- Résumé libre / occupé -->
+        <div class="mt-3 pt-3 border-top d-flex gap-3 flex-wrap">
+          <div style="font-size:12px; color:#64748b;">
+            <span class="fw-600" style="color:#16a34a;">{{ sup_libre_ha }} ha</span> libres ({{ taux_libre }}%)
+          </div>
+          <div style="font-size:12px; color:#64748b;">
+            <span class="fw-600" style="color:#ef4444;">{{ sup_occupee_ha }} ha</span> occupés ({{ taux_occupe }}%)
+          </div>
+          <div style="font-size:12px; color:#64748b;">
+            <span class="fw-600" style="color:#f59e0b;">{{ sup_reservee_ha }} ha</span> réservés ({{ taux_reserve }}%)
+          </div>
+        </div>
         {% else %}
         <div class="empty-state-sm">
           <i class="bi bi-bar-chart"></i>
@@ -220,7 +276,7 @@
       </div>
       <div class="card-body d-flex flex-column align-items-center justify-content-center">
         {% if stats_enrichis %}
-        <div style="height:220px; width:100%; max-width:260px;">
+        <div style="height:200px; width:100%; max-width:240px;">
           <canvas id="statsChart"></canvas>
         </div>
         <div class="chart-legend w-100 mt-2">
@@ -246,49 +302,227 @@
 
 </div>
 
-<!-- ===== HISTORIQUE TRAVAUX ===== -->
-{% if historique_stats %}
+<!-- ===== CAPACITÉ CONSTRUCTIBLE ===== -->
+<div class="stat-section-lbl">Capacité constructible</div>
+<div class="row g-3 mb-4">
+
+  <div class="col-md-4">
+    <div class="cap-tile" style="background:#eff6ff; border:1px solid #bfdbfe;">
+      <div class="cap-tile-icon" style="background:#1E3A8A;">
+        <i class="bi bi-rulers" style="color:#fff; font-size:18px;"></i>
+      </div>
+      <div>
+        <div class="cap-tile-val" style="color:#1E3A8A;">{{ sup_constructible_totale|floatformat:0 }} m²</div>
+        <div class="cap-tile-sub">Superficie constructible totale</div>
+        <div class="cap-tile-ha">{{ sup_constructible_totale_ha }} ha · taux moy. {{ taux_moy_occupation }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="cap-tile" style="background:#fef3c7; border:1px solid #fde68a;">
+      <div class="cap-tile-icon" style="background:#d97706;">
+        <i class="bi bi-geo-fill" style="color:#fff; font-size:18px;"></i>
+      </div>
+      <div>
+        <div class="cap-tile-val" style="color:#d97706;">{{ sup_engagee_nc|floatformat:0 }} m²</div>
+        <div class="cap-tile-sub">Superficie engagée (constructions)</div>
+        <div class="cap-tile-ha">{{ pct_engagee_nc }}% de la capacité totale</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="cap-tile"
+         style="background:{% if pct_engagee_nc < 60 %}#dcfce7{% elif pct_engagee_nc < 85 %}#fef3c7{% else %}#fee2e2{% endif %};
+                border:1px solid {% if pct_engagee_nc < 60 %}#bbf7d0{% elif pct_engagee_nc < 85 %}#fde68a{% else %}#fecaca{% endif %};">
+      <div class="cap-tile-icon"
+           style="background:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};">
+        <i class="bi bi-check-circle-fill" style="color:#fff; font-size:18px;"></i>
+      </div>
+      <div>
+        <div class="cap-tile-val"
+             style="color:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};">
+          {{ sup_nette_nc|floatformat:0 }} m²
+        </div>
+        <div class="cap-tile-sub">Superficie nette disponible</div>
+        <div class="cap-tile-ha">
+          {% if pct_engagee_nc < 60 %}Bonne capacité résiduelle
+          {% elif pct_engagee_nc < 85 %}Capacité limitée — prioriser
+          {% else %}Capacité quasi-saturée — vigilance{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre de progression constructible -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px; color:#64748b;">
+          <span><strong>Utilisation de la capacité constructible</strong></span>
+          <span>{{ pct_engagee_nc }}% engagé · {{ sup_nette_nc|floatformat:0 }} m² disponibles</span>
+        </div>
+        <div style="height:14px; background:#f1f5f9; border-radius:8px; overflow:hidden;">
+          <div id="capBar"
+               style="width:0%; height:100%; border-radius:8px; transition:width .9s cubic-bezier(.4,0,.2,1);
+                      background:{% if pct_engagee_nc < 60 %}linear-gradient(90deg,#16a34a,#22c55e)
+                                 {% elif pct_engagee_nc < 85 %}linear-gradient(90deg,#d97706,#f59e0b)
+                                 {% else %}linear-gradient(90deg,#dc2626,#ef4444){% endif %};"
+               data-width="{{ pct_engagee_nc }}">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== PIPELINE CONSTRUCTIONS ===== -->
+<div class="stat-section-lbl">Constructions — Pipeline et types</div>
+<div class="row g-4 mb-4">
+
+  <!-- Pipeline par statut -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-kanban me-2 text-primary"></i>Demandes par statut</span>
+        <span class="badge bg-light text-secondary border" style="font-size:11px;">
+          {{ total_constructions }} demande{{ total_constructions|pluralize }}
+        </span>
+      </div>
+      <div class="card-body">
+        {% if pipeline_items %}
+        <div class="d-flex flex-column gap-2">
+          {% for item in pipeline_items %}
+          {% if item.count > 0 %}
+          <div class="pip-item">
+            <div class="d-flex align-items-center gap-10" style="gap:10px;">
+              <span class="pip-badge"
+                    style="background:{{ item.color_bg }}; color:{{ item.color_text }};">
+                {{ item.label }}
+              </span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              <div class="text-end">
+                <div class="pip-count" style="color:{{ item.color_text }};">{{ item.count }}</div>
+                <div class="pip-info">{{ item.pct }}% des demandes</div>
+                {% if item.superficie > 0 %}
+                <div class="pip-pct">{{ item.superficie|floatformat:0 }} m²</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% if not total_constructions %}
+        <div class="empty-state-sm">
+          <i class="bi bi-clipboard2"></i>
+          <p>Aucune demande de construction enregistrée.</p>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Top types de construction -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-list-ol me-2 text-primary"></i>Types de construction les plus demandés
+      </div>
+      <div class="card-body">
+        {% if types_demandes %}
+        <div id="typeRows">
+          {% for t in types_demandes %}
+          <div class="type-bar-row">
+            <div class="type-bar-label">
+              <span>{{ t.type_construction }}</span>
+              <span style="color:#94a3b8; font-weight:400;">{{ t.count }} demande{{ t.count|pluralize }} · {{ t.superficie|floatformat:0 }} m²</span>
+            </div>
+            <div class="type-bar-wrap">
+              <div class="type-bar" data-width="{{ t.pct }}" style="width:0%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-sm">
+          <i class="bi bi-list-task"></i>
+          <p>Aucun type de construction enregistré.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== HISTORIQUE DES TRAVAUX ===== -->
+{% if historique_stats or histo_chart_labels != '[]' %}
 <div class="stat-section-lbl">Historique des travaux</div>
-<div class="card">
-  <div class="card-header d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-clock-history me-2 text-primary"></i>Interventions par année</span>
-    <span class="badge bg-light text-secondary border" style="font-size:11px;">
-      {{ historique_stats|length }} enregistrement{{ historique_stats|length|pluralize }}
-    </span>
+<div class="row g-4 mb-4">
+
+  <!-- Bar chart évolution -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Évolution des interventions par année
+      </div>
+      <div class="card-body">
+        <div style="height:240px;">
+          <canvas id="histoChart"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="table-responsive">
-    <table class="table table-uad mb-0">
-      <thead>
-        <tr>
-          <th>Année</th>
-          <th>Type de travaux</th>
-          <th class="text-center">Nb interventions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for h in historique_stats %}
-        <tr>
-          <td>
-            <span style="font-weight:700; font-size:14px; color:#1e293b;">{{ h.annee }}</span>
-          </td>
-          <td>
-            <span class="hist-badge hist-{{ h.type_travaux }}">
-              {% if h.type_travaux == 'construction' %}<i class="bi bi-hammer me-1"></i>
-              {% elif h.type_travaux == 'renovation' %}<i class="bi bi-tools me-1"></i>
-              {% elif h.type_travaux == 'extension' %}<i class="bi bi-arrows-expand me-1"></i>
-              {% else %}<i class="bi bi-trash me-1"></i>{% endif %}
-              {{ h.label_travaux }}
-            </span>
-          </td>
-          <td class="text-center">
-            <span style="font-size:15px; font-weight:700; color:#1e293b;">{{ h.count }}</span>
-            <span class="text-muted" style="font-size:11px;"> intervention{{ h.count|pluralize }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <!-- Table des interventions -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clock-history me-2 text-primary"></i>Détail des interventions</span>
+        <span class="badge bg-light text-secondary border" style="font-size:11px;">
+          {{ historique_stats|length }} enreg.
+        </span>
+      </div>
+      <div class="table-responsive" style="max-height:280px; overflow-y:auto;">
+        <table class="table table-uad mb-0">
+          <thead>
+            <tr>
+              <th>Année</th>
+              <th>Type</th>
+              <th class="text-center">Nb</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in historique_stats %}
+            <tr>
+              <td><strong style="color:#1e293b;">{{ h.annee }}</strong></td>
+              <td>
+                <span class="hist-badge hist-{{ h.type_travaux }}">
+                  {% if h.type_travaux == 'construction' %}<i class="bi bi-hammer me-1"></i>
+                  {% elif h.type_travaux == 'renovation' %}<i class="bi bi-tools me-1"></i>
+                  {% elif h.type_travaux == 'extension' %}<i class="bi bi-arrows-expand me-1"></i>
+                  {% else %}<i class="bi bi-trash me-1"></i>{% endif %}
+                  {{ h.label_travaux }}
+                </span>
+              </td>
+              <td class="text-center">
+                <strong style="font-size:15px;">{{ h.count }}</strong>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3">Aucun historique disponible.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
+
 </div>
 {% endif %}
 
@@ -297,19 +531,53 @@
 {% block extra_js %}
 <script>
 (function () {
-  /* ---- Barres de répartition animées ---- */
+  /* ---- Barres animées répartition ---- */
   requestAnimationFrame(function () {
-    document.querySelectorAll('.rep-bar[data-width]').forEach(function (el) {
+    document.querySelectorAll('.rep-bar[data-width], .type-bar[data-width]').forEach(function (el) {
       el.style.width = el.dataset.width + '%';
     });
+    var capBar = document.getElementById('capBar');
+    if (capBar) capBar.style.width = capBar.dataset.width + '%';
   });
 
-  /* ---- Donut chart ---- */
+  /* ---- Donut occupation du sol ---- */
   var labels = {{ chart_labels|safe }};
   var data   = {{ chart_data|safe }};
   var colors = {{ chart_colors|safe }};
-  if (labels.length) {
+  if (labels.length && typeof createDonutChart === 'function') {
     createDonutChart('statsChart', labels, data, colors);
+  }
+
+  /* ---- Bar chart historique ---- */
+  var histoLabels = {{ histo_chart_labels|safe }};
+  var histoData   = {{ histo_chart_data|safe }};
+  if (histoLabels.length && document.getElementById('histoChart')) {
+    if (typeof createBarChart === 'function') {
+      createBarChart('histoChart', histoLabels, histoData, '#1E3A8A');
+    } else {
+      /* fallback direct Chart.js */
+      new Chart(document.getElementById('histoChart'), {
+        type: 'bar',
+        data: {
+          labels: histoLabels,
+          datasets: [{
+            label: 'Interventions',
+            data: histoData,
+            backgroundColor: '#3b82f6',
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+            x: { grid: { display: false }, ticks: { color: '#64748b' } }
+          }
+        }
+      });
+    }
   }
 })();
 </script>
