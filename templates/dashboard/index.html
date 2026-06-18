@@ -357,35 +357,35 @@
         <!-- Barre de progression empilée -->
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
           <span style="font-size:12.5px;font-weight:700;color:#334155;">Utilisation de la capacité constructible</span>
-          <span style="font-size:11.5px;color:#94a3b8;">{{ pct_alloue }}% engagé</span>
+          <span style="font-size:11.5px;color:#475569;font-weight:600;">{{ pct_alloue }}% engagé</span>
         </div>
         <div style="height:18px;border-radius:99px;background:#f1f5f9;overflow:hidden;display:flex;">
           <div style="width:{{ pct_terminee }}%;background:#6b7280;" title="Terminée"></div>
           <div style="width:{{ pct_en_cours }}%;background:#0891b2;" title="En cours"></div>
           <div style="width:{{ pct_approuvee }}%;background:#f59e0b;" title="Approuvée"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#94a3b8;margin-top:3px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;font-weight:500;margin-top:5px;">
           <span>0 m²</span>
           <span>{{ sup_constructible_totale|floatformat:0 }} m²</span>
         </div>
 
         <!-- Légende -->
-        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:11.5px;color:#64748b;">
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="width:10px;height:10px;border-radius:3px;background:#6b7280;flex-shrink:0;"></span>
-            Terminée — {{ sup_terminee|floatformat:0 }} m²
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:11.5px;color:#475569;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:#6b7280;flex-shrink:0;display:inline-block;"></span>
+            <span>Terminée — <strong>{{ sup_terminee|floatformat:0 }} m²</strong></span>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="width:10px;height:10px;border-radius:3px;background:#0891b2;flex-shrink:0;"></span>
-            En cours — {{ sup_en_cours|floatformat:0 }} m²
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:#0891b2;flex-shrink:0;display:inline-block;"></span>
+            <span>En cours — <strong>{{ sup_en_cours|floatformat:0 }} m²</strong></span>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;flex-shrink:0;"></span>
-            Approuvée — {{ sup_approuvee|floatformat:0 }} m²
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:#f59e0b;flex-shrink:0;display:inline-block;"></span>
+            <span>Approuvée — <strong>{{ sup_approuvee|floatformat:0 }} m²</strong></span>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="width:10px;height:10px;border-radius:3px;background:#f1f5f9;border:1px solid #e2e8f0;flex-shrink:0;"></span>
-            Disponible — {{ sup_constr_nette|floatformat:0 }} m²
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;border:1.5px solid #16a34a;flex-shrink:0;display:inline-block;"></span>
+            <span>Disponible — <strong style="color:#16a34a;">{{ sup_constr_nette|floatformat:0 }} m²</strong></span>
           </div>
         </div>
 
