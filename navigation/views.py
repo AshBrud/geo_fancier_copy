@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
+import json
 from foncier.models import Batiment, Espace, FonctionBatiment
 
 
@@ -60,6 +61,33 @@ def recherche(request):
 
     nb_resultats = len(batiments) + len(espaces)
 
+    # GeoJSON des résultats pour la carte (uniquement ceux qui ont une géométrie)
+    features = []
+    for b in batiments:
+        if b.geometrie:
+            features.append({
+                'type': 'Feature',
+                'geometry': json.loads(b.geometrie.geojson),
+                'properties': {
+                    'pk': b.pk, 'nom': b.nom, 'code': b.code,
+                    'type': 'batiment',
+                    'detail_url': f'/foncier/batiments/{b.pk}/',
+                },
+            })
+    for e in espaces:
+        if e.geometrie:
+            features.append({
+                'type': 'Feature',
+                'geometry': json.loads(e.geometrie.geojson),
+                'properties': {
+                    'pk': e.pk, 'nom': e.nom, 'code': e.code,
+                    'type': 'espace',
+                    'couleur': e.couleur,
+                    'detail_url': f'/foncier/espaces/{e.pk}/',
+                },
+            })
+    resultats_geojson = json.dumps({'type': 'FeatureCollection', 'features': features})
+
     return render(request, 'navigation/recherche.html', {
         # Paramètres de la requête
         'q':           q,
@@ -76,6 +104,7 @@ def recherche(request):
         'nb_total_batiments': nb_total_batiments,
         'nb_total_espaces':   nb_total_espaces,
         'nb_resultats_total': nb_total_batiments + nb_total_espaces,
+        'resultats_geojson':  resultats_geojson,
         # Données pour les filtres
         'fonctions':    list(FonctionBatiment.objects.order_by('nom')),
         'types_espace': Espace.TYPES,
