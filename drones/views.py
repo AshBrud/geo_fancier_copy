@@ -103,27 +103,88 @@ def _extraire_zone_kml(filepath):
 @login_required
 @domaine_required
 def missions_list(request):
-    statut = request.GET.get('statut', '')
-    q      = request.GET.get('q', '')
-    qs     = MissionDrone.objects.prefetch_related('orthophotos').order_by('-date_mission')
-    if statut:
-        qs = qs.filter(statut=statut)
+    """Hub de données drones — catalogue orthophotos + carte de couverture."""
+    import json as _json
+    from django.db.models import Avg
+
+    q          = request.GET.get('q', '')
+    mission_id = request.GET.get('mission', '')
+
+    # ── Catalogue orthophotos (données primaires) ──
+    qs_orthos = Orthophoto.objects.select_related('mission').order_by('-date_prise')
     if q:
-        qs = qs.filter(
-            Q(nom__icontains=q) | Q(operateur__icontains=q) | Q(drone_utilise__icontains=q)
+        qs_orthos = qs_orthos.filter(
+            Q(nom__icontains=q) | Q(mission__nom__icontains=q)
         )
-    paginator = Paginator(qs, 9)
+    if mission_id:
+        qs_orthos = qs_orthos.filter(mission_id=mission_id)
+
+    paginator = Paginator(qs_orthos, 12)
     page      = paginator.get_page(request.GET.get('page'))
+
+    # ── Statistiques intelligentes ──
+    all_orthos    = Orthophoto.objects.all()
+    res_moyenne   = all_orthos.filter(resolution__isnull=False).aggregate(avg=Avg('resolution'))['avg']
+    nb_georef     = all_orthos.filter(emprise__isnull=False).count()
+
+    # Surface totale couverte (depuis emprises géoréférencées, projection UTM 28N Sénégal)
+    surface_ha = 0.0
+    for ortho in all_orthos.filter(emprise__isnull=False):
+        try:
+            geom_utm = ortho.emprise.transform(32628, clone=True)
+            surface_ha += geom_utm.area / 10000
+        except Exception:
+            pass
+    for mission in MissionDrone.objects.filter(zone_couverte__isnull=False):
+        try:
+            geom_utm = mission.zone_couverte.transform(32628, clone=True)
+            surface_ha += geom_utm.area / 10000
+        except Exception:
+            pass
+
+    # ── GeoJSON carte de couverture ──
+    features = []
+    for ortho in all_orthos.filter(emprise__isnull=False).select_related('mission'):
+        features.append({
+            'type': 'Feature',
+            'geometry': _json.loads(ortho.emprise.geojson),
+            'properties': {
+                'layer_type': 'orthophoto',
+                'nom':        ortho.nom,
+                'mission':    ortho.mission.nom,
+                'date':       str(ortho.date_prise),
+                'resolution': ortho.resolution,
+                'pk':         ortho.pk,
+            },
+        })
+    for mission in MissionDrone.objects.filter(zone_couverte__isnull=False):
+        features.append({
+            'type': 'Feature',
+            'geometry': _json.loads(mission.zone_couverte.geojson),
+            'properties': {
+                'layer_type': 'zone_vol',
+                'nom':        mission.nom,
+                'date':       str(mission.date_mission),
+                'statut':     mission.get_statut_display(),
+                'pk':         mission.pk,
+            },
+        })
+
     return render(request, 'drones/missions_list.html', {
-        'page_obj':          page,
-        'statut_actif':      statut,
-        'q':                 q,
+        'page_obj':        page,
+        'q':               q,
+        'mission_id_actif': mission_id,
+        'missions':        MissionDrone.objects.order_by('-date_mission'),
+        # Stats
+        'total_orthophotos': all_orthos.count(),
         'total_missions':    MissionDrone.objects.count(),
-        'total_orthophotos': Orthophoto.objects.count(),
-        'nb_planifiees':     MissionDrone.objects.filter(statut='planifie').count(),
-        'nb_realisees':      MissionDrone.objects.filter(statut='realise').count(),
-        'nb_traitees':       MissionDrone.objects.filter(statut='traite').count(),
+        'nb_georeferencees': nb_georef,
+        'res_moyenne':       round(res_moyenne, 1) if res_moyenne else None,
+        'surface_ha':        round(surface_ha, 2),
         'nb_avec_tuiles':    MissionDrone.objects.filter(tiles_url__gt='').count(),
+        # Carte
+        'coverage_geojson': _json.dumps({'type': 'FeatureCollection', 'features': features}),
+        'has_geodata':      bool(features),
     })
 
 
