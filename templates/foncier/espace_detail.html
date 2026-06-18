@@ -182,7 +182,7 @@
                   background:{% if niveau == 'danger' %}linear-gradient(90deg,#dc2626,#ef4444)
                              {% elif niveau == 'warning' %}linear-gradient(90deg,#d97706,#f59e0b)
                              {% else %}linear-gradient(90deg,#16a34a,#22c55e){% endif %};"
-           data-width="{{ pct_utilise }}">
+           data-width="{{ pct_utilise|stringformat:'g' }}">
       </div>
     </div>
   </div>

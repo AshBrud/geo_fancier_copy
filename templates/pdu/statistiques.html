@@ -234,7 +234,7 @@
               <span class="rep-name">{{ item.label }}</span>
             </div>
             <div class="rep-bar-wrap">
-              <div class="rep-bar" data-width="{{ item.pourcentage }}"
+              <div class="rep-bar" data-width="{{ item.pourcentage|stringformat:'g' }}"
                    style="width:0%;background:{{ item.couleur }};"></div>
             </div>
             <div class="rep-stats">
@@ -369,7 +369,7 @@
                       background:{% if pct_engagee_nc < 60 %}linear-gradient(90deg,#16a34a,#22c55e)
                                  {% elif pct_engagee_nc < 85 %}linear-gradient(90deg,#d97706,#f59e0b)
                                  {% else %}linear-gradient(90deg,#dc2626,#ef4444){% endif %};"
-               data-width="{{ pct_engagee_nc }}">
+               data-width="{{ pct_engagee_nc|stringformat:'g' }}">
           </div>
         </div>
       </div>
@@ -443,7 +443,7 @@
               <span style="color:#94a3b8; font-weight:400;">{{ t.count }} demande{{ t.count|pluralize }} · {{ t.superficie|floatformat:0 }} m²</span>
             </div>
             <div class="type-bar-wrap">
-              <div class="type-bar" data-width="{{ t.pct }}" style="width:0%;"></div>
+              <div class="type-bar" data-width="{{ t.pct|stringformat:'g' }}" style="width:0%;"></div>
             </div>
           </div>
           {% endfor %}
