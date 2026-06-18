@@ -622,7 +622,7 @@ strong.count { color:#1e293b; font-weight:700; }
       var rlat = parseFloat(this.dataset.lat);
       var rlng = parseFloat(this.dataset.lng);
       if (rlat && rlng) {
-        map.flyTo([rlat, rlng], 19, { duration: 0.8 });
+        map.flyTo([rlat, rlng], 18, { duration: 0.8 });
         L.popup({ maxWidth: 260, closeButton: false })
           .setLatLng([rlat, rlng])
           .setContent(
@@ -648,11 +648,14 @@ strong.count { color:#1e293b; font-weight:700; }
     });
   });
 
-  /* Auto-zoom initial sur les résultats */
-  if (resultBounds.length === 1) {
-    map.setView(resultBounds[0], 19);
-  } else if (resultBounds.length > 1) {
-    try { map.fitBounds(resultBounds, { padding: [50, 50] }); } catch(e) {}
+  /* Auto-zoom initial sur les résultats
+     On utilise fitBounds dans tous les cas pour éviter un zoom trop serré.
+     maxZoom:17 = vue globale du bâtiment/espace, pas zoom salle. */
+  if (resultBounds.length >= 1) {
+    try {
+      var bounds = L.latLngBounds(resultBounds);
+      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 17 });
+    } catch(e) {}
   }
 
   /* ── Autocomplete ──────────────────────────────────────────────── */
