@@ -87,16 +87,15 @@ function initCampusMap(containerId, options) {
     maxZoom: 22
   });
 
-  /* Satellite par défaut — OSM a peu de données pour Bambey/Sénégal */
-  satellite.addTo(map);
+  osm.addTo(map);
 
   // Référence aux fonds de carte pour le panneau custom
   map._baseLayers = { osm: osm, satellite: satellite };
-  map._activeBase = 'satellite';
+  map._activeBase = 'osm';
 
   if (!options.hideLayerControl) {
     L.control.layers(
-      { 'Satellite': satellite, 'Plan (OSM)': osm },
+      { 'Plan (OSM)': osm, 'Satellite': satellite },
       {},
       { position: 'topright', collapsed: true }
     ).addTo(map);

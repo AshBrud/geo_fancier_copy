@@ -597,40 +597,85 @@ strong.count { color:#1e293b; font-weight:700; }
   }
   window.toggleLayer = toggleLayer;
 
-  /* ── Résultats → zoom + highlight ─────────────────────────────── */
-  var selectedItem = null;
-  var resultBounds = [];
+  /* ── Marqueurs résultats ───────────────────────────────────────── */
+  var selectedItem  = null;
+  var resultBounds  = [];
+  var markerByPk    = {};   /* pk → marker Leaflet */
+  var markersGroup  = L.layerGroup().addTo(map);
 
-  /* Préparer lien fiche pour le panel info */
   var DETAIL_URLS = {
     batiment: '/foncier/batiments/',
     espace:   '/foncier/espaces/',
   };
 
+  /* Icône personnalisée selon le type et l'état (normal / sélectionné) */
+  function makeIcon(type, selected) {
+    var bg    = type === 'batiment' ? '#1E3A8A' : '#16A34A';
+    var icon  = type === 'batiment' ? '🏢' : '📐';
+    var size  = selected ? 40 : 32;
+    var ring  = selected ? 'box-shadow:0 0 0 3px #fff,0 0 0 5px ' + bg + ';' : '';
+    return L.divIcon({
+      className: '',
+      html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;' +
+            'background:' + bg + ';display:flex;align-items:center;justify-content:center;' +
+            'font-size:' + (size * 0.45) + 'px;border:2px solid #fff;' + ring + '">' +
+            icon + '</div>',
+      iconSize:   [size, size],
+      iconAnchor: [size / 2, size / 2],
+      popupAnchor:[0, -(size / 2 + 4)],
+    });
+  }
+
   document.querySelectorAll('.srch-item').forEach(function (item) {
-    var lat = parseFloat(item.dataset.lat);
-    var lng = parseFloat(item.dataset.lng);
-    if (lat && lng) resultBounds.push([lat, lng]);
+    var lat  = parseFloat(item.dataset.lat);
+    var lng  = parseFloat(item.dataset.lng);
+    var pk   = item.dataset.pk;
+    var type = item.dataset.type;
+    var nom  = item.dataset.nom;
+
+    if (lat && lng) {
+      resultBounds.push([lat, lng]);
+
+      /* Créer le marqueur et le stocker */
+      var marker = L.marker([lat, lng], { icon: makeIcon(type, false) })
+        .addTo(markersGroup)
+        .bindPopup(
+          '<div style="font-size:13px;font-weight:700;">' + nom + '</div>' +
+          '<div style="font-size:11.5px;color:#64748b;margin-top:3px;">' +
+          (type === 'batiment' ? '🏢 Bâtiment' : '📐 Espace foncier') + '</div>' +
+          '<a href="' + (DETAIL_URLS[type] || '#') + pk + '/" ' +
+          'style="display:inline-block;margin-top:6px;font-size:12px;color:#1E3A8A;font-weight:600;">' +
+          'Voir la fiche →</a>',
+          { maxWidth: 220 }
+        );
+      markerByPk[pk] = marker;
+    }
 
     item.addEventListener('click', function () {
-      /* Highlight */
+      /* Highlight dans la liste */
       if (selectedItem) selectedItem.classList.remove('selected');
       this.classList.add('selected');
       selectedItem = this;
 
-      /* Zoom carte */
       var rlat = parseFloat(this.dataset.lat);
       var rlng = parseFloat(this.dataset.lng);
+      var rpk  = this.dataset.pk;
+
       if (rlat && rlng) {
-        map.flyTo([rlat, rlng], 18, { duration: 0.8 });
-        L.popup({ maxWidth: 260, closeButton: false })
-          .setLatLng([rlat, rlng])
-          .setContent(
-            '<div style="font-size:13px;font-weight:700;padding:4px 0 2px;">' +
-            '<i class="bi bi-geo-alt-fill text-primary me-1"></i>' + this.dataset.nom + '</div>' +
-            '<div style="font-size:11.5px;color:#64748b;">' + this.dataset.type + '</div>'
-          )
-          .openOn(map);
+        /* Réinitialiser tous les marqueurs */
+        Object.keys(markerByPk).forEach(function(k) {
+          markerByPk[k].setIcon(makeIcon(
+            document.querySelector('[data-pk="' + k + '"]').dataset.type,
+            false
+          ));
+        });
+        /* Mettre en surbrillance le marqueur sélectionné */
+        if (markerByPk[rpk]) {
+          markerByPk[rpk].setIcon(makeIcon(this.dataset.type, true));
+          markerByPk[rpk].openPopup();
+        }
+
+        map.flyTo([rlat, rlng], 18, { duration: 0.7 });
       }
 
       /* Panel info bas de carte */
@@ -643,18 +688,19 @@ strong.count { color:#1e293b; font-weight:700; }
         panel.classList.add('show');
       }
 
-      /* Scroll this item into view */
       this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   });
 
-  /* Auto-zoom initial sur les résultats
-     On utilise fitBounds dans tous les cas pour éviter un zoom trop serré.
-     maxZoom:17 = vue globale du bâtiment/espace, pas zoom salle. */
-  if (resultBounds.length >= 1) {
+  /* Auto-zoom initial sur les marqueurs résultats */
+  if (resultBounds.length === 1) {
+    map.setView(resultBounds[0], 17);
+    /* Ouvrir automatiquement le popup du seul résultat */
+    var firstPk = Object.keys(markerByPk)[0];
+    if (firstPk) markerByPk[firstPk].openPopup();
+  } else if (resultBounds.length > 1) {
     try {
-      var bounds = L.latLngBounds(resultBounds);
-      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 17 });
+      map.fitBounds(L.latLngBounds(resultBounds), { padding: [80, 80], maxZoom: 17 });
     } catch(e) {}
   }
 
