@@ -17,7 +17,7 @@ if _osgeo_path.exists():
         sys.path.insert(0, str(_osgeo_path))
 
 env = environ.Env(DEBUG=(bool, True))
-environ.Env.read_env(BASE_DIR / '.env')
+environ.Env.read_env(BASE_DIR / '.env', overwrite=True)
 
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
