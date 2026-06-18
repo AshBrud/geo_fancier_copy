@@ -165,7 +165,7 @@ def espace_detail(request, pk):
         Batiment.objects.filter(geometrie__intersects=espace.geometrie).select_related('fonction')
     ) if espace.geometrie else []
 
-    geom_json = json.dumps(espace.geometrie.geojson) if espace.geometrie else 'null'
+    geom_json = espace.geometrie.geojson if espace.geometrie else 'null'
 
     context = {
         'espace':                espace,
