@@ -581,6 +581,12 @@ strong.count { color:#1e293b; font-weight:700; }
   var map = initCampusMap('result-map');
   var layers = { espaces: null, batiments: null };
 
+  /* Leaflet calcule les dimensions au moment de l'init. Si le conteneur
+     Bootstrap n'a pas encore sa taille finale (col-lg-7 en cours de layout),
+     les tuiles sont décalées → carte floue. On force un recalcul. */
+  setTimeout(function () { map.invalidateSize(); }, 150);
+  window.addEventListener('load', function () { map.invalidateSize(); });
+
   layers.espaces   = loadEspaces(map);
   layers.batiments = loadBatiments(map);
 

@@ -674,6 +674,8 @@
 
   /* ---- Carte ---- */
   var map = initCampusMap('construction-map', { hideLayerControl: false });
+  setTimeout(function () { map.invalidateSize(); }, 150);
+  window.addEventListener('load', function () { map.invalidateSize(); });
   loadEspaces(map);
   loadBatiments(map);
 

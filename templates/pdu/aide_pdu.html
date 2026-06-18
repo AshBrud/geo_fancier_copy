@@ -540,6 +540,8 @@
 (function () {
   /* Carte */
   var map = initCampusMap('pdu-map');
+  setTimeout(function () { map.invalidateSize(); }, 150);
+  window.addEventListener('load', function () { map.invalidateSize(); });
   loadEspaces(map);
   loadBatiments(map);
 
