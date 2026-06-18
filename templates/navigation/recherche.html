@@ -659,7 +659,7 @@ strong.count { color:#1e293b; font-weight:700; }
   initSearchAutocomplete('searchInput', 'searchSuggestions');
 
   /* ── Historique de recherche (localStorage) ────────────────────── */
-  var STORAGE_KEY = 'uad_recent_searches';
+  var STORAGE_KEY = 'uad_recent_searches_{{ request.user.pk }}';
   var MAX_RECENT  = 6;
 
   function getRecent() {
