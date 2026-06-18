@@ -122,8 +122,6 @@
 {% if batiment.geometrie %}
 <script>
   const map = initCampusMap('detail-map', { zoom: 18 });
-  setTimeout(function () { map.invalidateSize(); }, 150);
-  window.addEventListener('load', function () { map.invalidateSize(); });
   const geom = {{ batiment.geometrie.geojson|safe }};
   const layer = L.geoJSON(geom, { style: { color: '#1E3A8A', fillOpacity: 0.6, weight: 2 } }).addTo(map);
   map.fitBounds(layer.getBounds());

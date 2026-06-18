@@ -83,25 +83,36 @@ function initCampusMap(containerId, options) {
 
   const satellite = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri — Source: Esri, USGS, NOAA',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
     maxZoom: 22
   });
 
-  osm.addTo(map);
+  /* Satellite par défaut — OSM a peu de données pour Bambey/Sénégal */
+  satellite.addTo(map);
 
   // Référence aux fonds de carte pour le panneau custom
   map._baseLayers = { osm: osm, satellite: satellite };
-  map._activeBase = 'osm';
+  map._activeBase = 'satellite';
 
   if (!options.hideLayerControl) {
     L.control.layers(
-      { 'Plan (OSM)': osm, 'Satellite': satellite },
+      { 'Satellite': satellite, 'Plan (OSM)': osm },
       {},
       { position: 'topright', collapsed: true }
     ).addTo(map);
   }
 
   L.control.scale({ imperial: false }).addTo(map);
+
+  /* invalidateSize robuste : double requestAnimationFrame + fallback 400ms
+     Corrige le décalage de tuiles quand Leaflet s'init avant que Bootstrap
+     ait calculé la largeur des colonnes (col-lg-X). */
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      map.invalidateSize();
+    });
+  });
+  setTimeout(function () { map.invalidateSize(); }, 400);
 
   return map;
 }

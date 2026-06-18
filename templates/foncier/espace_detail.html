@@ -478,8 +478,6 @@
   /* ── Carte Leaflet ── */
   var geomJson = {{ geom_json|safe }};
   var map = initCampusMap('detailMap');
-  setTimeout(function () { map.invalidateSize(); }, 150);
-  window.addEventListener('load', function () { map.invalidateSize(); });
 
   if (geomJson) {
     var layer = L.geoJSON(geomJson, {
