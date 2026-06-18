@@ -172,9 +172,14 @@
     <h1 class="page-title"><i class="bi bi-airplane"></i> Données Drones</h1>
     <p class="page-description">Gestion des missions de levé par drone et importation des orthophotos traitées via WebODM et QGIS pour l'analyse du campus UAD.</p>
   </div>
-  <a href="{% url 'drones:mission_create' %}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i> Nouvelle mission
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'drones:import_orthophoto' %}" class="btn btn-success">
+      <i class="bi bi-cloud-upload me-1"></i> Importer orthophoto
+    </a>
+    <a href="{% url 'drones:mission_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Nouvelle mission
+    </a>
+  </div>
 </div>
 
 <!-- ===== KPI ===== -->
@@ -367,7 +372,7 @@
       <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-sm btn-primary">
         <i class="bi bi-eye me-1"></i>Détail
       </a>
-      <a href="{% url 'drones:orthophoto_add' mission.pk %}" class="btn btn-sm btn-success">
+      <a href="{% url 'drones:import_orthophoto_mission' mission.pk %}" class="btn btn-sm btn-success">
         <i class="bi bi-cloud-upload me-1"></i>Importer
       </a>
       <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-secondary">

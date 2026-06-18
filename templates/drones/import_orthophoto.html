@@ -1,0 +1,470 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Importer une orthophoto{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
+{% if mission_initiale %}
+<li class="breadcrumb-item">
+  <a href="{% url 'drones:mission_detail' mission_initiale.pk %}">{{ mission_initiale.nom }}</a>
+</li>
+{% endif %}
+<li class="breadcrumb-item active">Importer orthophoto</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Zone de dépôt ── */
+#drop-zone {
+  border: 2.5px dashed #cbd5e1; border-radius: 14px; padding: 40px 24px;
+  text-align: center; cursor: pointer; transition: all .22s; background: #f8fafc;
+  position: relative;
+}
+#drop-zone.drag-over {
+  border-color: #3b82f6; background: #eff6ff;
+  box-shadow: 0 0 0 4px rgba(59,130,246,.12);
+}
+#drop-zone .drop-icon {
+  font-size: 3rem; color: #94a3b8; transition: color .2s;
+}
+#drop-zone.drag-over .drop-icon { color: #3b82f6; }
+#drop-zone .drop-main { font-size: 15px; font-weight: 600; color: #374151; margin: 12px 0 4px; }
+#drop-zone .drop-sub  { font-size: 12.5px; color: #94a3b8; }
+#drop-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+/* ── Prévisualisation fichier ── */
+#file-preview {
+  border: 1.5px solid #e2e8f0; border-radius: 12px;
+  padding: 16px; background: #fff;
+  display: none;
+}
+.preview-row { display: flex; align-items: center; gap: 14px; }
+.preview-thumb {
+  width: 72px; height: 58px; border-radius: 8px; overflow: hidden;
+  background: #f1f5f9; flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center;
+}
+.preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.preview-thumb .preview-tiff { font-size: 1.8rem; color: #1E3A8A; }
+.preview-info strong { font-size: 13.5px; color: #1e293b; }
+.preview-info small  { font-size: 12px; color: #94a3b8; }
+.preview-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 600;
+}
+.pb-geotiff { background: #eff6ff; border: 1px solid #bfdbfe; color: #1E3A8A; }
+.pb-image   { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16A34A; }
+.pb-other   { background: #fef9ec; border: 1px solid #fde68a; color: #D97706; }
+
+/* ── Infobox extraction automatique ── */
+.auto-info {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd; border-radius: 12px;
+  padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start;
+}
+.auto-info-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #0ea5e9; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.auto-info h6  { color: #0c4a6e; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+.auto-info ul  { padding-left: 18px; margin-bottom: 0; color: #0369a1; font-size: 12.5px; }
+.auto-info ul li { margin-bottom: 2px; }
+
+/* ── Workflow ── */
+.workflow { display: flex; gap: 0; margin-bottom: 28px; }
+.wf-step {
+  flex: 1; text-align: center; position: relative;
+  padding: 12px 8px; background: #f8fafc;
+  border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;
+}
+.wf-step:first-child { border-left: 1px solid #e2e8f0; border-radius: 10px 0 0 10px; }
+.wf-step:last-child  { border-right: 1px solid #e2e8f0; border-radius: 0 10px 10px 0; }
+.wf-step:not(:last-child)::after {
+  content: ''; position: absolute; right: -1px; top: 50%;
+  transform: translateY(-50%); width: 12px; height: 24px;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  z-index: 2;
+}
+.wf-step-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #e2e8f0; color: #64748b;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+}
+.wf-step.active .wf-step-num { background: #1E3A8A; color: #fff; }
+.wf-step-lbl { font-size: 11px; color: #64748b; font-weight: 600; }
+.wf-step.active .wf-step-lbl { color: #1E3A8A; }
+
+/* ── Upload progress bar ── */
+#upload-progress { display: none; }
+.progress-bar-anim {
+  height: 6px; border-radius: 6px; background: #e2e8f0; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 6px; background: linear-gradient(90deg, #1E3A8A, #3b82f6);
+  width: 0%; transition: width .4s ease;
+  animation: shimmer 1.2s infinite linear;
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="bi bi-cloud-upload me-2"></i>Importer une orthophoto
+    </h1>
+    <p class="page-description">
+      {% if mission_initiale %}
+        Mission : <strong>{{ mission_initiale.nom }}</strong> —
+      {% endif %}
+      Les métadonnées géographiques sont extraites automatiquement depuis les fichiers GeoTIFF.
+    </p>
+  </div>
+  <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<!-- ── Workflow ── -->
+<div class="workflow mb-4">
+  <div class="wf-step active">
+    <div class="wf-step-num">1</div>
+    <div class="wf-step-lbl">Choisir fichier</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-step-num">2</div>
+    <div class="wf-step-lbl">Métadonnées</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-step-num">3</div>
+    <div class="wf-step-lbl">Extraction auto</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-step-num">4</div>
+    <div class="wf-step-lbl">Chargé</div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Colonne principale : formulaire ── -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-file-earmark-image text-primary me-2"></i>
+        Fichier orthophoto
+      </div>
+      <div class="card-body">
+
+        <form method="post" enctype="multipart/form-data" id="import-form">
+          {% csrf_token %}
+
+          <!-- Mission + Date -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Mission <span class="text-danger">*</span></label>
+              <select name="mission" class="form-select" id="id_mission" required>
+                <option value="">— Sélectionner une mission —</option>
+                {% for m in missions %}
+                <option value="{{ m.pk }}"
+                  {% if mission_initiale and m.pk == mission_initiale.pk %}selected{% endif %}>
+                  {{ m.nom }} — {{ m.date_mission|date:"d/m/Y" }}
+                  ({{ m.get_statut_display }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Date de prise de vue <span class="text-danger">*</span></label>
+              <input type="date" name="date_prise" class="form-control" id="id_date_prise"
+                     value="{{ mission_initiale.date_mission|date:'Y-m-d'|default:'' }}" required>
+            </div>
+          </div>
+
+          <!-- Nom -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nom de l'orthophoto <span class="text-danger">*</span></label>
+            <input type="text" name="nom" class="form-control" id="id_nom"
+                   placeholder="ex. Orthophoto zone Nord — Juin 2026" required>
+          </div>
+
+          <!-- Zone de dépôt -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+              Fichier orthophoto <span class="text-danger">*</span>
+              <span class="badge bg-info text-white fw-normal" style="font-size:10px;">
+                <i class="bi bi-magic me-1"></i>Métadonnées extraites automatiquement si GeoTIFF
+              </span>
+            </label>
+
+            <div id="drop-zone">
+              <input type="file" name="fichier" id="id_fichier_ortho"
+                     accept=".tif,.tiff,.geotiff,.png,.jpg,.jpeg" required>
+              <i class="bi bi-cloud-arrow-up drop-icon"></i>
+              <p class="drop-main">Glissez-déposez votre fichier ici</p>
+              <p class="drop-sub">ou cliquez pour sélectionner</p>
+              <p class="drop-sub mt-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">GeoTIFF</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle me-1">PNG</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">JPEG</span>
+                &nbsp; Max 500 Mo
+              </p>
+            </div>
+
+            <!-- Prévisualisation après sélection -->
+            <div id="file-preview" class="mt-3">
+              <div class="preview-row">
+                <div class="preview-thumb" id="preview-thumb">
+                  <span class="preview-tiff"><i class="bi bi-file-earmark-image"></i></span>
+                </div>
+                <div class="preview-info flex-grow-1">
+                  <strong id="preview-name">—</strong><br>
+                  <small id="preview-size" class="d-block">—</small>
+                  <div class="mt-1" id="preview-type-badge"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="clearFile()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Résolution (optionnel) -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+              Résolution (cm/px)
+              <span class="text-muted small fw-normal">— laissez vide si GeoTIFF (sera extrait automatiquement)</span>
+            </label>
+            <input type="number" name="resolution" class="form-control" id="id_resolution"
+                   min="0" step="0.01" placeholder="Auto depuis GeoTIFF" style="max-width:200px;">
+          </div>
+
+          <!-- Description (optionnel) -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Description <span class="text-muted fw-normal small">(optionnel)</span></label>
+            <textarea name="description" class="form-control" rows="2"
+                      placeholder="Notes sur cette orthophoto…"></textarea>
+          </div>
+
+          <!-- Barre de progression (visible pendant upload) -->
+          <div id="upload-progress" class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <small class="fw-semibold text-muted">Chargement en cours…</small>
+              <small id="upload-pct" class="text-muted">0%</small>
+            </div>
+            <div class="progress-bar-anim">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success px-4" id="submit-btn">
+              <i class="bi bi-cloud-upload me-2"></i>Importer l'orthophoto
+            </button>
+            <a href="{% url 'drones:missions' %}" class="btn btn-light">Annuler</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Colonne latérale : aide ── -->
+  <div class="col-lg-4">
+
+    <!-- Extraction automatique -->
+    <div class="auto-info mb-4">
+      <div class="auto-info-icon">
+        <i class="bi bi-magic"></i>
+      </div>
+      <div>
+        <h6>Extraction automatique GeoTIFF</h6>
+        <ul>
+          <li>Emprise géographique (WGS84)</li>
+          <li>Résolution en cm/pixel</li>
+          <li>Dimensions en pixels</li>
+          <li>Système de projection (CRS)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Formats supportés -->
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-file-earmark me-2"></i>Formats supportés</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+          <span class="small"><i class="bi bi-file-earmark-image text-primary me-2"></i>GeoTIFF (.tif, .tiff)</span>
+          <span class="badge bg-primary">Recommandé</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+          <span class="small"><i class="bi bi-file-image text-success me-2"></i>PNG</span>
+          <span class="badge bg-secondary">Basique</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+          <span class="small"><i class="bi bi-file-image text-warning me-2"></i>JPEG</span>
+          <span class="badge bg-secondary">Basique</span>
+        </li>
+      </ul>
+      <div class="card-body text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        Seuls les fichiers GeoTIFF permettent l'extraction automatique des coordonnées géographiques.
+      </div>
+    </div>
+
+    <!-- Workflow WebODM -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-arrow-repeat me-2"></i>Workflow recommandé</div>
+      <div class="card-body">
+        <ol class="small text-muted ps-3 mb-0" style="line-height:2;">
+          <li>Vol drone et collecte photos</li>
+          <li>Traitement dans <strong class="text-dark">WebODM</strong></li>
+          <li>Export GeoTIFF orthomosaïque</li>
+          <li><strong class="text-success">Importer ici</strong> → extraction auto</li>
+          <li>Renseigner URL tuiles XYZ</li>
+          <li>Visualiser dans Cartographie</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Missions récentes -->
+    {% if missions %}
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-clock-history me-2"></i>Missions récentes</div>
+      <ul class="list-group list-group-flush">
+        {% for m in missions|slice:":5" %}
+        <li class="list-group-item py-2 px-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small">
+              <strong>{{ m.nom|truncatechars:22 }}</strong>
+              <span class="text-muted d-block" style="font-size:11px;">
+                {{ m.date_mission|date:"d/m/Y" }} ·
+                {{ m.orthophotos.count }} ortho{{ m.orthophotos.count|pluralize }}
+              </span>
+            </div>
+            <a href="{% url 'drones:import_orthophoto_mission' m.pk %}"
+               class="btn btn-xs btn-outline-success"
+               style="font-size:11px;padding:2px 8px;"
+               title="Importer pour {{ m.nom }}">
+              <i class="bi bi-cloud-upload"></i>
+            </a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var dropZone  = document.getElementById('drop-zone');
+  var fileInput = document.getElementById('id_fichier_ortho');
+  var preview   = document.getElementById('file-preview');
+  var form      = document.getElementById('import-form');
+  var submitBtn = document.getElementById('submit-btn');
+
+  // Drag & drop
+  ['dragenter', 'dragover'].forEach(function (evt) {
+    dropZone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (evt) {
+    dropZone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+    });
+  });
+  dropZone.addEventListener('drop', function (e) {
+    var files = e.dataTransfer.files;
+    if (files.length) {
+      fileInput.files = files;
+      showPreview(files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', function () {
+    if (this.files.length) showPreview(this.files[0]);
+  });
+
+  function showPreview(file) {
+    var name  = file.name;
+    var size  = (file.size / (1024 * 1024)).toFixed(2) + ' Mo';
+    var ext   = name.split('.').pop().toLowerCase();
+
+    document.getElementById('preview-name').textContent = name;
+    document.getElementById('preview-size').textContent = size;
+
+    var badge = document.getElementById('preview-type-badge');
+    var thumb = document.getElementById('preview-thumb');
+
+    if (ext === 'tif' || ext === 'tiff' || ext === 'geotiff') {
+      badge.innerHTML = '<span class="preview-badge pb-geotiff"><i class="bi bi-magic me-1"></i>GeoTIFF — extraction auto</span>';
+      thumb.innerHTML = '<span class="preview-tiff"><i class="bi bi-file-earmark-image"></i></span>';
+      // Suggérer un nom si vide
+      if (!document.getElementById('id_nom').value) {
+        document.getElementById('id_nom').value = name.replace(/\.[^.]+$/, '');
+      }
+    } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+      badge.innerHTML = '<span class="preview-badge pb-image"><i class="bi bi-image me-1"></i>' + ext.toUpperCase() + '</span>';
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        thumb.innerHTML = '<img src="' + e.target.result + '" alt="preview">';
+      };
+      reader.readAsDataURL(file);
+      if (!document.getElementById('id_nom').value) {
+        document.getElementById('id_nom').value = name.replace(/\.[^.]+$/, '');
+      }
+    } else {
+      badge.innerHTML = '<span class="preview-badge pb-other"><i class="bi bi-file me-1"></i>' + ext.toUpperCase() + '</span>';
+      thumb.innerHTML = '<span class="preview-tiff"><i class="bi bi-file-earmark"></i></span>';
+    }
+
+    preview.style.display = 'block';
+    dropZone.style.border = '2.5px solid #22c55e';
+    dropZone.style.background = '#f0fdf4';
+  }
+
+  window.clearFile = function () {
+    fileInput.value = '';
+    preview.style.display = 'none';
+    dropZone.style.border  = '';
+    dropZone.style.background = '';
+  };
+
+  // Progress bar simulée pendant l'upload
+  form.addEventListener('submit', function () {
+    if (!fileInput.files.length) return;
+    document.getElementById('upload-progress').style.display = 'block';
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Import en cours…';
+
+    var fill = document.getElementById('progress-fill');
+    var pct  = document.getElementById('upload-pct');
+    var n = 0;
+    var iv = setInterval(function () {
+      n = Math.min(n + Math.random() * 8, 90);
+      fill.style.width = n.toFixed(0) + '%';
+      pct.textContent  = n.toFixed(0) + '%';
+    }, 300);
+    window._uploadInterval = iv;
+  });
+})();
+</script>
+{% endblock %}

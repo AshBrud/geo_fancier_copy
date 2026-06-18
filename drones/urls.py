@@ -9,6 +9,9 @@ urlpatterns = [
     path('<int:pk>/', views.mission_detail, name='mission_detail'),
     path('<int:pk>/modifier/', views.mission_update, name='mission_update'),
     path('<int:pk>/supprimer/', views.mission_delete, name='mission_delete'),
-    path('<int:mission_pk>/orthophoto/ajouter/', views.orthophoto_add, name='orthophoto_add'),
+    # Import orthophoto — global ou rattaché à une mission
+    path('import-orthophoto/', views.import_orthophoto, name='import_orthophoto'),
+    path('<int:mission_pk>/import-orthophoto/', views.import_orthophoto, name='import_orthophoto_mission'),
+    # Suppression orthophoto
     path('orthophoto/<int:pk>/supprimer/', views.orthophoto_delete, name='orthophoto_delete'),
 ]

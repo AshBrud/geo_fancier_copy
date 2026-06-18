@@ -3,33 +3,127 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+import os
 from .models import MissionDrone, Orthophoto
-from .forms import MissionDroneForm, OrthophotoForm
+from .forms import MissionDroneForm, OrthophotoImportForm
 from accounts.decorators import domaine_required
 
+
+# ── Extraction automatique depuis GeoTIFF (GDAL) ──────────────────────────────
+
+def _extraire_metadata_geotiff(filepath):
+    """Extrait emprise, résolution, dimensions et CRS depuis un GeoTIFF."""
+    try:
+        from osgeo import gdal, osr
+        from django.contrib.gis.geos import Polygon, LinearRing
+
+        ds = gdal.Open(filepath)
+        if ds is None:
+            return {}
+
+        gt     = ds.GetGeoTransform()
+        width  = ds.RasterXSize
+        height = ds.RasterYSize
+
+        # Coins de l'image dans le CRS source
+        minx = gt[0]
+        maxy = gt[3]
+        maxx = minx + width  * gt[1]
+        miny = maxy + height * gt[5]
+
+        # Résolution en cm/pixel (pixel X en unités CRS)
+        res_x = abs(gt[1])
+
+        # Reprojection en WGS84 (EPSG:4326) si nécessaire
+        src_srs = osr.SpatialReference()
+        src_srs.ImportFromWkt(ds.GetProjection())
+        tgt_srs = osr.SpatialReference()
+        tgt_srs.ImportFromEPSG(4326)
+
+        if src_srs.IsGeographic():
+            # Déjà en degrés
+            emprise = Polygon.from_bbox((minx, miny, maxx, maxy))
+            res_cm  = res_x * 111320 * 100  # degrés → m → cm (approx)
+        else:
+            transform = osr.CoordinateTransformation(src_srs, tgt_srs)
+            corners = [
+                transform.TransformPoint(minx, miny),
+                transform.TransformPoint(maxx, miny),
+                transform.TransformPoint(maxx, maxy),
+                transform.TransformPoint(minx, maxy),
+                transform.TransformPoint(minx, miny),
+            ]
+            ring    = LinearRing([(c[1], c[0]) for c in corners])
+            emprise = Polygon(ring, srid=4326)
+            res_cm  = res_x * 100  # mètres → cm
+
+        proj_desc = ''
+        if src_srs.GetAttrValue('PROJCS'):
+            proj_desc = src_srs.GetAttrValue('PROJCS')
+        elif src_srs.GetAttrValue('GEOGCS'):
+            proj_desc = src_srs.GetAttrValue('GEOGCS')
+
+        ds = None
+        return {
+            'emprise':      emprise,
+            'resolution':   round(res_cm, 4),
+            'largeur_px':   width,
+            'hauteur_px':   height,
+            'systeme_proj': proj_desc[:200],
+        }
+    except Exception:
+        return {}
+
+
+# ── Extraction de zone depuis KML/KMZ/GPX (GDAL/OGR) ─────────────────────────
+
+def _extraire_zone_kml(filepath):
+    """Retourne le premier polygone trouvé dans un fichier KML/KMZ/GPX."""
+    try:
+        from django.contrib.gis.gdal import DataSource
+        from django.contrib.gis.geos import GEOSGeometry
+
+        ds = DataSource(filepath)
+        for layer in ds:
+            for feature in layer:
+                geom = feature.geom
+                wkt  = geom.wkt
+                geos = GEOSGeometry(wkt, srid=4326)
+                if geos.geom_type == 'Polygon':
+                    return geos
+                if geos.geom_type == 'MultiPolygon':
+                    return geos[0]
+        return None
+    except Exception:
+        return None
+
+
+# ── Vues missions ─────────────────────────────────────────────────────────────
 
 @login_required
 @domaine_required
 def missions_list(request):
     statut = request.GET.get('statut', '')
-    q = request.GET.get('q', '')
-    qs = MissionDrone.objects.prefetch_related('orthophotos').order_by('-date_mission')
+    q      = request.GET.get('q', '')
+    qs     = MissionDrone.objects.prefetch_related('orthophotos').order_by('-date_mission')
     if statut:
         qs = qs.filter(statut=statut)
     if q:
-        qs = qs.filter(Q(nom__icontains=q) | Q(operateur__icontains=q) | Q(drone_utilise__icontains=q))
+        qs = qs.filter(
+            Q(nom__icontains=q) | Q(operateur__icontains=q) | Q(drone_utilise__icontains=q)
+        )
     paginator = Paginator(qs, 9)
-    page = paginator.get_page(request.GET.get('page'))
+    page      = paginator.get_page(request.GET.get('page'))
     return render(request, 'drones/missions_list.html', {
-        'page_obj': page,
-        'statut_actif': statut,
-        'q': q,
-        'total_missions': MissionDrone.objects.count(),
+        'page_obj':          page,
+        'statut_actif':      statut,
+        'q':                 q,
+        'total_missions':    MissionDrone.objects.count(),
         'total_orthophotos': Orthophoto.objects.count(),
-        'nb_planifiees': MissionDrone.objects.filter(statut='planifie').count(),
-        'nb_realisees': MissionDrone.objects.filter(statut='realise').count(),
-        'nb_traitees': MissionDrone.objects.filter(statut='traite').count(),
-        'nb_avec_tuiles': MissionDrone.objects.filter(tiles_url__gt='').count(),
+        'nb_planifiees':     MissionDrone.objects.filter(statut='planifie').count(),
+        'nb_realisees':      MissionDrone.objects.filter(statut='realise').count(),
+        'nb_traitees':       MissionDrone.objects.filter(statut='traite').count(),
+        'nb_avec_tuiles':    MissionDrone.objects.filter(tiles_url__gt='').count(),
     })
 
 
@@ -43,9 +137,19 @@ def mission_detail(request, pk):
 @login_required
 @domaine_required
 def mission_create(request):
-    form = MissionDroneForm(request.POST or None)
+    form = MissionDroneForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
-        mission = form.save()
+        mission = form.save(commit=False)
+        # Import automatique zone_couverte depuis KML/KMZ/GPX
+        if mission.fichier_kml:
+            mission.save()  # sauvegarder d'abord pour avoir le chemin
+            zone = _extraire_zone_kml(mission.fichier_kml.path)
+            if zone:
+                mission.zone_couverte = zone
+                mission.save(update_fields=['zone_couverte'])
+                messages.info(request, 'Zone couverte extraite automatiquement depuis le fichier.')
+        else:
+            mission.save()
         messages.success(request, f'Mission « {mission.nom} » créée.')
         return redirect('drones:missions')
     return render(request, 'drones/mission_form.html', {'form': form, 'action': 'Nouvelle mission'})
@@ -55,9 +159,18 @@ def mission_create(request):
 @domaine_required
 def mission_update(request, pk):
     mission = get_object_or_404(MissionDrone, pk=pk)
-    form = MissionDroneForm(request.POST or None, instance=mission)
+    form    = MissionDroneForm(request.POST or None, request.FILES or None, instance=mission)
     if request.method == 'POST' and form.is_valid():
-        form.save()
+        mission = form.save(commit=False)
+        if mission.fichier_kml:
+            mission.save()
+            zone = _extraire_zone_kml(mission.fichier_kml.path)
+            if zone:
+                mission.zone_couverte = zone
+                mission.save(update_fields=['zone_couverte'])
+                messages.info(request, 'Zone couverte mise à jour depuis le fichier.')
+        else:
+            mission.save()
         messages.success(request, f'Mission « {mission.nom} » modifiée.')
         return redirect('drones:missions')
     return render(request, 'drones/mission_form.html', {
@@ -77,18 +190,66 @@ def mission_delete(request, pk):
     return render(request, 'drones/confirm_delete.html', {'obj': mission})
 
 
+# ── Import orthophoto ─────────────────────────────────────────────────────────
+
 @login_required
 @domaine_required
-def orthophoto_add(request, mission_pk):
-    mission = get_object_or_404(MissionDrone, pk=mission_pk)
-    form = OrthophotoForm(request.POST or None, request.FILES or None,
-                          initial={'mission': mission})
+def import_orthophoto(request, mission_pk=None):
+    """Import d'une orthophoto avec extraction automatique des métadonnées GeoTIFF."""
+    mission_initiale = get_object_or_404(MissionDrone, pk=mission_pk) if mission_pk else None
+    missions         = MissionDrone.objects.order_by('-date_mission')
+
+    form = OrthophotoImportForm(
+        request.POST or None,
+        request.FILES or None,
+        initial={'mission': mission_initiale},
+    )
+
     if request.method == 'POST' and form.is_valid():
-        ortho = form.save()
-        messages.success(request, f'Orthophoto « {ortho.nom} » ajoutée.')
-        return redirect('drones:missions')
-    return render(request, 'drones/orthophoto_form.html', {
-        'form': form, 'mission': mission
+        ortho = form.save(commit=False)
+
+        # Sauvegarder d'abord pour avoir le chemin physique du fichier
+        ortho.save()
+
+        ext = os.path.splitext(ortho.fichier.name)[1].lower()
+        if ext in ('.tif', '.tiff', '.geotiff'):
+            meta = _extraire_metadata_geotiff(ortho.fichier.path)
+            if meta:
+                if meta.get('emprise') and not ortho.emprise:
+                    ortho.emprise = meta['emprise']
+                if meta.get('resolution') and not ortho.resolution:
+                    ortho.resolution = meta['resolution']
+                ortho.largeur_px   = meta.get('largeur_px')
+                ortho.hauteur_px   = meta.get('hauteur_px')
+                ortho.systeme_proj = meta.get('systeme_proj', '')
+                ortho.save()
+                messages.success(
+                    request,
+                    f'Orthophoto « {ortho.nom} » importée avec extraction automatique des métadonnées '
+                    f'({ortho.largeur_px}×{ortho.hauteur_px}px, {ortho.resolution} cm/px).'
+                )
+            else:
+                messages.warning(
+                    request,
+                    f'Orthophoto « {ortho.nom} » importée. Métadonnées géographiques non détectées '
+                    f'(fichier non géoréférencé).'
+                )
+        else:
+            messages.success(request, f'Orthophoto « {ortho.nom} » importée.')
+
+        # Passer la mission au statut "traitée" automatiquement si ce n'est pas déjà le cas
+        mission = ortho.mission
+        if mission.statut == MissionDrone.STATUT_REALISE:
+            mission.statut = MissionDrone.STATUT_TRAITE
+            mission.save(update_fields=['statut'])
+            messages.info(request, f'Mission « {mission.nom} » passée automatiquement au statut Traitée.')
+
+        return redirect('drones:mission_detail', pk=ortho.mission.pk)
+
+    return render(request, 'drones/import_orthophoto.html', {
+        'form':             form,
+        'mission_initiale': mission_initiale,
+        'missions':         missions,
     })
 
 
@@ -100,5 +261,5 @@ def orthophoto_delete(request, pk):
         mission_pk = ortho.mission.pk
         ortho.delete()
         messages.success(request, 'Orthophoto supprimée.')
-        return redirect('drones:missions')
+        return redirect('drones:mission_detail', pk=mission_pk)
     return render(request, 'drones/confirm_delete.html', {'obj': ortho})

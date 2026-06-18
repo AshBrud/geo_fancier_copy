@@ -27,6 +27,11 @@ class MissionDrone(models.Model):
         verbose_name='URL tuiles XYZ (WebODM)',
         help_text='Format : /static/tiles/mission/{z}/{x}/{y}.png ou URL WebODM'
     )
+    fichier_kml = models.FileField(
+        upload_to='missions/kml/', blank=True, null=True,
+        verbose_name='Fichier KML/KMZ/GPX',
+        help_text='Importer automatiquement la zone couverte depuis un fichier KML, KMZ ou GPX'
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -44,10 +49,13 @@ class Orthophoto(models.Model):
         related_name='orthophotos', verbose_name='Mission'
     )
     nom = models.CharField(max_length=200, verbose_name='Nom')
-    fichier = models.ImageField(upload_to='orthophotos/', verbose_name='Fichier image')
+    fichier = models.FileField(upload_to='orthophotos/', verbose_name='Fichier (GeoTIFF, PNG, JPEG)')
     date_prise = models.DateField(verbose_name='Date de prise de vue')
     resolution = models.FloatField(blank=True, null=True, verbose_name='Résolution (cm/px)')
     emprise = models.PolygonField(srid=4326, blank=True, null=True, verbose_name='Emprise géographique')
+    systeme_proj = models.CharField(max_length=200, blank=True, verbose_name='Système de projection')
+    largeur_px = models.IntegerField(blank=True, null=True, verbose_name='Largeur (px)')
+    hauteur_px = models.IntegerField(blank=True, null=True, verbose_name='Hauteur (px)')
     description = models.TextField(blank=True)
     date_ajout = models.DateTimeField(auto_now_add=True)
 
