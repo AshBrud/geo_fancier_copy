@@ -25,12 +25,12 @@ def login_view(request):
         )
         return redirect('dashboard:index')
     from foncier.models import Espace, Batiment
-    from drones.models import MissionDrone
+    from drones.models import Orthophoto
     return render(request, 'accounts/login.html', {
         'form': form,
         'nb_espaces': Espace.objects.count(),
         'nb_batiments': Batiment.objects.count(),
-        'nb_missions': MissionDrone.objects.count(),
+        'nb_orthophotos': Orthophoto.objects.count(),
     })
 
 
