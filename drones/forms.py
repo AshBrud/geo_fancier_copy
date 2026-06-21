@@ -7,9 +7,8 @@ from .models import Orthophoto
 class OrthophotoImportForm(forms.ModelForm):
     class Meta:
         model  = Orthophoto
-        fields = ['nom', 'fichier', 'date_prise', 'operateur', 'resolution', 'emprise', 'tiles_url', 'description']
+        fields = ['nom', 'fichier', 'operateur', 'resolution', 'emprise', 'tiles_url', 'description']
         widgets = {
-            'date_prise':  forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 2}),
             'fichier':     forms.FileInput(attrs={
                 'accept': '.tif,.tiff,.geotiff,.png,.jpg,.jpeg',
@@ -34,8 +33,8 @@ class OrthophotoImportForm(forms.ModelForm):
         self.fields['tiles_url'].required   = False
         self.helper = FormHelper()
         self.helper.layout = Layout(
-            Row(Column('nom', css_class='col-md-8'), Column('date_prise', css_class='col-md-4')),
-            Row(Column('operateur', css_class='col-md-6'), Column('resolution', css_class='col-md-6')),
+            Row(Column('nom', css_class='col-md-8'), Column('operateur', css_class='col-md-4')),
+            Row(Column('resolution', css_class='col-md-6')),
             'fichier',
             'emprise',
             'tiles_url',
