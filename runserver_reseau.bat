@@ -3,11 +3,14 @@ echo ============================================
 echo   GeoFoncier UAD - Demarrage reseau
 echo ============================================
 echo.
-echo Recuperation de l'adresse IP Wi-Fi...
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "Wi-Fi" /a ^| findstr "IPv4"') do set IP=%%a
-set IP=%IP: =%
 
-echo.
+:: Recuperation de l'adresse IP via PowerShell
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -like '*Wi-Fi*' -or $_.InterfaceAlias -like '*WiFi*' -or $_.InterfaceAlias -like '*WLAN*' } | Select-Object -First 1).IPAddress"`) do set IP=%%a
+
+if "%IP%"=="" (
+    for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*' } | Select-Object -First 1).IPAddress"`) do set IP=%%a
+)
+
 echo  Votre adresse IP : %IP%
 echo.
 echo  Acces depuis ce PC      : http://localhost:8000
