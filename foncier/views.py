@@ -14,17 +14,17 @@ from accounts.decorators import foncier_required, domaine_required
 
 @login_required
 def cartographie(request):
-    from drones.models import MissionDrone
-    missions = list(
-        MissionDrone.objects.filter(tiles_url__gt='')
-        .values('id', 'nom', 'date_mission', 'tiles_url', 'statut')
-        .order_by('-date_mission')
+    from drones.models import Orthophoto
+    orthos = list(
+        Orthophoto.objects.filter(tiles_url__gt='')
+        .values('id', 'nom', 'date_prise', 'tiles_url', 'operateur')
+        .order_by('-date_prise')
     )
-    for m in missions:
-        m['date_mission'] = m['date_mission'].strftime('%d/%m/%Y') if m['date_mission'] else ''
+    for o in orthos:
+        o['date_mission'] = o['date_prise'].strftime('%d/%m/%Y') if o['date_prise'] else ''
     return render(request, 'cartographie/map.html', {
-        'orthophotos_json': json.dumps(missions, ensure_ascii=False),
-        'nb_orthophotos': len(missions),
+        'orthophotos_json': json.dumps(orthos, ensure_ascii=False, default=str),
+        'nb_orthophotos': len(orthos),
         'total_espaces': Espace.objects.count(),
         'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
         'total_batiments': Batiment.objects.filter(est_actif=True).count(),
