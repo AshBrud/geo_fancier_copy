@@ -94,7 +94,6 @@ class Batiment(models.Model):
     superficie = models.FloatField(blank=True, null=True, verbose_name='Superficie (m²)')
     etages = models.PositiveIntegerField(default=1, verbose_name='Nombre d\'étages')
     annee_construction = models.IntegerField(blank=True, null=True, verbose_name='Année de construction')
-    capacite = models.IntegerField(blank=True, null=True, verbose_name='Capacité (personnes)')
     description = models.TextField(blank=True, verbose_name='Description')
     photo = models.ImageField(upload_to='batiments/', blank=True, null=True, verbose_name='Photo')
     est_actif = models.BooleanField(default=True, verbose_name='Actif')

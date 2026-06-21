@@ -80,14 +80,13 @@ class BatimentForm(forms.ModelForm):
     class Meta:
         model = Batiment
         fields = ['nom', 'code', 'fonction', 'etages', 'annee_construction',
-                  'capacite', 'description', 'photo', 'est_actif', 'geometrie']
+                  'description', 'photo', 'est_actif', 'geometrie']
         labels = {
             'nom': 'Nom du bâtiment',
             'code': 'Code unique',
             'fonction': 'Fonction principale',
             'etages': "Nombre d'étages",
             'annee_construction': 'Année de construction',
-            'capacite': 'Capacité (personnes)',
             'description': 'Description',
             'photo': 'Photo',
             'est_actif': 'Bâtiment actif',
@@ -98,7 +97,6 @@ class BatimentForm(forms.ModelForm):
             'fonction': forms.Select(attrs={'class': 'form-select'}),
             'etages': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 20}),
             'annee_construction': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex : 2015'}),
-            'capacite': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex : 300'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'photo': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'est_actif': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

@@ -23,5 +23,5 @@ class BatimentSerializer(GeoFeatureModelSerializer):
         model = Batiment
         geo_field = 'geometrie'
         fields = ['id', 'nom', 'code', 'fonction', 'fonction_nom', 'superficie',
-                  'superficie_ha', 'etages', 'annee_construction', 'capacite',
+                  'superficie_ha', 'etages', 'annee_construction',
                   'description', 'photo', 'est_actif']
