@@ -38,9 +38,12 @@ class EspaceForm(forms.ModelForm):
             'usage': 'Usage actuel',
         }
         widgets = {
+            'nom':  forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Zone pédagogique Nord'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : ESP-001'}),
+            'usage': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Amphithéâtres, salles de cours...'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'taux_occupation': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': 1, 'max': 100, 'step': 1,
+                'class': 'form-control', 'min': 1, 'max': 100, 'step': 1,
             }),
         }
 
