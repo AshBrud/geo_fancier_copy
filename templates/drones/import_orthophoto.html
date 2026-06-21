@@ -3,11 +3,6 @@
 {% block title %}Importer une orthophoto{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
-{% if mission_initiale %}
-<li class="breadcrumb-item">
-  <a href="{% url 'drones:mission_detail' mission_initiale.pk %}">{{ mission_initiale.nom }}</a>
-</li>
-{% endif %}
 <li class="breadcrumb-item active">Importer orthophoto</li>
 {% endblock %}
 

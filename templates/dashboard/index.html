@@ -283,12 +283,10 @@
       <div class="kpi-pro-icon" style="background:#ecfeff;color:#0891b2;">
         <i class="bi bi-camera-video-fill"></i>
       </div>
-      <div class="kpi-pro-val">{{ total_missions }}</div>
-      <div class="kpi-pro-lbl">Missions drone</div>
+      <div class="kpi-pro-val">{{ total_orthophotos }}</div>
+      <div class="kpi-pro-lbl">Orthophotos</div>
       <div class="kpi-pro-foot">
-        <i class="bi bi-check2-circle text-success"></i>{{ missions_traitees }} traitée{{ missions_traitees|pluralize }}
-        &nbsp;·&nbsp;
-        <i class="bi bi-clock text-info"></i>{{ missions_planifiees }} planifiée{{ missions_planifiees|pluralize }}
+        <i class="bi bi-geo-alt-fill text-success"></i>Données drones
       </div>
     </div>
   </div>
@@ -518,8 +516,8 @@
                 <i class="bi bi-camera-video"></i>
               </div>
               <div>
-                <div class="mini-stat-val">{{ missions_traitees }}</div>
-                <div class="mini-stat-lbl">Missions traitées</div>
+                <div class="mini-stat-val">{{ total_orthophotos }}</div>
+                <div class="mini-stat-lbl">Orthophotos</div>
               </div>
             </div>
           </div>
@@ -605,18 +603,18 @@
 
       <div class="act-grp">
         <div class="act-chip bg-info-subtle text-info border border-info-subtle">
-          <i class="bi bi-airplane-fill"></i> Missions de drone
+          <i class="bi bi-images"></i> Orthophotos récentes
         </div>
-        {% if missions_recentes %}
-          {% for m in missions_recentes %}
+        {% if orthophotos_recentes %}
+          {% for o in orthophotos_recentes %}
           <div class="act-line">
-            <i class="bi bi-airplane text-info flex-shrink-0" style="font-size:13px;opacity:.7;"></i>
-            <span class="act-line-txt">{{ m.nom }}</span>
-            <small class="text-muted flex-shrink-0">{{ m.date_mission|date:"d/m/Y"|default:"—" }}</small>
+            <i class="bi bi-image text-info flex-shrink-0" style="font-size:13px;opacity:.7;"></i>
+            <span class="act-line-txt">{{ o.nom }}</span>
+            <small class="text-muted flex-shrink-0">{{ o.date_prise|date:"d/m/Y"|default:"—" }}</small>
           </div>
           {% endfor %}
         {% else %}
-          <p class="text-muted small mb-0">Aucune mission récente</p>
+          <p class="text-muted small mb-0">Aucune orthophoto récente</p>
         {% endif %}
       </div>
 

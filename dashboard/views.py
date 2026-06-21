@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
 from foncier.models import Espace, Batiment, SUPERFICIE_CAMPUS_M2
-from drones.models import MissionDrone, Orthophoto
+from drones.models import Orthophoto
 from constructions.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
 import json
@@ -21,12 +21,10 @@ def index(request):
     taux_occupation = round((superficie_occupee / superficie_totale * 100) if superficie_totale else 0, 1)
 
     total_batiments = Batiment.objects.filter(est_actif=True).count()
-    total_missions  = MissionDrone.objects.count()
+    total_orthophotos = Orthophoto.objects.count()
     total_constructions = NouvelleConstruction.objects.count()
 
     nb_espaces_libres  = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count()
-    missions_traitees  = MissionDrone.objects.filter(statut='traite').count()
-    missions_planifiees = MissionDrone.objects.filter(statut='planifie').count()
     constructions_attente  = NouvelleConstruction.objects.filter(statut='attente').count()
     constructions_approuvees = NouvelleConstruction.objects.filter(statut='approuvee').count()
 
@@ -92,7 +90,7 @@ def index(request):
 
     # Résumé d'activités pour les utilisateurs non-admin
     batiments_recents = Batiment.objects.order_by('-date_ajout')[:4]
-    missions_recentes = MissionDrone.objects.order_by('-date_creation')[:4]
+    orthophotos_recentes = Orthophoto.objects.order_by('-date_ajout')[:4]
     constructions_recentes = NouvelleConstruction.objects.select_related(
         'demandeur').order_by('-date_demande')[:5]
 
@@ -103,7 +101,7 @@ def index(request):
         'superficie_reservee': round(superficie_reservee / 10000, 2),
         'taux_occupation': taux_occupation,
         'total_batiments': total_batiments,
-        'total_missions': total_missions,
+        'total_orthophotos': total_orthophotos,
         'total_constructions': total_constructions,
         'total_espaces': Espace.objects.count(),
         'chart_labels': json.dumps(chart_names),
@@ -113,11 +111,9 @@ def index(request):
         'evol_data': json.dumps(evol_data),
         'activites': activites,
         'batiments_recents': batiments_recents,
-        'missions_recentes': missions_recentes,
+        'orthophotos_recentes': orthophotos_recentes,
         'constructions_recentes': constructions_recentes,
         'nb_espaces_libres': nb_espaces_libres,
-        'missions_traitees': missions_traitees,
-        'missions_planifiees': missions_planifiees,
         'constructions_attente': constructions_attente,
         'constructions_approuvees': constructions_approuvees,
         # Capacité constructible
