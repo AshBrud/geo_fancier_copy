@@ -4,8 +4,8 @@ from django.contrib.gis.measure import A
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-# Superficie officielle du campus UAD Bambey (55 ha)
-SUPERFICIE_CAMPUS_M2 = 550000
+# Superficie officielle du campus UAD Bambey (52 ha)
+SUPERFICIE_CAMPUS_M2 = 520000
 
 
 class Espace(models.Model):

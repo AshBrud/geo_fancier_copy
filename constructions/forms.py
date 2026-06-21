@@ -32,9 +32,9 @@ class NouvelleConstructionForm(forms.ModelForm):
             return superficie
         if superficie <= 0:
             raise forms.ValidationError("La superficie souhaitée doit être supérieure à 0 m².")
-        if superficie > 550000:
+        if superficie > 520000:
             raise forms.ValidationError(
-                "La superficie souhaitée ne peut pas dépasser 550 000 m² (55 ha, superficie du campus UAD)."
+                "La superficie souhaitée ne peut pas dépasser 520 000 m² (52 ha, superficie du campus UAD)."
             )
         return superficie
 
