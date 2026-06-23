@@ -172,13 +172,43 @@ class NouvelleConstruction(models.Model):
         """
         alternatives = Espace.objects.none()
 
-        # Vérification de la superficie souhaitée
         sup_requise = self.superficie_souhaitee or 0
+
+        def _stats_vides(sup_brute=0, espaces_info=None):
+            """Stats minimales pour que le template affiche toujours les valeurs."""
+            return {
+                'espaces':            espaces_info or [],
+                'taux_moyen':         0,
+                'sup_brute':          sup_brute,
+                'sup_brute_ha':       round(sup_brute / 10000, 2),
+                'sup_reservee':       0,
+                'sup_reservee_ha':    0,
+                'sup_construct':      0,
+                'sup_construct_ha':   0,
+                'sup_engagee':        0,
+                'sup_engagee_ha':     0,
+                'nb_engagees':        0,
+                'sup_nette':          0,
+                'sup_nette_ha':       0,
+                'sup_requise':        sup_requise,
+                'sup_requise_ha':     round(sup_requise / 10000, 2),
+                'manque':             sup_requise,
+                'manque_ha':          round(sup_requise / 10000, 2),
+                'nb_attente':         0,
+                'sup_attente':        0,
+                'sup_attente_ha':     0,
+                'constructions_engagees': [],
+                'pct_engagee':        0,
+                'pct_nette':          0,
+                'pct_requise':        100,
+            }
+
+        # Vérification de la superficie souhaitée
         if sup_requise <= 0:
             self.disponible = False
             self.rapport_faisabilite = "Erreur : la superficie souhaitée doit être supérieure à 0."
             self.save()
-            return False, self.rapport_faisabilite, alternatives, {}
+            return False, self.rapport_faisabilite, alternatives, _stats_vides()
 
         # ---- Chemin 1 : espace sélectionné depuis la liste ----
         if self.espace_souhaitee_id and self.espace_souhaitee:
@@ -195,7 +225,11 @@ class NouvelleConstruction(models.Model):
                 self.zones_alternatives = ''
                 alternatives = self._proposer_alternatives()
                 self.save()
-                return False, self.rapport_faisabilite, alternatives, {}
+                return False, self.rapport_faisabilite, alternatives, _stats_vides(
+                    sup_brute=espace_obj.superficie or 0,
+                    espaces_info=[{'nom': espace_obj.nom, 'code': espace_obj.code,
+                                   'taux': espace_obj.taux_occupation}],
+                )
 
             espaces = [espace_obj]
 
@@ -210,7 +244,7 @@ class NouvelleConstruction(models.Model):
             self.disponible = False
             self.rapport_faisabilite = "Aucune zone dessinée sur la carte."
             self.save()
-            return False, self.rapport_faisabilite, alternatives, {}
+            return False, self.rapport_faisabilite, alternatives, _stats_vides()
 
         if not espaces:
             self.disponible = False
@@ -222,7 +256,7 @@ class NouvelleConstruction(models.Model):
             self.zones_alternatives = ''
             alternatives = self._proposer_alternatives()
             self.save()
-            return False, self.rapport_faisabilite, alternatives, {}
+            return False, self.rapport_faisabilite, alternatives, _stats_vides()
 
         sup_brute    = sum(e.superficie or 0 for e in espaces)
         noms_espaces = ', '.join(
