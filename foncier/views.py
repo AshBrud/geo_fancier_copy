@@ -345,5 +345,6 @@ def suivi_travaux_update(request, pk):
     return render(request, 'foncier/suivi_travaux_form.html', {
         'form': form,
         'suivi': suivi,
+        'statuts': SuiviTravaux.STATUTS,
         'utilisateurs': CustomUser.objects.filter(is_active=True).order_by('last_name', 'first_name'),
     })

@@ -75,8 +75,8 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">Statut des travaux</label>
             <select name="statut" class="form-select">
-              {% for s_key, s_label in form.fields.statut.choices %}
-              <option value="{{ s_key }}" {% if form.instance.statut == s_key %}selected{% endif %}>
+              {% for s_key, s_label in statuts %}
+              <option value="{{ s_key }}" {% if suivi.statut == s_key %}selected{% endif %}>
                 {{ s_label }}
               </option>
               {% endfor %}
