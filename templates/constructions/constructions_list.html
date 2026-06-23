@@ -65,11 +65,11 @@
           <td>
             {% if c.statut == 'rejetee' %}
               <span class="text-muted small"><i class="bi bi-lock me-1"></i>Rejetée</span>
-            {% elif c.disponible == False and c.statut == 'attente' %}
+            {% elif c.disponible == False and c.statut == 'en_cours' %}
               <form method="post" action="{% url 'constructions:update_statut' c.pk %}" class="d-inline">
                 {% csrf_token %}
                 <select name="statut" onchange="this.form.submit()" class="form-select form-select-sm border-danger" style="width:auto" title="Zone non disponible — approbation impossible">
-                  <option value="attente" {% if c.statut == 'attente' %}selected{% endif %}>En attente</option>
+                  <option value="en_cours" {% if c.statut == 'en_cours' %}selected{% endif %}>En cours</option>
                   <option value="rejetee">Rejetée</option>
                 </select>
               </form>

@@ -4,26 +4,20 @@ from foncier.models import Batiment, Espace
 
 
 class NouvelleConstruction(models.Model):
-    STATUT_ATTENTE = 'attente'
+    STATUT_EN_COURS = 'en_cours'
     STATUT_APPROUVE = 'approuvee'
     STATUT_REJETE = 'rejetee'
-    STATUT_EN_COURS = 'en_cours'
-    STATUT_TERMINE = 'terminee'
 
     STATUTS = [
-        (STATUT_ATTENTE, 'En attente'),
+        (STATUT_EN_COURS, 'En cours'),
         (STATUT_APPROUVE, 'Approuvée'),
         (STATUT_REJETE, 'Rejetée'),
-        (STATUT_EN_COURS, 'En cours'),
-        (STATUT_TERMINE, 'Terminée'),
     ]
 
     BADGE_COULEURS = {
-        STATUT_ATTENTE: 'warning',
+        STATUT_EN_COURS: 'info',
         STATUT_APPROUVE: 'success',
         STATUT_REJETE: 'danger',
-        STATUT_EN_COURS: 'info',
-        STATUT_TERMINE: 'secondary',
     }
 
     nom_projet = models.CharField(max_length=200, verbose_name='Nom du projet')
@@ -39,7 +33,7 @@ class NouvelleConstruction(models.Model):
         related_name='constructions_demandees',
     )
     disponible = models.BooleanField(null=True, blank=True, verbose_name='Zone disponible')
-    statut = models.CharField(max_length=20, choices=STATUTS, default=STATUT_ATTENTE)
+    statut = models.CharField(max_length=20, choices=STATUTS, default=STATUT_EN_COURS)
     rapport_faisabilite = models.TextField(blank=True, verbose_name='Rapport de faisabilité')
     zones_alternatives = models.TextField(blank=True, verbose_name='Zones alternatives proposées')
     demandeur = models.ForeignKey(
@@ -62,7 +56,7 @@ class NouvelleConstruction(models.Model):
         return self.BADGE_COULEURS.get(self.statut, 'secondary')
 
     # Statuts qui engagent réellement de la superficie (espace "pris")
-    STATUTS_ENGAGES = ['approuvee', 'en_cours', 'terminee']
+    STATUTS_ENGAGES = ['approuvee', 'en_cours']
 
     # Taux d'occupation maximum : fraction de l'espace libre effectivement
     # constructible (voiries, espaces verts, parkings, réseaux déduits)

@@ -7,8 +7,8 @@ from foncier.models import Espace
 # Statuts qui réduisent la superficie affichée comme disponible (engagement formel)
 _STATUTS_ENGAGES = NouvelleConstruction.STATUTS_ENGAGES
 
-# Statuts qui occupent physiquement l'espace (travaux démarrés ou terminés)
-_STATUTS_EFFECTIFS = [NouvelleConstruction.STATUT_EN_COURS, NouvelleConstruction.STATUT_TERMINE]
+# Statuts qui occupent physiquement l'espace (en cours ou approuvés)
+_STATUTS_EFFECTIFS = [NouvelleConstruction.STATUT_EN_COURS, NouvelleConstruction.STATUT_APPROUVE]
 
 
 @receiver(pre_save, sender=NouvelleConstruction)
