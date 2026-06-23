@@ -58,6 +58,15 @@ def construction_post_save(sender, instance, created, **kwargs):
             ).values_list('pk', flat=True)
         )
 
+    # Création automatique du suivi dès qu'une construction est approuvée
+    if (nouveau == NouvelleConstruction.STATUT_APPROUVE
+            and ancien != NouvelleConstruction.STATUT_APPROUVE):
+        from foncier.models import SuiviTravaux
+        SuiviTravaux.objects.get_or_create(
+            construction=instance,
+            defaults={'maitre_ouvrage': instance.demandeur},
+        )
+
     for espace in Espace.objects.filter(pk__in=espaces_pks):
         _recalculer_espace(espace)
 

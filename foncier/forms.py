@@ -3,7 +3,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Field, ButtonHolder, Button
 from django.contrib.gis.forms import GeometryField as GeoFormField
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
-from .models import Espace, Batiment, FonctionBatiment
+from .models import Espace, Batiment, FonctionBatiment, SuiviTravaux
 
 GEO_WIDGET_ATTRS = {
     'class': 'form-control geom-input',
@@ -123,3 +123,16 @@ class BatimentForm(forms.ModelForm):
         if geom is None:
             raise forms.ValidationError("Veuillez dessiner la géométrie sur la carte.")
         return _to_multipolygon(geom)
+
+
+class SuiviTravauxForm(forms.ModelForm):
+    class Meta:
+        model = SuiviTravaux
+        fields = ['maitre_ouvrage', 'statut', 'date_debut', 'date_fin_prevue', 'observations']
+        widgets = {
+            'maitre_ouvrage': forms.Select(attrs={'class': 'form-select'}),
+            'statut': forms.Select(attrs={'class': 'form-select'}),
+            'date_debut': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date_fin_prevue': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'observations': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }

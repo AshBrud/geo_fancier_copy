@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}Modifier le suivi — {{ suivi.construction.nom_projet }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'foncier:suivi_travaux' %}">Suivi des travaux</a></li>
+<li class="breadcrumb-item active">{{ suivi.construction.nom_projet }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-pencil-square"></i> Modifier le suivi</h1>
+    <p class="page-description">{{ suivi.construction.nom_projet }}</p>
+  </div>
+  <a href="{% url 'foncier:suivi_travaux' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Récapitulatif de la demande -->
+    <div class="card mb-4" style="border-left:4px solid #0891b2;">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-building-add text-info"></i>
+          <span class="fw-semibold" style="font-size:13px;color:#334155;">Demande de construction associée</span>
+        </div>
+        <div class="row g-2" style="font-size:13px;">
+          <div class="col-6">
+            <span class="text-muted">Projet :</span>
+            <strong class="ms-1">{{ suivi.construction.nom_projet }}</strong>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Type :</span>
+            <span class="ms-1">{{ suivi.construction.type_construction }}</span>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Superficie :</span>
+            <span class="ms-1">{{ suivi.construction.superficie_souhaitee|floatformat:0 }} m²</span>
+          </div>
+          <div class="col-6">
+            <span class="text-muted">Demandeur :</span>
+            <span class="ms-1">
+              {% if suivi.construction.demandeur %}
+                {{ suivi.construction.demandeur.get_full_name|default:suivi.construction.demandeur.username }}
+              {% else %}—{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire suivi -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Informations de suivi</h6>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Maître d'ouvrage</label>
+            <select name="maitre_ouvrage" class="form-select">
+              <option value="">— Sélectionner un utilisateur —</option>
+              {% for u in utilisateurs %}
+              <option value="{{ u.pk }}" {% if suivi.maitre_ouvrage_id == u.pk %}selected{% endif %}>
+                {{ u.get_full_name|default:u.username }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Statut des travaux</label>
+            <select name="statut" class="form-select">
+              {% for s_key, s_label in form.fields.statut.choices %}
+              <option value="{{ s_key }}" {% if form.instance.statut == s_key %}selected{% endif %}>
+                {{ s_label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date de début</label>
+              <input type="date" name="date_debut" class="form-control"
+                     value="{{ suivi.date_debut|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date de fin prévue</label>
+              <input type="date" name="date_fin_prevue" class="form-control"
+                     value="{{ suivi.date_fin_prevue|date:'Y-m-d'|default:'' }}">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Observations</label>
+            <textarea name="observations" class="form-control" rows="3"
+                      placeholder="Notes sur l'avancement, les difficultés rencontrées...">{{ suivi.observations }}</textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>Enregistrer
+            </button>
+            <a href="{% url 'foncier:suivi_travaux' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

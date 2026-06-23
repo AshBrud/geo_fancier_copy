@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}Suivi des travaux{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Suivi des travaux</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-clipboard2-check"></i> Suivi des travaux</h1>
+    <p class="page-description">Suivi de l'avancement des projets de construction approuvés sur le campus.</p>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="width:44px;height:44px;border-radius:12px;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#64748b;">
+          <i class="bi bi-list-check"></i>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ total }}</div>
+          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Total projets</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="width:44px;height:44px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#6b7280;">
+          <i class="bi bi-hourglass"></i>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_non_demarre }}</div>
+          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Non démarrés</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="width:44px;height:44px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#0891b2;">
+          <i class="bi bi-arrow-repeat"></i>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_en_cours }}</div>
+          <div style="font-size:11.5px;color:#64748b;font-weight:500;">En cours</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="width:44px;height:44px;border-radius:12px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#16a34a;">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_termine }}</div>
+          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Terminés</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Nom du projet..." value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="statut" class="form-select form-select-sm">
+          <option value="">Tous les statuts</option>
+          {% for s_key, s_label in statuts %}
+          <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+        <a href="{% url 'foncier:suivi_travaux' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr>
+          <th>Nom du projet</th>
+          <th>Type</th>
+          <th>Maître d'ouvrage</th>
+          <th>Superficie</th>
+          <th>Statut travaux</th>
+          <th>Date début</th>
+          <th>Date fin prévue</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in page_obj %}
+        <tr>
+          <td class="fw-semibold">{{ s.construction.nom_projet }}</td>
+          <td class="text-muted small">{{ s.construction.type_construction }}</td>
+          <td>
+            {% if s.maitre_ouvrage %}
+              {{ s.maitre_ouvrage.get_full_name|default:s.maitre_ouvrage.username }}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ s.construction.superficie_souhaitee|floatformat:0 }} m²</td>
+          <td>
+            <span class="badge bg-{{ s.badge_couleur }}">{{ s.get_statut_display }}</span>
+          </td>
+          <td class="text-muted small">{{ s.date_debut|date:"d/m/Y"|default:"—" }}</td>
+          <td class="text-muted small">{{ s.date_fin_prevue|date:"d/m/Y"|default:"—" }}</td>
+          <td>
+            <a href="{% url 'foncier:suivi_travaux_update' s.pk %}"
+               class="btn btn-sm btn-outline-primary" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="bi bi-clipboard2-x fs-2 d-block mb-2"></i>
+            Aucun suivi de travaux enregistré — les projets approuvés apparaîtront ici automatiquement.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.previous_page_number }}&statut={{ statut }}&q={{ q }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+      <a class="page-link" href="?page={{ num }}&statut={{ statut }}&q={{ q }}">{{ num }}</a>
+    </li>
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.next_page_number }}&statut={{ statut }}&q={{ q }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

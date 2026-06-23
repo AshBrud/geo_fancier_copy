@@ -15,4 +15,6 @@ urlpatterns = [
     path('batiments/ajouter/', views.batiment_create, name='batiment_create'),
     path('batiments/<int:pk>/modifier/', views.batiment_update, name='batiment_update'),
     path('batiments/<int:pk>/supprimer/', views.batiment_delete, name='batiment_delete'),
+    path('suivi-travaux/', views.suivi_travaux_list, name='suivi_travaux'),
+    path('suivi-travaux/<int:pk>/modifier/', views.suivi_travaux_update, name='suivi_travaux_update'),
 ]

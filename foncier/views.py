@@ -5,8 +5,9 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
 import json
-from .models import Espace, Batiment, FonctionBatiment, SUPERFICIE_CAMPUS_M2
-from .forms import EspaceForm, BatimentForm
+from .models import Espace, Batiment, FonctionBatiment, SuiviTravaux, SUPERFICIE_CAMPUS_M2
+from .forms import EspaceForm, BatimentForm, SuiviTravauxForm
+from accounts.models import CustomUser
 from accounts.decorators import foncier_required, domaine_required
 
 
@@ -293,4 +294,56 @@ def batiment_delete(request, pk):
         return redirect('foncier:batiments')
     return render(request, 'foncier/confirm_delete.html', {
         'obj': bat, 'type': 'le bâtiment', 'back_url': 'foncier:batiments'
+    })
+
+
+# --- Suivi des travaux ---
+
+@login_required
+@foncier_required
+def suivi_travaux_list(request):
+    qs = SuiviTravaux.objects.select_related(
+        'construction', 'construction__demandeur', 'maitre_ouvrage'
+    ).all()
+    statut = request.GET.get('statut', '')
+    q = request.GET.get('q', '')
+    if statut:
+        qs = qs.filter(statut=statut)
+    if q:
+        qs = qs.filter(construction__nom_projet__icontains=q)
+
+    nb_non_demarre = SuiviTravaux.objects.filter(statut=SuiviTravaux.STATUT_NON_DEMARRE).count()
+    nb_en_cours    = SuiviTravaux.objects.filter(statut=SuiviTravaux.STATUT_EN_COURS).count()
+    nb_termine     = SuiviTravaux.objects.filter(statut=SuiviTravaux.STATUT_TERMINE).count()
+
+    paginator = Paginator(qs, 15)
+    page = paginator.get_page(request.GET.get('page'))
+    return render(request, 'foncier/suivi_travaux_list.html', {
+        'page_obj': page,
+        'statut': statut,
+        'q': q,
+        'statuts': SuiviTravaux.STATUTS,
+        'nb_non_demarre': nb_non_demarre,
+        'nb_en_cours': nb_en_cours,
+        'nb_termine': nb_termine,
+        'total': SuiviTravaux.objects.count(),
+    })
+
+
+@login_required
+@foncier_required
+def suivi_travaux_update(request, pk):
+    suivi = get_object_or_404(SuiviTravaux, pk=pk)
+    if request.method == 'POST':
+        form = SuiviTravauxForm(request.POST, instance=suivi)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Suivi de « {suivi.construction.nom_projet} » mis à jour.')
+            return redirect('foncier:suivi_travaux')
+    else:
+        form = SuiviTravauxForm(instance=suivi)
+    return render(request, 'foncier/suivi_travaux_form.html', {
+        'form': form,
+        'suivi': suivi,
+        'utilisateurs': CustomUser.objects.filter(is_active=True).order_by('last_name', 'first_name'),
     })

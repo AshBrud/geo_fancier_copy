@@ -42,6 +42,9 @@
     <a href="{% url 'foncier:batiments' %}" class="nav-link {% if 'batiments' in request.path %}active{% endif %}">
       <i class="bi bi-building"></i><span>Bâtiments</span>
     </a>
+    <a href="{% url 'foncier:suivi_travaux' %}" class="nav-link {% if 'suivi-travaux' in request.path %}active{% endif %}">
+      <i class="bi bi-clipboard2-check"></i><span>Suivi des travaux</span>
+    </a>
 
     {% if user.is_domaine_foncier %}
     <div class="nav-section-label mt-2">Données & Analyses</div>
