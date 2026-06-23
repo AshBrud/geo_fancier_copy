@@ -146,7 +146,7 @@ def espace_detail(request, pk):
         return pks
 
     pks_eng = _pks(NC.STATUTS_ENGAGES)
-    pks_att = _pks([NC.STATUT_ATTENTE])
+    pks_att = _pks([NC.STATUT_EN_COURS])
     pks_all = _pks([s for s, _ in NC.STATUTS])
 
     qs_eng = NC.objects.filter(pk__in=pks_eng).select_related('demandeur').order_by('-date_demande')
