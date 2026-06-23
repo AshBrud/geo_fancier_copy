@@ -47,7 +47,7 @@ def aide_pdu(request):
         sup_constructible = sup_brute * (espace.taux_occupation / 100)
 
         pks_eng  = _pks_constructions_espace(espace, NouvelleConstruction.STATUTS_ENGAGES)
-        pks_att  = _pks_constructions_espace(espace, [NouvelleConstruction.STATUT_ATTENTE])
+        pks_att  = _pks_constructions_espace(espace, [NouvelleConstruction.STATUT_EN_COURS])
         sup_eng  = _sup(pks_eng)
         sup_att  = _sup(pks_att)
         sup_nette = max(0.0, sup_constructible - sup_eng)
@@ -95,15 +95,15 @@ def aide_pdu(request):
         return NouvelleConstruction.objects.filter(statut=statut).aggregate(
             t=Sum('superficie_souhaitee'))['t'] or 0.0
 
-    nb_attente    = _nb(NouvelleConstruction.STATUT_ATTENTE)
+    nb_attente    = _nb(NouvelleConstruction.STATUT_EN_COURS)
     nb_approuvees = _nb(NouvelleConstruction.STATUT_APPROUVE)
     nb_en_cours   = _nb(NouvelleConstruction.STATUT_EN_COURS)
-    nb_terminees  = _nb(NouvelleConstruction.STATUT_TERMINE)
+    nb_terminees  = 0  # statut supprimé
 
-    sup_att_global  = _sup_statut(NouvelleConstruction.STATUT_ATTENTE)
+    sup_att_global  = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
     sup_app_global  = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
     sup_enc_global  = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
-    sup_ter_global  = _sup_statut(NouvelleConstruction.STATUT_TERMINE)
+    sup_ter_global  = 0.0  # statut supprimé
 
     # ── 3. Scénario : si toutes les demandes en attente approuvées ────────
     sup_scenario      = sup_engagee_totale + sup_att_global
@@ -413,10 +413,8 @@ def statistiques(request):
     total_constructions = NC.objects.count()
 
     _COULEURS_STATUT = {
-        'attente':   ('#7c3aed', '#ede9fe'),
-        'approuvee': ('#15803d', '#dcfce7'),
         'en_cours':  ('#0e7490', '#cffafe'),
-        'terminee':  ('#374151', '#f3f4f6'),
+        'approuvee': ('#15803d', '#dcfce7'),
         'rejetee':   ('#991b1b', '#fee2e2'),
     }
     pipeline_items = []
