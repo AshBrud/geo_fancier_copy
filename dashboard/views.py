@@ -25,7 +25,7 @@ def index(request):
     total_constructions = NouvelleConstruction.objects.count()
 
     nb_espaces_libres  = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count()
-    constructions_attente  = NouvelleConstruction.objects.filter(statut='attente').count()
+    constructions_en_cours   = NouvelleConstruction.objects.filter(statut='en_cours').count()
     constructions_approuvees = NouvelleConstruction.objects.filter(statut='approuvee').count()
 
     # ── Bilan de la capacité constructible de l'université ──
@@ -44,8 +44,7 @@ def index(request):
 
     sup_approuvee  = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
     sup_en_cours   = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
-    sup_terminee   = _sup_statut(NouvelleConstruction.STATUT_TERMINE)
-    sup_allouee    = sup_approuvee + sup_en_cours + sup_terminee
+    sup_allouee    = sup_approuvee + sup_en_cours
     sup_constr_nette = max(0.0, sup_constructible_totale - sup_allouee)
 
     def _pct(val, total):
@@ -54,7 +53,6 @@ def index(request):
     pct_alloue    = _pct(sup_allouee,   sup_constructible_totale)
     pct_approuvee = _pct(sup_approuvee, sup_constructible_totale)
     pct_en_cours  = _pct(sup_en_cours,  sup_constructible_totale)
-    pct_terminee  = _pct(sup_terminee,  sup_constructible_totale)
     nb_engagees   = NouvelleConstruction.objects.filter(
         statut__in=NouvelleConstruction.STATUTS_ENGAGES
     ).count()
@@ -114,7 +112,7 @@ def index(request):
         'orthophotos_recentes': orthophotos_recentes,
         'constructions_recentes': constructions_recentes,
         'nb_espaces_libres': nb_espaces_libres,
-        'constructions_attente': constructions_attente,
+        'constructions_en_cours': constructions_en_cours,
         'constructions_approuvees': constructions_approuvees,
         # Capacité constructible
         'sup_constructible_totale':    round(sup_constructible_totale),
@@ -123,13 +121,11 @@ def index(request):
         'sup_allouee_ha': round(sup_allouee / 10000, 2),
         'sup_approuvee':  round(sup_approuvee),
         'sup_en_cours':   round(sup_en_cours),
-        'sup_terminee':   round(sup_terminee),
         'sup_constr_nette':    round(sup_constr_nette),
         'sup_constr_nette_ha': round(sup_constr_nette / 10000, 2),
         'pct_alloue':    pct_alloue,
         'pct_approuvee': pct_approuvee,
         'pct_en_cours':  pct_en_cours,
-        'pct_terminee':  pct_terminee,
         'nb_engagees':   nb_engagees,
     }
     return render(request, 'dashboard/index.html', context)

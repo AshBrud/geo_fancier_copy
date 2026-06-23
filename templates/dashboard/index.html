@@ -358,7 +358,6 @@
           <span style="font-size:11.5px;color:#475569;font-weight:600;">{{ pct_alloue }}% engagé</span>
         </div>
         <div style="height:18px;border-radius:99px;background:#f1f5f9;overflow:hidden;display:flex;">
-          <div style="width:{{ pct_terminee|stringformat:'g' }}%;background:#6b7280;" title="Terminée"></div>
           <div style="width:{{ pct_en_cours|stringformat:'g' }}%;background:#0891b2;" title="En cours"></div>
           <div style="width:{{ pct_approuvee|stringformat:'g' }}%;background:#f59e0b;" title="Approuvée"></div>
         </div>
@@ -369,10 +368,6 @@
 
         <!-- Légende -->
         <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:11.5px;color:#475569;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="width:12px;height:12px;border-radius:3px;background:#6b7280;flex-shrink:0;display:inline-block;"></span>
-            <span>Terminée — <strong>{{ sup_terminee|floatformat:0 }} m²</strong></span>
-          </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="width:12px;height:12px;border-radius:3px;background:#0891b2;flex-shrink:0;display:inline-block;"></span>
             <span>En cours — <strong>{{ sup_en_cours|floatformat:0 }} m²</strong></span>
@@ -479,12 +474,12 @@
         <div class="row g-2">
           <div class="col-6">
             <div class="mini-stat-box">
-              <div class="mini-stat-ico" style="background:#fff7ed;color:#c2410c;">
-                <i class="bi bi-hourglass-split"></i>
+              <div class="mini-stat-ico" style="background:#eff6ff;color:#0891b2;">
+                <i class="bi bi-arrow-repeat"></i>
               </div>
               <div>
-                <div class="mini-stat-val">{{ constructions_attente }}</div>
-                <div class="mini-stat-lbl">En attente</div>
+                <div class="mini-stat-val">{{ constructions_en_cours }}</div>
+                <div class="mini-stat-lbl">En cours</div>
               </div>
             </div>
           </div>
