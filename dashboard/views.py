@@ -14,10 +14,10 @@ def index(request):
     superficie_totale = SUPERFICIE_CAMPUS_M2  # superficie officielle campus UAD
     superficie_occupee = Espace.objects.filter(
         type_espace=Espace.TYPE_OCCUPE).aggregate(t=Sum('superficie'))['t'] or 0
-    superficie_libre = Espace.objects.filter(
-        type_espace=Espace.TYPE_LIBRE).aggregate(t=Sum('superficie'))['t'] or 0
     superficie_reservee = Espace.objects.filter(
         type_espace=Espace.TYPE_RESERVE).aggregate(t=Sum('superficie'))['t'] or 0
+    # Superficie libre = superficie totale officielle − superficie réellement utilisée
+    superficie_libre = max(0, superficie_totale - superficie_occupee)
     taux_occupation = round((superficie_occupee / superficie_totale * 100) if superficie_totale else 0, 1)
 
     total_batiments = Batiment.objects.filter(est_actif=True).count()
