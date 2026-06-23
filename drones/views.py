@@ -111,6 +111,7 @@ def orthophotos_list(request):
                 'resolution': ortho.resolution,
                 'operateur':  ortho.operateur,
                 'pk':         ortho.pk,
+                'layer_type': 'orthophoto',
             },
         })
 

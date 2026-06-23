@@ -67,7 +67,7 @@ class NouvelleConstruction(models.Model):
     # ------------------------------------------------------------------ #
 
     def _qs_engagees(self, zone):
-        """Constructions approuvées/en cours/terminées qui intersectent une zone."""
+        """Constructions approuvées/en cours qui intersectent une zone."""
         qs = NouvelleConstruction.objects.filter(
             statut__in=self.STATUTS_ENGAGES,
             zone_souhaitee__intersects=zone,

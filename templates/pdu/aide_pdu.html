@@ -431,19 +431,8 @@
             <span style="font-size:13px;color:#374151;">En cours</span>
           </div>
           <div class="text-end">
-            <strong style="color:#0891b2;">{{ nb_en_cours }}</strong>
-            <div style="font-size:10.5px;color:#94a3b8;">{{ sup_enc_global|floatformat:0 }} m²</div>
-          </div>
-        </div>
-
-        <div class="pipe-row">
-          <div class="d-flex align-items-center gap-2">
-            <span class="pipe-dot" style="background:#6b7280;"></span>
-            <span style="font-size:13px;color:#374151;">Terminées</span>
-          </div>
-          <div class="text-end">
-            <strong style="color:#374151;">{{ nb_terminees }}</strong>
-            <div style="font-size:10.5px;color:#94a3b8;">{{ sup_ter_global|floatformat:0 }} m²</div>
+            <strong style="color:#0891b2;">{{ nb_attente }}</strong>
+            <div style="font-size:10.5px;color:#94a3b8;">{{ sup_att_global|floatformat:0 }} m²</div>
           </div>
         </div>
 
@@ -453,8 +442,7 @@
             Superficie engagée / constructible totale
           </div>
           <div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden;display:flex;">
-            <div style="width:{% widthratio sup_ter_global sup_constructible_totale 100 %}%;background:#6b7280;" title="Terminée"></div>
-            <div style="width:{% widthratio sup_enc_global sup_constructible_totale 100 %}%;background:#0891b2;" title="En cours"></div>
+            <div style="width:{% widthratio sup_att_global sup_constructible_totale 100 %}%;background:#0891b2;" title="En cours"></div>
             <div style="width:{% widthratio sup_app_global sup_constructible_totale 100 %}%;background:#22c55e;" title="Approuvée"></div>
           </div>
           <div style="font-size:10.5px;color:#94a3b8;margin-top:3px;text-align:right;">

@@ -180,7 +180,6 @@ def espace_detail(request, pk):
         'niveau':                niveau,
         'constructions_engagees': qs_eng,
         'constructions_attente':  qs_att,
-        'toutes_constructions':   qs_all,
         'batiments':             batiments,
         'geom_json':             geom_json,
     }

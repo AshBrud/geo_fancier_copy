@@ -97,13 +97,9 @@ def aide_pdu(request):
 
     nb_attente    = _nb(NouvelleConstruction.STATUT_EN_COURS)
     nb_approuvees = _nb(NouvelleConstruction.STATUT_APPROUVE)
-    nb_en_cours   = _nb(NouvelleConstruction.STATUT_EN_COURS)
-    nb_terminees  = 0  # statut supprimé
 
     sup_att_global  = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
     sup_app_global  = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
-    sup_enc_global  = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
-    sup_ter_global  = 0.0  # statut supprimé
 
     # ── 3. Scénario : si toutes les demandes en attente approuvées ────────
     sup_scenario      = sup_engagee_totale + sup_att_global
@@ -315,12 +311,8 @@ def aide_pdu(request):
         # Pipeline
         'nb_attente':    nb_attente,
         'nb_approuvees': nb_approuvees,
-        'nb_en_cours':   nb_en_cours,
-        'nb_terminees':  nb_terminees,
         'sup_att_global': round(sup_att_global),
         'sup_app_global': round(sup_app_global),
-        'sup_enc_global': round(sup_enc_global),
-        'sup_ter_global': round(sup_ter_global),
         # Scénario
         'pct_scenario':       pct_scenario,
         'sup_nette_scenario': round(sup_nette_scenario),
