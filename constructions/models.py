@@ -75,9 +75,9 @@ class NouvelleConstruction(models.Model):
         return qs.exclude(pk=self.pk) if self.pk else qs
 
     def _qs_en_attente(self, zone):
-        """Constructions en attente concurrentes qui intersectent une zone."""
+        """Constructions en cours (non encore approuvées) concurrentes qui intersectent une zone."""
         qs = NouvelleConstruction.objects.filter(
-            statut=self.STATUT_ATTENTE,
+            statut=self.STATUT_EN_COURS,
             zone_souhaitee__intersects=zone,
         )
         return qs.exclude(pk=self.pk) if self.pk else qs
