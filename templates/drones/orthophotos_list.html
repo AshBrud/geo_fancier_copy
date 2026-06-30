@@ -103,6 +103,15 @@
   border-top: 1px solid #0f172a; }
 .live-stat { font-size: 11.5px; color: #64748b; }
 .live-stat strong { color: #94a3b8; display: block; font-size: 12.5px; }
+.rec-btn { background: rgba(239,68,68,.15); border: 1.5px solid rgba(239,68,68,.3);
+  color: #f87171; border-radius: 8px; padding: 6px 14px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .2s; }
+.rec-btn:hover { background: rgba(239,68,68,.25); }
+.rec-btn.recording { background: rgba(239,68,68,.9); color: #fff; border-color: #ef4444; }
+.rec-btn .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.rec-btn.recording .rec-dot { animation: livepulse .8s infinite; }
+.rec-timer { font-size: 12px; color: #f87171; font-weight: 700; font-family: monospace;
+  display: none; margin-left: 4px; }
 </style>
 {% endblock %}
 
@@ -334,13 +343,23 @@
 
         <!-- Lecteur vidéo -->
         <div class="col-lg-8">
-          <div id="live-video">
+          <div id="live-video" style="position:relative;">
             <div class="live-placeholder" id="live-placeholder">
               <i class="bi bi-broadcast"></i>
               <p>Aucun flux actif</p>
               <small style="color:#334155;">Configurez l'URL MediaMTX et cliquez sur <strong>Connecter</strong></small>
             </div>
             <video id="live-vid" controls autoplay muted playsinline style="display:none;width:100%;height:100%;"></video>
+            <!-- Barre d'enregistrement (overlay bas) -->
+            <div id="rec-bar" style="display:none;position:absolute;bottom:0;left:0;right:0;
+                 background:linear-gradient(transparent,rgba(0,0,0,.7));padding:12px 16px;
+                 display:none;align-items:center;gap:10px;">
+              <button class="rec-btn" id="rec-btn" onclick="toggleRecording()">
+                <span class="rec-dot"></span> Enregistrer
+              </button>
+              <span class="rec-timer" id="rec-timer">00:00</span>
+              <span style="margin-left:auto;color:#94a3b8;font-size:11px;" id="rec-size"></span>
+            </div>
           </div>
         </div>
 
@@ -526,7 +545,7 @@ function connectHLS() {
     hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
       video.play();
       ph.style.display = 'none'; video.style.display = 'block';
-      setStatus('live');
+      setStatus('live'); showRecBar();
       document.getElementById('stat-latence').textContent = '~5 s';
       document.getElementById('stat-qualite').textContent = 'Auto';
     });
@@ -563,7 +582,7 @@ function connectWebRTC() {
   pc.ontrack = function(ev) {
     video.srcObject = ev.streams[0]; video.play();
     ph.style.display = 'none'; video.style.display = 'block';
-    setStatus('live');
+    setStatus('live'); showRecBar();
     document.getElementById('stat-latence').textContent = '< 1 s';
     document.getElementById('stat-qualite').textContent = 'HD';
   };
@@ -591,15 +610,96 @@ function connectWebRTC() {
 function liveDisconnect() {
   if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
   if (_livePC) { _livePC.close(); _livePC = null; }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') stopRecording();
   var video = document.getElementById('live-vid');
   video.pause(); video.src = ''; video.srcObject = null; video.style.display = 'none';
   document.getElementById('live-placeholder').style.display = 'flex';
+  document.getElementById('rec-bar').style.display = 'none';
   setStatus('offline');
   document.getElementById('btn-connect').disabled = false;
   document.getElementById('btn-disconnect').disabled = true;
   document.getElementById('stat-latence').textContent = '—';
   document.getElementById('stat-qualite').textContent = '—';
   hideError();
+}
+
+/* ── Enregistrement ── */
+var mediaRecorder = null;
+var recordedChunks = [];
+var recTimerInterval = null;
+var recSeconds = 0;
+
+function showRecBar() {
+  var bar = document.getElementById('rec-bar');
+  bar.style.display = 'flex';
+}
+
+function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  var video = document.getElementById('live-vid');
+  if (!video || video.style.display === 'none') {
+    alert('Le flux doit être actif pour enregistrer.'); return;
+  }
+  var stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+  recordedChunks = [];
+  var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9' : 'video/webm';
+  mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+
+  mediaRecorder.ondataavailable = function(e) {
+    if (e.data && e.data.size > 0) {
+      recordedChunks.push(e.data);
+      var mb = (recordedChunks.reduce(function(s,c){ return s+c.size; }, 0) / 1048576).toFixed(1);
+      document.getElementById('rec-size').textContent = mb + ' Mo';
+    }
+  };
+
+  mediaRecorder.onstop = function() {
+    var blob = new Blob(recordedChunks, { type: 'video/webm' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    var ts   = new Date().toISOString().slice(0,19).replace(/T/,'_').replace(/:/g,'-');
+    a.href = url; a.download = 'flux-drone-' + ts + '.webm';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    resetRecUI();
+  };
+
+  mediaRecorder.start(1000);
+
+  /* UI */
+  var btn = document.getElementById('rec-btn');
+  btn.classList.add('recording');
+  btn.innerHTML = '<span class="rec-dot"></span> Arrêter';
+  recSeconds = 0;
+  document.getElementById('rec-timer').style.display = 'inline';
+  recTimerInterval = setInterval(function() {
+    recSeconds++;
+    var m = String(Math.floor(recSeconds/60)).padStart(2,'0');
+    var s = String(recSeconds%60).padStart(2,'0');
+    document.getElementById('rec-timer').textContent = m + ':' + s;
+  }, 1000);
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  clearInterval(recTimerInterval);
+}
+
+function resetRecUI() {
+  var btn = document.getElementById('rec-btn');
+  btn.classList.remove('recording');
+  btn.innerHTML = '<span class="rec-dot"></span> Enregistrer';
+  document.getElementById('rec-timer').style.display = 'none';
+  document.getElementById('rec-timer').textContent = '00:00';
+  document.getElementById('rec-size').textContent = '';
 }
 </script>
 {% endblock %}
