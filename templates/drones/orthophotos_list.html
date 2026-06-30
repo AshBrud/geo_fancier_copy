@@ -45,6 +45,64 @@
 }
 .meta-badge-blue { background: #eff6ff; border-color: #bfdbfe; color: #1E3A8A; }
 #coverage-map { height: 280px; border-radius: 10px; }
+
+/* ── Live Stream ── */
+.live-card {
+  background: #0f172a; border-radius: 16px; overflow: hidden;
+  border: 1px solid #1e293b;
+}
+.live-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #334155;
+}
+.live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3);
+  color: #f87171; border-radius: 20px; padding: 3px 10px; font-size: 11.5px; font-weight: 700;
+}
+.live-badge .live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #ef4444;
+  animation: livepulse 1.2s infinite;
+}
+@keyframes livepulse {
+  0%,100% { opacity: 1; } 50% { opacity: .3; }
+}
+.live-badge.offline { background: rgba(100,116,139,.15); border-color: rgba(100,116,139,.3); color: #94a3b8; }
+.live-badge.offline .live-dot { background: #64748b; animation: none; }
+.live-badge.connecting { background: rgba(234,179,8,.15); border-color: rgba(234,179,8,.3); color: #fbbf24; }
+.live-badge.connecting .live-dot { background: #f59e0b; }
+
+#live-video {
+  width: 100%; aspect-ratio: 16/9; background: #000;
+  display: flex; align-items: center; justify-content: center;
+}
+#live-video video { width: 100%; height: 100%; object-fit: contain; }
+.live-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: #475569; gap: 10px;
+}
+.live-placeholder i { font-size: 3rem; }
+.live-placeholder p { font-size: 13px; margin: 0; }
+
+.live-controls { padding: 16px 20px; background: #1e293b; }
+.live-url-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px; }
+.live-url-row input { flex: 1; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+  border-radius: 8px; padding: 7px 12px; font-size: 13px; outline: none; }
+.live-url-row input:focus { border-color: #3b82f6; }
+.live-url-row input::placeholder { color: #475569; }
+.live-proto-row { display: flex; gap: 12px; align-items: center; }
+.live-proto-btn {
+  display: inline-flex; align-items: center; gap-5px; padding: 5px 14px;
+  border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid #334155; color: #94a3b8; background: transparent; transition: all .2s;
+}
+.live-proto-btn.active { border-color: #3b82f6; color: #60a5fa; background: rgba(59,130,246,.1); }
+.live-info { font-size: 11px; color: #475569; margin-left: auto; }
+.live-stats { display: flex; gap: 16px; padding: 10px 20px 14px; background: #1e293b;
+  border-top: 1px solid #0f172a; }
+.live-stat { font-size: 11.5px; color: #64748b; }
+.live-stat strong { color: #94a3b8; display: block; font-size: 12.5px; }
 </style>
 {% endblock %}
 
@@ -251,14 +309,138 @@
   </div>
 
 </div>
+
+<!-- ── Section Flux Live Drone ── -->
+<div class="row g-4 mt-2">
+  <div class="col-12">
+    <div class="live-card">
+
+      <!-- En-tête -->
+      <div class="live-header">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-broadcast" style="color:#60a5fa;font-size:1.4rem;"></i>
+          <div>
+            <div style="color:#e2e8f0;font-weight:700;font-size:15px;">Flux Live Drone</div>
+            <div style="color:#64748b;font-size:12px;">Visualisation en temps réel via MediaMTX</div>
+          </div>
+        </div>
+        <span class="live-badge offline" id="live-status-badge">
+          <span class="live-dot"></span>&nbsp;Hors ligne
+        </span>
+      </div>
+
+      <!-- Corps : vidéo + panneau de configuration -->
+      <div class="row g-0">
+
+        <!-- Lecteur vidéo -->
+        <div class="col-lg-8">
+          <div id="live-video">
+            <div class="live-placeholder" id="live-placeholder">
+              <i class="bi bi-broadcast"></i>
+              <p>Aucun flux actif</p>
+              <small style="color:#334155;">Configurez l'URL MediaMTX et cliquez sur <strong>Connecter</strong></small>
+            </div>
+            <video id="live-vid" controls autoplay muted playsinline style="display:none;width:100%;height:100%;"></video>
+          </div>
+        </div>
+
+        <!-- Panneau de configuration -->
+        <div class="col-lg-4" style="background:#1e293b;border-left:1px solid #0f172a;">
+          <div style="padding:18px;">
+            <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;">
+              Configuration MediaMTX
+            </div>
+
+            <div class="mb-2">
+              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">URL du serveur</label>
+              <input type="text" id="live-server-url"
+                     style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
+                     placeholder="http://192.168.1.100"
+                     value="http://localhost">
+            </div>
+
+            <div class="mb-2">
+              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">Nom du flux</label>
+              <input type="text" id="live-stream-name"
+                     style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
+                     placeholder="drone" value="drone">
+            </div>
+
+            <div class="mb-3">
+              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:6px;">Protocole</label>
+              <div class="d-flex gap-2">
+                <button class="live-proto-btn active" onclick="setProto('hls')" id="btn-hls">
+                  HLS <small style="opacity:.55;">:8888</small>
+                </button>
+                <button class="live-proto-btn" onclick="setProto('webrtc')" id="btn-webrtc">
+                  WebRTC <small style="opacity:.55;">:8889</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-3">
+              <button class="btn btn-primary btn-sm flex-grow-1" onclick="liveConnect()" id="btn-connect">
+                <i class="bi bi-play-circle me-1"></i>Connecter
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="liveDisconnect()" id="btn-disconnect" disabled>
+                <i class="bi bi-stop-circle"></i>
+              </button>
+            </div>
+
+            <!-- Aperçu URL -->
+            <div style="padding:10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;">
+              <div style="color:#475569;font-size:10px;margin-bottom:4px;">URL du flux :</div>
+              <code style="color:#60a5fa;font-size:10.5px;word-break:break-all;" id="live-url-preview">
+                http://localhost:8888/drone/index.m3u8
+              </code>
+            </div>
+
+            <!-- Message d'erreur -->
+            <div id="live-error" style="display:none;margin-top:10px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;color:#f87171;font-size:11.5px;">
+              <i class="bi bi-exclamation-triangle me-1"></i><span id="live-error-text"></span>
+            </div>
+          </div>
+
+          <!-- Guide rapide -->
+          <div style="padding:0 18px 16px;">
+            <div style="background:#0f172a;border-radius:8px;padding:12px;border:1px solid #1e293b;">
+              <div style="color:#64748b;font-size:11px;font-weight:600;margin-bottom:8px;">
+                <i class="bi bi-info-circle me-1"></i>Guide de configuration
+              </div>
+              <div style="color:#475569;font-size:11px;line-height:1.8;">
+                <div>1. Démarrer MediaMTX sur le serveur</div>
+                <div>2. Configurer le drone en RTSP :</div>
+                <div style="color:#60a5fa;padding:3px 8px;background:#0a0f1a;border-radius:4px;margin:4px 0;font-family:monospace;font-size:10px;">
+                  rtsp://serveur:8554/drone
+                </div>
+                <div>3. Cliquer sur <strong style="color:#60a5fa;">Connecter</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="live-stats">
+            <div class="live-stat"><strong id="stat-latence">—</strong>Latence</div>
+            <div class="live-stat"><strong id="stat-qualite">—</strong>Qualité</div>
+            <div class="live-stat"><strong id="stat-proto">HLS</strong>Protocole</div>
+          </div>
+        </div><!-- /col-lg-4 -->
+
+      </div><!-- /row g-0 -->
+    </div><!-- /live-card -->
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js_vendor %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+/* ── Carte de couverture ── */
 var map = initCampusMap('coverage-map', {});
 {% if has_geodata %}
 var geojson = {{ coverage_geojson|safe }};
@@ -274,5 +456,150 @@ var layer = L.geoJSON(geojson, {
 }).addTo(map);
 map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 18 });
 {% endif %}
+
+/* ── Flux Live Drone ── */
+var hlsInstance = null;
+var liveProto = 'hls';
+var _livePC = null;
+
+function buildLiveUrl() {
+  var server = document.getElementById('live-server-url').value.trim().replace(/\/$/, '');
+  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
+  if (liveProto === 'hls') return server + ':8888/' + stream + '/index.m3u8';
+  return server + ':8889/' + stream + '/whep';
+}
+
+function updateUrlPreview() {
+  document.getElementById('live-url-preview').textContent = buildLiveUrl();
+}
+
+document.getElementById('live-server-url').addEventListener('input', updateUrlPreview);
+document.getElementById('live-stream-name').addEventListener('input', updateUrlPreview);
+
+function setProto(p) {
+  liveProto = p;
+  document.getElementById('btn-hls').classList.toggle('active', p === 'hls');
+  document.getElementById('btn-webrtc').classList.toggle('active', p === 'webrtc');
+  document.getElementById('stat-proto').textContent = p === 'hls' ? 'HLS' : 'WebRTC';
+  updateUrlPreview();
+}
+
+function setStatus(state) {
+  var badge = document.getElementById('live-status-badge');
+  badge.className = 'live-badge';
+  if (state === 'live') {
+    badge.innerHTML = '<span class="live-dot"></span>&nbsp;En direct';
+  } else if (state === 'connecting') {
+    badge.classList.add('connecting');
+    badge.innerHTML = '<span class="live-dot"></span>&nbsp;Connexion...';
+  } else {
+    badge.classList.add('offline');
+    badge.innerHTML = '<span class="live-dot"></span>&nbsp;Hors ligne';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('live-error-text').textContent = msg;
+  document.getElementById('live-error').style.display = 'block';
+}
+function hideError() { document.getElementById('live-error').style.display = 'none'; }
+
+function liveConnect() {
+  hideError();
+  setStatus('connecting');
+  document.getElementById('btn-connect').disabled = true;
+  document.getElementById('btn-disconnect').disabled = false;
+  if (liveProto === 'hls') connectHLS();
+  else connectWebRTC();
+}
+
+function connectHLS() {
+  var url = buildLiveUrl();
+  var video = document.getElementById('live-vid');
+  var ph = document.getElementById('live-placeholder');
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+  if (Hls.isSupported()) {
+    hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5, enableWorker: true });
+    hlsInstance.loadSource(url);
+    hlsInstance.attachMedia(video);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+      video.play();
+      ph.style.display = 'none'; video.style.display = 'block';
+      setStatus('live');
+      document.getElementById('stat-latence').textContent = '~5 s';
+      document.getElementById('stat-qualite').textContent = 'Auto';
+    });
+    hlsInstance.on(Hls.Events.ERROR, function(e, data) {
+      if (data.fatal) {
+        showError('Flux HLS introuvable. Vérifiez que MediaMTX est démarré et que le drone émet.');
+        liveDisconnect();
+      }
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', function onLoad() {
+      video.removeEventListener('loadedmetadata', onLoad);
+      video.play(); ph.style.display = 'none'; video.style.display = 'block'; setStatus('live');
+    });
+    video.addEventListener('error', function() { showError('Impossible de charger le flux.'); liveDisconnect(); });
+  } else {
+    showError('Votre navigateur ne supporte pas HLS. Utilisez Chrome, Firefox ou Edge.');
+    liveDisconnect();
+  }
+}
+
+function connectWebRTC() {
+  var url = buildLiveUrl();
+  var video = document.getElementById('live-vid');
+  var ph = document.getElementById('live-placeholder');
+  if (_livePC) { _livePC.close(); _livePC = null; }
+
+  var pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  _livePC = pc;
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  pc.addTransceiver('audio', { direction: 'recvonly' });
+
+  pc.ontrack = function(ev) {
+    video.srcObject = ev.streams[0]; video.play();
+    ph.style.display = 'none'; video.style.display = 'block';
+    setStatus('live');
+    document.getElementById('stat-latence').textContent = '< 1 s';
+    document.getElementById('stat-qualite').textContent = 'HD';
+  };
+
+  pc.createOffer()
+    .then(function(offer) { return pc.setLocalDescription(offer); })
+    .then(function() {
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription.sdp
+      });
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Serveur MediaMTX inaccessible (HTTP ' + res.status + ')');
+      return res.text();
+    })
+    .then(function(sdp) { return pc.setRemoteDescription({ type: 'answer', sdp: sdp }); })
+    .catch(function(e) {
+      showError('WebRTC : ' + e.message + '. Vérifiez que le port 8889 est accessible.');
+      liveDisconnect();
+    });
+}
+
+function liveDisconnect() {
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  if (_livePC) { _livePC.close(); _livePC = null; }
+  var video = document.getElementById('live-vid');
+  video.pause(); video.src = ''; video.srcObject = null; video.style.display = 'none';
+  document.getElementById('live-placeholder').style.display = 'flex';
+  setStatus('offline');
+  document.getElementById('btn-connect').disabled = false;
+  document.getElementById('btn-disconnect').disabled = true;
+  document.getElementById('stat-latence').textContent = '—';
+  document.getElementById('stat-qualite').textContent = '—';
+  hideError();
+}
 </script>
 {% endblock %}
