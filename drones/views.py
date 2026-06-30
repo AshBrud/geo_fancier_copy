@@ -12,7 +12,7 @@ import sys
 import subprocess
 import shutil
 import signal as _signal
-from .models import Orthophoto, FluxVideo
+from .models import Orthophoto, FluxVideo, PhotoDrone
 from .forms import OrthophotoImportForm
 from accounts.decorators import domaine_required
 
@@ -320,3 +320,73 @@ def flux_video_delete(request, pk):
         messages.success(request, f'Vidéo « {video.nom} » supprimée.')
         return redirect('drones:flux_videos')
     return render(request, 'drones/confirm_delete.html', {'obj': video})
+
+
+# ── Capture photo depuis flux live ───────────────────────────────────────────
+
+@login_required
+@domaine_required
+def capture_photo(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST requis'}, status=405)
+
+    import base64
+    from django.core.files.base import ContentFile
+
+    try:
+        data       = _json.loads(request.body)
+        image_data = data.get('image', '')
+        nom        = data.get('nom', '').strip()
+    except Exception:
+        return JsonResponse({'error': 'Données invalides'}, status=400)
+
+    if not image_data or ';base64,' not in image_data:
+        return JsonResponse({'error': 'Image manquante'}, status=400)
+
+    fmt, imgstr = image_data.split(';base64,')
+    ext         = fmt.split('/')[-1]          # jpeg ou png
+    ts          = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    nom         = nom or f'Capture {ts}'
+    filename    = f'drone-{ts}.{ext}'
+
+    try:
+        content = ContentFile(base64.b64decode(imgstr))
+    except Exception:
+        return JsonResponse({'error': 'Décodage base64 échoué'}, status=400)
+
+    photo = PhotoDrone(
+        nom=nom,
+        operateur=request.user.get_full_name() or request.user.username,
+    )
+    photo.image.save(filename, content, save=True)
+
+    return JsonResponse({
+        'status': 'ok',
+        'id':     photo.pk,
+        'nom':    photo.nom,
+        'url':    photo.image.url,
+    })
+
+
+@login_required
+@domaine_required
+def photos_drone_list(request):
+    qs   = PhotoDrone.objects.all()
+    page = Paginator(qs, 16).get_page(request.GET.get('page'))
+    return render(request, 'drones/photos_drone_list.html', {
+        'page_obj': page,
+        'total':    PhotoDrone.objects.count(),
+    })
+
+
+@login_required
+@domaine_required
+def photo_drone_delete(request, pk):
+    photo = get_object_or_404(PhotoDrone, pk=pk)
+    if request.method == 'POST':
+        if photo.image and os.path.exists(photo.image.path):
+            os.remove(photo.image.path)
+        photo.delete()
+        messages.success(request, f'Photo « {photo.nom} » supprimée.')
+        return redirect('drones:photos_drone')
+    return render(request, 'drones/confirm_delete.html', {'obj': photo})

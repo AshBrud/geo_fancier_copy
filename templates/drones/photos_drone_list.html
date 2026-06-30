@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Photos Drone{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
+<li class="breadcrumb-item active">Photos Drone</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.photo-card {
+  background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+  overflow: hidden; transition: box-shadow .2s, transform .2s; cursor: pointer;
+}
+.photo-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12); transform: translateY(-2px); }
+.photo-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
+.photo-card-body { padding: 8px 10px; }
+.photo-card-actions { display: flex; gap: 6px; padding: 6px 10px 10px; border-top: 1px solid #f1f5f9; }
+.kpi-band { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 22px; }
+.kpi { background:#fff;border-radius:14px;border:1px solid #e2e8f0;padding:16px 18px;
+       display:flex;align-items:center;gap:14px; }
+.kpi-icon { width:46px;height:46px;border-radius:12px;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;font-size:20px; }
+.kpi-val { font-size:22px;font-weight:800;color:#1e293b;line-height:1; }
+.kpi-lbl { font-size:11.5px;color:#64748b;margin-top:3px; }
+
+/* Lightbox */
+#lightbox { display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;
+            align-items:center;justify-content:center;flex-direction:column; }
+#lightbox img { max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain; }
+#lightbox-caption { color:#94a3b8;font-size:13px;margin-top:12px; }
+#lightbox-close { position:absolute;top:16px;right:20px;color:#fff;font-size:2rem;cursor:pointer;line-height:1; }
+#lightbox-download { position:absolute;top:16px;left:20px;color:#fff;font-size:1.5rem;cursor:pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-camera me-2"></i>Photos Drone</h1>
+    <p class="page-description">Captures instantanées prises depuis le flux live.</p>
+  </div>
+  <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-2"></i>Retour Données Drones
+  </a>
+</div>
+
+<div class="kpi-band">
+  <div class="kpi">
+    <div class="kpi-icon" style="background:#eff6ff;"><i class="bi bi-camera" style="color:#1E3A8A;"></i></div>
+    <div><div class="kpi-val">{{ total }}</div><div class="kpi-lbl">Photos capturées</div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon" style="background:#f0fdf4;"><i class="bi bi-file-earmark-image" style="color:#16A34A;"></i></div>
+    <div><div class="kpi-val">JPEG</div><div class="kpi-lbl">Format de capture</div></div>
+  </div>
+</div>
+
+{% if page_obj.object_list %}
+<div class="photo-grid">
+  {% for photo in page_obj %}
+  <div class="photo-card">
+    <img src="{{ photo.image.url }}" alt="{{ photo.nom }}"
+         onclick="openLightbox('{{ photo.image.url }}', '{{ photo.nom }}')">
+    <div class="photo-card-body">
+      <div class="fw-semibold text-truncate" style="font-size:12.5px;" title="{{ photo.nom }}">
+        {{ photo.nom }}
+      </div>
+      <div class="text-muted" style="font-size:11px;">
+        <i class="bi bi-calendar3 me-1"></i>{{ photo.date_capture|date:"d/m/Y H:i:s" }}
+      </div>
+      {% if photo.operateur %}
+      <div class="text-muted" style="font-size:11px;">
+        <i class="bi bi-person me-1"></i>{{ photo.operateur }}
+      </div>
+      {% endif %}
+    </div>
+    <div class="photo-card-actions">
+      <a href="{{ photo.image.url }}" download="{{ photo.nom }}.jpg"
+         class="btn btn-sm btn-outline-primary flex-grow-1">
+        <i class="bi bi-download me-1"></i>Télécharger
+      </a>
+      <a href="{% url 'drones:photo_drone_delete' photo.pk %}"
+         class="btn btn-sm btn-outline-danger"
+         onclick="return confirm('Supprimer cette photo ?')">
+        <i class="bi bi-trash"></i>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-4">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+    <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+      <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+    </li>
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+  <i class="bi bi-camera fs-1 text-muted d-block mb-3"></i>
+  <h6 class="text-muted">Aucune photo capturée</h6>
+  <p class="text-muted small mb-4">
+    Connectez un flux live, puis cliquez sur le bouton
+    <strong><i class="bi bi-camera"></i> Photo</strong> en bas du lecteur.
+  </p>
+  <a href="{% url 'drones:missions' %}" class="btn btn-primary">
+    <i class="bi bi-broadcast me-2"></i>Aller au flux live
+  </a>
+</div>
+{% endif %}
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <span id="lightbox-close" onclick="closeLightbox()">&times;</span>
+  <a id="lightbox-download" href="#" download title="Télécharger">
+    <i class="bi bi-download"></i>
+  </a>
+  <img id="lightbox-img" src="" alt="">
+  <div id="lightbox-caption"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openLightbox(url, nom) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox-caption').textContent = nom;
+  document.getElementById('lightbox-download').href = url;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLightbox(); });
+</script>
+{% endblock %}
