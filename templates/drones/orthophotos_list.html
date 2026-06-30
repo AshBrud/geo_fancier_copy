@@ -406,6 +406,35 @@
               </button>
             </div>
 
+            <!-- Sauvegarde serveur -->
+            <div style="border-top:1px solid #334155;padding-top:14px;margin-top:4px;">
+              <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
+                Sauvegarder sur le serveur
+              </div>
+              <div class="mb-2">
+                <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">Nom de l'enregistrement</label>
+                <input type="text" id="srv-nom"
+                       style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
+                       placeholder="Mission vol 1">
+              </div>
+              <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-danger btn-sm flex-grow-1" onclick="srvStartRec()" id="btn-srv-start" disabled>
+                  <i class="bi bi-record-circle me-1"></i>Enregistrer
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="srvStopRec()" id="btn-srv-stop" disabled>
+                  <i class="bi bi-stop-circle"></i>
+                </button>
+              </div>
+              <div id="srv-status" style="font-size:11.5px;color:#475569;">
+                Connectez le flux puis cliquez sur Enregistrer.
+              </div>
+              <div id="srv-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.2);border-radius:6px;font-size:11.5px;color:#4ade80;"></div>
+              <div id="srv-error" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11.5px;color:#f87171;"></div>
+              <a href="{% url 'drones:flux_videos' %}" class="btn btn-outline-secondary btn-sm w-100 mt-2" style="border-color:#334155;color:#94a3b8;">
+                <i class="bi bi-film me-1"></i>Voir les vidéos enregistrées
+              </a>
+            </div>
+
             <!-- Aperçu URL -->
             <div style="padding:10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;">
               <div style="color:#475569;font-size:10px;margin-bottom:4px;">URL du flux :</div>
@@ -618,6 +647,7 @@ function liveDisconnect() {
   setStatus('offline');
   document.getElementById('btn-connect').disabled = false;
   document.getElementById('btn-disconnect').disabled = true;
+  document.getElementById('btn-srv-start').disabled = true;
   document.getElementById('stat-latence').textContent = '—';
   document.getElementById('stat-qualite').textContent = '—';
   hideError();
@@ -630,8 +660,76 @@ var recTimerInterval = null;
 var recSeconds = 0;
 
 function showRecBar() {
-  var bar = document.getElementById('rec-bar');
-  bar.style.display = 'flex';
+  document.getElementById('rec-bar').style.display = 'flex';
+  document.getElementById('btn-srv-start').disabled = false;
+  document.getElementById('srv-status').textContent = 'Flux actif — prêt à enregistrer sur le serveur.';
+}
+
+/* ── Sauvegarde serveur via FFmpeg ── */
+var _srvRecording = false;
+var _srvTimer = null;
+var _srvSec = 0;
+
+function srvStartRec() {
+  var server = document.getElementById('live-server-url').value.trim().replace(/\/$/, '');
+  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
+  var rtspUrl = server + ':8554/' + stream;
+  var nom = document.getElementById('srv-nom').value.trim();
+
+  document.getElementById('srv-result').style.display = 'none';
+  document.getElementById('srv-error').style.display = 'none';
+
+  fetch('{% url "drones:flux_start" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ rtsp_url: rtspUrl, nom: nom }),
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.error) { showSrvError(d.error); return; }
+    _srvRecording = true;
+    document.getElementById('btn-srv-start').disabled = true;
+    document.getElementById('btn-srv-stop').disabled = false;
+    _srvSec = 0;
+    document.getElementById('srv-status').innerHTML =
+      '<span style="color:#4ade80;">⏺ Enregistrement en cours...</span> <span id="srv-timer">00:00</span>';
+    _srvTimer = setInterval(function() {
+      _srvSec++;
+      var m = String(Math.floor(_srvSec/60)).padStart(2,'0');
+      var s = String(_srvSec%60).padStart(2,'0');
+      var t = document.getElementById('srv-timer');
+      if (t) t.textContent = m + ':' + s;
+    }, 1000);
+  })
+  .catch(function(){ showSrvError('Impossible de contacter le serveur Django.'); });
+}
+
+function srvStopRec() {
+  clearInterval(_srvTimer); _srvTimer = null;
+  fetch('{% url "drones:flux_stop" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({}),
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    _srvRecording = false;
+    document.getElementById('btn-srv-start').disabled = false;
+    document.getElementById('btn-srv-stop').disabled = true;
+    document.getElementById('srv-status').textContent = 'Flux actif — prêt à enregistrer sur le serveur.';
+    if (d.error) { showSrvError(d.error); return; }
+    var res = document.getElementById('srv-result');
+    res.innerHTML = '✅ Vidéo enregistrée : <strong>' + d.nom + '</strong>'
+      + (d.duree ? ' · ' + d.duree : '')
+      + (d.taille_mb ? ' · ' + d.taille_mb + ' Mo' : '');
+    res.style.display = 'block';
+  })
+  .catch(function(){ showSrvError('Erreur lors de l\'arrêt de l\'enregistrement.'); });
+}
+
+function showSrvError(msg) {
+  var el = document.getElementById('srv-error');
+  el.textContent = msg; el.style.display = 'block';
 }
 
 function toggleRecording() {

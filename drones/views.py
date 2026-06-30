@@ -1,14 +1,23 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from datetime import date as _today
+from django.http import JsonResponse
+from django.conf import settings
+from datetime import date as _today, datetime
 from django.core.paginator import Paginator
 from django.db.models import Q, Avg
 import json as _json
 import os
-from .models import Orthophoto
+import sys
+import subprocess
+import shutil
+import signal as _signal
+from .models import Orthophoto, FluxVideo
 from .forms import OrthophotoImportForm
 from accounts.decorators import domaine_required
+
+# Enregistrements actifs (par utilisateur — clé = user.pk)
+_active_recordings = {}
 
 
 # ── Extraction automatique depuis GeoTIFF (GDAL) ──────────────────────────────
@@ -177,3 +186,137 @@ def orthophoto_delete(request, pk):
         messages.success(request, 'Orthophoto supprimée.')
         return redirect('drones:missions')
     return render(request, 'drones/confirm_delete.html', {'obj': ortho})
+
+
+# ── Enregistrement flux live (FFmpeg) ────────────────────────────────────────
+
+@login_required
+@domaine_required
+def flux_start(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode POST requise'}, status=405)
+
+    if not shutil.which('ffmpeg'):
+        return JsonResponse({'error': 'FFmpeg non installé sur le serveur.'}, status=500)
+
+    try:
+        data = _json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Corps JSON invalide'}, status=400)
+
+    rtsp_url = data.get('rtsp_url', '').strip()
+    nom      = data.get('nom', '').strip()
+    if not rtsp_url:
+        return JsonResponse({'error': 'URL RTSP manquante'}, status=400)
+
+    uid = request.user.pk
+    if uid in _active_recordings:
+        return JsonResponse({'error': 'Un enregistrement est déjà en cours'}, status=400)
+
+    ts       = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    nom      = nom or f'Flux drone {ts}'
+    filename = f'flux-drone-{ts}.mp4'
+    save_dir = os.path.join(settings.MEDIA_ROOT, 'flux_videos')
+    os.makedirs(save_dir, exist_ok=True)
+    filepath = os.path.join(save_dir, filename)
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-rtsp_transport', 'tcp',
+        '-i', rtsp_url,
+        '-c', 'copy',
+        '-movflags', 'frag_keyframe+empty_moov',
+        filepath,
+    ]
+
+    kwargs = {}
+    if sys.platform == 'win32':
+        kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
+    except Exception as e:
+        return JsonResponse({'error': f'Impossible de démarrer FFmpeg : {e}'}, status=500)
+
+    _active_recordings[uid] = {
+        'proc':       proc,
+        'filepath':   filepath,
+        'nom':        nom,
+        'start_time': datetime.now(),
+        'rtsp_url':   rtsp_url,
+    }
+    return JsonResponse({'status': 'started', 'nom': nom})
+
+
+@login_required
+@domaine_required
+def flux_stop(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode POST requise'}, status=405)
+
+    uid = request.user.pk
+    rec = _active_recordings.pop(uid, None)
+    if not rec:
+        return JsonResponse({'error': 'Aucun enregistrement en cours'}, status=400)
+
+    proc = rec['proc']
+    try:
+        if sys.platform == 'win32':
+            proc.send_signal(_signal.CTRL_BREAK_EVENT)
+        else:
+            proc.send_signal(_signal.SIGINT)
+        proc.wait(timeout=10)
+    except Exception:
+        proc.kill()
+
+    duree   = int((datetime.now() - rec['start_time']).total_seconds())
+    filepath = rec['filepath']
+
+    if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+        rel   = os.path.relpath(filepath, settings.MEDIA_ROOT).replace('\\', '/')
+        video = FluxVideo.objects.create(
+            nom=rec['nom'],
+            fichier=rel,
+            duree_secondes=duree,
+            taille_octets=os.path.getsize(filepath),
+            source_rtsp=rec['rtsp_url'],
+            operateur=request.user.get_full_name() or request.user.username,
+        )
+        return JsonResponse({
+            'status':   'stopped',
+            'id':       video.pk,
+            'nom':      video.nom,
+            'duree':    video.duree_formatee,
+            'taille_mb': video.taille_mb,
+        })
+
+    return JsonResponse({'status': 'stopped', 'warning': 'Fichier vide ou non créé'})
+
+
+# ── Liste des flux vidéos enregistrés ────────────────────────────────────────
+
+@login_required
+@domaine_required
+def flux_videos_list(request):
+    qs = FluxVideo.objects.all()
+    paginator = Paginator(qs, 12)
+    page = paginator.get_page(request.GET.get('page'))
+    total_taille = sum(v.taille_octets or 0 for v in FluxVideo.objects.all())
+    return render(request, 'drones/flux_videos_list.html', {
+        'page_obj':     page,
+        'total':        FluxVideo.objects.count(),
+        'total_taille': round(total_taille / 1048576, 1),
+    })
+
+
+@login_required
+@domaine_required
+def flux_video_delete(request, pk):
+    video = get_object_or_404(FluxVideo, pk=pk)
+    if request.method == 'POST':
+        if video.fichier and os.path.exists(video.fichier.path):
+            os.remove(video.fichier.path)
+        video.delete()
+        messages.success(request, f'Vidéo « {video.nom} » supprimée.')
+        return redirect('drones:flux_videos')
+    return render(request, 'drones/confirm_delete.html', {'obj': video})
