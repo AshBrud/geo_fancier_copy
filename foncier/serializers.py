@@ -9,13 +9,15 @@ from .models import (
 class EspaceSerializer(GeoFeatureModelSerializer):
     couleur = serializers.ReadOnlyField()
     superficie_ha = serializers.ReadOnlyField()
+    superficie_batie = serializers.ReadOnlyField()
     type_display = serializers.CharField(source='get_type_espace_display', read_only=True)
 
     class Meta:
         model = Espace
         geo_field = 'geometrie'
         fields = ['id', 'nom', 'code', 'type_espace', 'type_display',
-                  'superficie', 'superficie_ha', 'description', 'usage', 'couleur']
+                  'superficie', 'superficie_ha', 'superficie_batie',
+                  'description', 'usage', 'couleur']
 
 
 class BatimentSerializer(GeoFeatureModelSerializer):

@@ -293,6 +293,31 @@
         </div>
       </div>
 
+      <!-- Couches vecteur -->
+      <div class="cs-section">
+        <div class="cs-section-title">Couches vecteur</div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#6b7280;"></span>
+            <span class="layer-name">Espaces fonciers</span>
+            <span class="layer-count">{{ total_espaces }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspaces" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#1E3A8A;"></span>
+            <span class="layer-name">Bâtiments</span>
+            <span class="layer-count">{{ total_batiments }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerBatiments" style="cursor:pointer;">
+          </div>
+        </div>
+      </div>
+
       <!-- Orthophotos WebODM -->
       <div class="cs-section">
         <div class="cs-section-title">
@@ -306,6 +331,8 @@
       <!-- Légende -->
       <div class="cs-section">
         <div class="cs-section-title">Légende</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#6b7280;"></span> Espaces fonciers</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Bâtiments</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#0891b2;"></span> Orthophotos drone</div>
       </div>
 
@@ -361,6 +388,18 @@
 
   /* ---- Initialisation carte ---- */
   var map = initCampusMap('campus-map', { hideLayerControl: true });
+
+  /* ---- Couches vecteur ---- */
+  var espacesLayer   = loadEspaces(map);
+  var batimentsLayer = L.layerGroup();
+  loadBatiments(map, batimentsLayer);
+
+  document.getElementById('layerEspaces').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(espacesLayer); } else { map.removeLayer(espacesLayer); }
+  });
+  document.getElementById('layerBatiments').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(batimentsLayer); } else { map.removeLayer(batimentsLayer); }
+  });
 
   /* ---- Fond de carte ---- */
   function setBase(id) {

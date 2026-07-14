@@ -119,11 +119,11 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
-# TEST DIAGNOSTIC TEMPORAIRE — a retirer une fois la cause confirmee
 SESSION_COOKIE_NAME = 'geofoncier_sid'
 
-# Session expirée après 30 min (depuis la connexion)
+# Session expirée après 30 min d'inactivité (prolongée à chaque requête)
 SESSION_COOKIE_AGE = 1800
+SESSION_SAVE_EVERY_REQUEST = True
 
 # E-mail (console en développement — remplacer par SMTP en production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

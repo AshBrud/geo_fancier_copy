@@ -184,6 +184,13 @@ function loadEspaces(map, layerGroup) {
       layerGroup.clearLayers();
       L.geoJSON(data, {
         style: function (feature) {
+          if (feature.properties.type_espace === 'libre') {
+            return {
+              fillOpacity: 0,
+              color:       feature.properties.couleur || '#16A34A',
+              weight:      2,
+            };
+          }
           return {
             fillColor:   feature.properties.couleur || '#6b7280',
             color:       '#fff',
@@ -193,11 +200,16 @@ function loadEspaces(map, layerGroup) {
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
+          const sup_batie = p.superficie_batie || 0;
+          const sup_dispo = Math.max(0, (p.superficie || 0) - sup_batie);
+          const batieLigne = p.type_espace === 'libre'
+            ? `<br>Bâti: ${sup_batie.toFixed(0)} m² · Disponible: ${sup_dispo.toFixed(0)} m²`
+            : '';
           layer.bindPopup(
             `<strong>${p.nom}</strong><br>
              Code: ${p.code}<br>
              Type: ${p.type_display}<br>
-             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}`
+             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}${batieLigne}`
           );
         }
       }).addTo(layerGroup);
@@ -271,9 +283,10 @@ function loadEspacesVerts(map, layerGroup) {
       layerGroup.clearLayers();
       L.geoJSON(data, {
         style: {
-          fillOpacity: 0,
-          color: '#22C55E',
-          weight: 2,
+          fillColor: '#22C55E',
+          color: '#fff',
+          weight: 1.5,
+          fillOpacity: 0.6,
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;

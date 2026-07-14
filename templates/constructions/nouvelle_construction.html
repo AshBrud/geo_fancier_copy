@@ -748,20 +748,37 @@
   });
 
   /* ---- Sélection d'un espace ---- */
-  espaceSelect.addEventListener('change', function() {
+  function selectEspace(id) {
     clearHighlight(); drawnItems.clearLayers();
     zoneInput.value = ''; espaceInput.value = '';
-    var id = parseInt(this.value);
     if (!id) { clearZone(); return; }
     var espace = espaceMap[id];
     if (!espace || !espace.geojson) return;
+    espaceSelect.value = id;
     highlightLayer = L.geoJSON(espace.geojson, {
       style: { color: '#1E3A8A', weight: 3, fillColor: '#3b5bdb', fillOpacity: 0.35, dashArray: '7,4' }
     }).addTo(map);
     map.fitBounds(highlightLayer.getBounds(), { padding: [50, 50] });
     espaceInput.value = id;
     setZoneOk('Espace : ' + espace.nom + ' — ' + Math.round(espace.sup_disponible).toLocaleString('fr-FR') + ' m² disponibles (' + Math.round(espace.sup_constructible).toLocaleString('fr-FR') + ' m² constructibles)');
+  }
+
+  espaceSelect.addEventListener('change', function() {
+    selectEspace(parseInt(this.value));
   });
+
+  /* ---- Clic direct sur un espace libre affiché sur la carte ----
+     Calque invisible superposé au contour déjà dessiné par loadEspaces()
+     (évite un double contour vert) : sert uniquement à capter le clic. */
+  L.geoJSON(ESPACES_DATA.map(function (e) { return { type: 'Feature', properties: { id: e.id }, geometry: e.geojson }; }), {
+    style: { weight: 0, opacity: 0, fillOpacity: 0.001 },
+    onEachFeature: function (feature, layer) {
+      layer.on('click', function () {
+        setZoneMode('select');
+        selectEspace(feature.properties.id);
+      });
+    }
+  }).addTo(map);
 
   /* ---- Leaflet Draw ---- */
   map.on(L.Draw.Event.CREATED, function(e) {
