@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Logo UADB">
+  <defs>
+    <linearGradient id="uadbBlue" x1="18" y1="10" x2="78" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1e3a8a"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="uadbGreen" x1="26" y1="26" x2="70" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <circle cx="48" cy="48" r="45" fill="#ffffff"/>
+  <circle cx="48" cy="48" r="41" fill="url(#uadbBlue)"/>
+  <circle cx="48" cy="48" r="34" fill="#ffffff"/>
+
+  <g filter="url(#softShadow)">
+    <path d="M48 17c-11.5 0-21 9.2-21 20.7 0 15.1 21 40.8 21 40.8s21-25.7 21-40.8C69 26.2 59.5 17 48 17Z" fill="url(#uadbGreen)"/>
+    <circle cx="48" cy="37.8" r="11.2" fill="#ffffff"/>
+  </g>
+
+  <path d="M35 38.5h26v5.2c0 4.8-3 8.7-7.5 10.1l-5.5 1.7-5.5-1.7C38 52.4 35 48.5 35 43.7v-5.2Z" fill="#1e3a8a"/>
+  <path d="M39.6 39.4h16.8v3.7c0 2.7-1.7 5-4.2 5.8L48 50.2l-4.2-1.3c-2.5-.8-4.2-3.1-4.2-5.8v-3.7Z" fill="#ffffff" opacity=".95"/>
+  <path d="M30 35.2 48 27l18 8.2-18 8.2-18-8.2Z" fill="#0f172a"/>
+  <path d="M48 30.2 59 35.2 48 40.2 37 35.2 48 30.2Z" fill="#34d399"/>
+  <path d="M63.5 38.2v12.3" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="63.5" cy="53.5" r="3.2" fill="#f59e0b"/>
+
+  <text x="48" y="86" text-anchor="middle" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="800" fill="#ffffff" letter-spacing=".7">UADB</text>
+</svg>

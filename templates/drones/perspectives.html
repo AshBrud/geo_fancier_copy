@@ -1,50 +1,17 @@
 {% extends 'base.html' %}
-{% block title %}Données Drones{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Données Drones</li>{% endblock %}
+{% block title %}Perspectives{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
+<li class="breadcrumb-item active">Perspectives</li>
+{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-.drone-kpi-band {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px;
+.perspectives-note {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid #e0e7ff; border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: #4338ca; line-height: 1.6;
 }
-@media (max-width: 768px) { .drone-kpi-band { grid-template-columns: repeat(2, 1fr); } }
-.dkpi {
-  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
-  padding: 16px 18px; display: flex; align-items: center; gap: 14px;
-  transition: box-shadow .2s, transform .2s;
-}
-.dkpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
-.dkpi-icon {
-  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
-}
-.dkpi-val  { font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1; }
-.dkpi-lbl  { font-size: 11.5px; color: #64748b; margin-top: 3px; }
-.dkpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 3px; }
-
-.ortho-card {
-  background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
-  overflow: hidden; transition: box-shadow .2s;
-}
-.ortho-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); }
-.ortho-card-img {
-  height: 140px; background: #f1f5f9; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-}
-.ortho-card-img img { width: 100%; height: 100%; object-fit: cover; }
-.ortho-card-img .no-img { font-size: 2.5rem; color: #cbd5e1; }
-.ortho-card-body { padding: 10px 12px; }
-.ortho-card-actions {
-  display: flex; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #f1f5f9;
-}
-.meta-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #f0fdf4; border: 1px solid #bbf7d0; color: #16A34A;
-  border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 600;
-}
-.meta-badge-blue { background: #eff6ff; border-color: #bfdbfe; color: #1E3A8A; }
-#coverage-map { height: 280px; border-radius: 10px; }
 
 /* ── Live Stream ── */
 .live-card {
@@ -118,209 +85,22 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title"><i class="bi bi-camera-video me-2"></i>Données Drones</h1>
-    <p class="page-description">Catalogue des orthophotos et couverture cartographique du campus.</p>
-  </div>
-  <a href="{% url 'drones:import_orthophoto' %}" class="btn btn-success">
-    <i class="bi bi-cloud-upload me-2"></i>Importer une orthophoto
-  </a>
-</div>
-
-<!-- ── KPI Band ── -->
-<div class="drone-kpi-band">
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#eff6ff;"><i class="bi bi-images" style="color:#1E3A8A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ total_orthophotos }}</div>
-      <div class="dkpi-lbl">Orthophotos</div>
-    </div>
-  </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-map" style="color:#16A34A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ surface_ha }} ha</div>
-      <div class="dkpi-lbl">Surface couverte</div>
-    </div>
-  </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#fefce8;"><i class="bi bi-rulers" style="color:#CA8A04;"></i></div>
-    <div>
-      <div class="dkpi-val">{% if res_moyenne %}{{ res_moyenne }} cm/px{% else %}—{% endif %}</div>
-      <div class="dkpi-lbl">Résolution moy.</div>
-    </div>
-  </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-geo-alt-fill" style="color:#16A34A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ nb_georeferencees }}</div>
-      <div class="dkpi-lbl">Géoréférencées</div>
-    </div>
+    <h1 class="page-title"><i class="bi bi-broadcast me-2"></i>Perspectives</h1>
+    <p class="page-description">Fonctionnalités explorées au-delà du périmètre principal de production cartographique.</p>
   </div>
 </div>
 
-<div class="row g-4">
-
-  <!-- ── Catalogue orthophotos ── -->
-  <div class="col-lg-8">
-
-    <!-- Barre de recherche -->
-    <form method="get" class="mb-3 d-flex gap-2">
-      <input type="text" name="q" value="{{ q }}" class="form-control"
-             placeholder="Rechercher une orthophoto, un opérateur...">
-      <button class="btn btn-primary px-4" type="submit">
-        <i class="bi bi-search"></i>
-      </button>
-      {% if q %}
-      <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-x"></i>
-      </a>
-      {% endif %}
-    </form>
-
-    {% if page_obj.object_list %}
-    <div class="row g-3">
-      {% for ortho in page_obj %}
-      <div class="col-sm-6 col-md-4">
-        <div class="ortho-card">
-          <div class="ortho-card-img">
-            {% with ext=ortho.fichier.name|lower %}
-              {% if '.tif' in ext or '.tiff' in ext %}
-              <div class="no-img"><i class="bi bi-file-earmark-image"></i></div>
-              {% else %}
-              <img src="{{ ortho.fichier.url }}" alt="{{ ortho.nom }}">
-              {% endif %}
-            {% endwith %}
-          </div>
-          <div class="ortho-card-body">
-            <div class="fw-semibold small text-truncate mb-1" title="{{ ortho.nom }}">{{ ortho.nom }}</div>
-            <div class="d-flex flex-wrap gap-1 mb-1">
-              <small class="text-muted">
-                <i class="bi bi-calendar3 me-1"></i>{{ ortho.date_prise|date:"d/m/Y" }}
-              </small>
-              {% if ortho.operateur %}
-              <small class="text-muted">
-                <i class="bi bi-person me-1"></i>{{ ortho.operateur }}
-              </small>
-              {% endif %}
-            </div>
-            <div class="d-flex flex-wrap gap-1">
-              {% if ortho.resolution %}
-              <span class="meta-badge"><i class="bi bi-rulers"></i>{{ ortho.resolution|floatformat:1 }} cm/px</span>
-              {% endif %}
-              {% if ortho.largeur_px and ortho.hauteur_px %}
-              <span class="meta-badge meta-badge-blue">
-                <i class="bi bi-aspect-ratio"></i>{{ ortho.largeur_px }}×{{ ortho.hauteur_px }}px
-              </span>
-              {% endif %}
-              {% if ortho.emprise %}
-              <span class="meta-badge"><i class="bi bi-bounding-box"></i>Géoréférencée</span>
-              {% endif %}
-            </div>
-            {% if ortho.systeme_proj %}
-            <div class="mt-1">
-              <span class="meta-badge meta-badge-blue" title="{{ ortho.systeme_proj }}"
-                    style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                <i class="bi bi-globe2"></i>{{ ortho.systeme_proj|truncatechars:18 }}
-              </span>
-            </div>
-            {% endif %}
-          </div>
-          <div class="ortho-card-actions">
-            <a href="{{ ortho.fichier.url }}" target="_blank"
-               class="btn btn-sm btn-outline-primary flex-grow-1">
-              <i class="bi bi-download me-1"></i>Télécharger
-            </a>
-            <a href="{% url 'drones:orthophoto_delete' ortho.pk %}"
-               class="btn btn-sm btn-outline-danger"
-               data-confirm="Supprimer « {{ ortho.nom }} » ?">
-              <i class="bi bi-trash"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Pagination -->
-    {% if page_obj.has_other_pages %}
-    <nav class="mt-4">
-      <ul class="pagination pagination-sm justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">
-            <i class="bi bi-chevron-left"></i>
-          </a>
-        </li>
-        {% endif %}
-        {% for num in page_obj.paginator.page_range %}
-        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-          <a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a>
-        </li>
-        {% endfor %}
-        {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">
-            <i class="bi bi-chevron-right"></i>
-          </a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
-
-    {% else %}
-    <div class="text-center py-5">
-      <i class="bi bi-cloud-upload fs-1 text-muted d-block mb-3"></i>
-      <h6 class="text-muted">Aucune orthophoto{% if q %} pour « {{ q }} »{% endif %}</h6>
-      <p class="text-muted small mb-4">
-        Traitez vos photos avec WebODM, puis importez les fichiers GeoTIFF résultants.<br>
-        Les métadonnées (emprise, résolution, CRS) seront extraites automatiquement.
-      </p>
-      <a href="{% url 'drones:import_orthophoto' %}" class="btn btn-success">
-        <i class="bi bi-cloud-upload me-2"></i>Importer la première orthophoto
-      </a>
-    </div>
-    {% endif %}
-
-  </div>
-
-  <!-- ── Carte de couverture ── -->
-  <div class="col-lg-4">
-    <div class="card">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-map text-primary"></i> Carte de couverture
-      </div>
-      <div class="card-body p-2">
-        <div id="coverage-map"></div>
-        {% if not has_geodata %}
-        <p class="text-muted small text-center mt-2 mb-0">
-          <i class="bi bi-info-circle me-1"></i>
-          Aucune donnée géoréférencée disponible.
-        </p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="card mt-3">
-      <div class="card-header d-flex align-items-center gap-2">
-        <i class="bi bi-cloud-upload text-success"></i> Importer
-      </div>
-      <div class="card-body text-center">
-        <p class="text-muted small mb-3">
-          Importez un fichier GeoTIFF, PNG ou JPEG.<br>
-          Les métadonnées sont extraites automatiquement.
-        </p>
-        <a href="{% url 'drones:import_orthophoto' %}" class="btn btn-success w-100">
-          <i class="bi bi-cloud-upload me-2"></i>Nouvelle orthophoto
-        </a>
-      </div>
-    </div>
-  </div>
-
+<div class="perspectives-note">
+  <i class="bi bi-info-circle me-2"></i>
+  Cette fonctionnalité de diffusion en direct (MediaMTX / RTSP / HLS / WebRTC) explore une perspective
+  d'évolution future du système au-delà du périmètre principal du mémoire, qui porte sur la production
+  cartographique par imagerie drone (missions → orthophotos → intégration). Elle est conservée ici à
+  titre expérimental, avec {{ flux_count }} vidéo{{ flux_count|pluralize }} enregistrée{{ flux_count|pluralize }}
+  et {{ photos_count }} photo{{ photos_count|pluralize }} capturée{{ photos_count|pluralize }} de manière ad-hoc.
 </div>
 
 <!-- ── Section Flux Live Drone ── -->
-<div class="row g-4 mt-2">
+<div class="row g-4">
   <div class="col-12">
     <div class="live-card">
 
@@ -502,29 +282,11 @@
 {% endblock %}
 
 {% block extra_js_vendor %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-/* ── Carte de couverture ── */
-var map = initCampusMap('coverage-map', {});
-{% if has_geodata %}
-var geojson = {{ coverage_geojson|safe }};
-var layer = L.geoJSON(geojson, {
-  style: { color: '#1E3A8A', fillColor: '#3b82f6', fillOpacity: 0.35, weight: 2 },
-  onEachFeature: function(f, l) {
-    var p = f.properties;
-    l.bindPopup(
-      '<strong>' + p.nom + '</strong><br>' +
-      '<small>' + p.date + (p.resolution ? ' · ' + p.resolution + ' cm/px' : '') + '</small>'
-    );
-  }
-}).addTo(map);
-map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 18 });
-{% endif %}
-
 /* ── Flux Live Drone ── */
 var hlsInstance = null;
 var liveProto = 'hls';

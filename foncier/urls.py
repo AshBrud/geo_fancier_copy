@@ -13,6 +13,7 @@ urlpatterns = [
     path('batiments/', views.batiments_list, name='batiments'),
     path('batiments/<int:pk>/', views.batiment_detail, name='batiment_detail'),
     path('batiments/ajouter/', views.batiment_create, name='batiment_create'),
+    path('batiments/importer-sig/', views.batiment_import_sig, name='batiment_import_sig'),
     path('batiments/<int:pk>/modifier/', views.batiment_update, name='batiment_update'),
     path('batiments/<int:pk>/supprimer/', views.batiment_delete, name='batiment_delete'),
     path('suivi-travaux/', views.suivi_travaux_list, name='suivi_travaux'),

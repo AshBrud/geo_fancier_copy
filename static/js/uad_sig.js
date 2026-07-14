@@ -68,7 +68,10 @@ function initCampusMap(containerId, options) {
   const defaultCenter = options.center || [14.696291168874254, -16.477368387258974];
   const defaultZoom   = options.zoom   || 17;
 
-  const map = L.map(containerId, { zoomControl: false }).setView(defaultCenter, defaultZoom);
+  const map = L.map(containerId, {
+    zoomControl: false,
+    maxZoom: options.maxZoom || 28,
+  }).setView(defaultCenter, defaultZoom);
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -78,13 +81,15 @@ function initCampusMap(containerId, options) {
 
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 22
+    maxZoom: 28,
+    maxNativeZoom: 19
   });
 
   const satellite = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
-    maxZoom: 22
+    maxZoom: 28,
+    maxNativeZoom: 19
   });
 
   osm.addTo(map);
@@ -129,6 +134,43 @@ function loadOrthophoto(map, tilesUrl, opts) {
     tms: opts.tms || false,
     attribution: 'Orthophoto GéoFoncier UAD — WebODM/QGIS',
   });
+}
+
+/* =====================================================
+   Charger l'orthophoto la plus récente comme carte
+   interactive principale (opacité 100%, vue calée sur
+   son emprise via tiles.json WebODM).
+   ===================================================== */
+function loadPriorityOrthophoto(map, opts) {
+  opts = opts || {};
+  var fit = opts.fit !== false;
+  return fetch('/api/orthophotos/')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.length) return null;
+      var m = data[0];
+      var layer = loadOrthophoto(map, m.tiles_url, { opacity: 1 });
+      layer.addTo(map);
+
+      if (fit) {
+        var tilesJsonUrl = m.tiles_url.split('/tiles/')[0] + '/tiles.json';
+        fetch(tilesJsonUrl)
+          .then(r => r.json())
+          .then(meta => {
+            if (meta.bounds && meta.bounds.length === 4) {
+              var b = meta.bounds;
+              map.fitBounds([[b[1], b[0]], [b[3], b[2]]], { maxZoom: 21 });
+            }
+          })
+          .catch(function () { /* pas grave, on garde la vue par défaut */ });
+      }
+
+      return layer;
+    })
+    .catch(function () {
+      console.warn('Orthophoto prioritaire non chargée.');
+      return null;
+    });
 }
 
 /* =====================================================
@@ -190,6 +232,117 @@ function loadBatiments(map, layerGroup) {
       }).addTo(layerGroup);
     })
     .catch(err => console.warn('Bâtiments non chargés:', err));
+  return layerGroup;
+}
+
+function loadTerrains(map, layerGroup) {
+  layerGroup = layerGroup || L.layerGroup().addTo(map);
+  fetch('/api/terrains/')
+    .then(r => r.json())
+    .then(data => {
+      layerGroup.clearLayers();
+      L.geoJSON(data, {
+        style: {
+          fillColor: '#A16207',
+          color: '#fff',
+          weight: 1.5,
+          fillOpacity: 0.5,
+        },
+        onEachFeature: function (feature, layer) {
+          const p = feature.properties;
+          layer.bindPopup(
+            `<strong>${p.nom}</strong><br>
+             Type: ${p.type_terrain || 'N/A'}<br>
+             État: ${p.etat || 'N/A'}<br>
+             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}`
+          );
+        }
+      }).addTo(layerGroup);
+    })
+    .catch(err => console.warn('Terrains non chargés:', err));
+  return layerGroup;
+}
+
+function loadEspacesVerts(map, layerGroup) {
+  layerGroup = layerGroup || L.layerGroup().addTo(map);
+  fetch('/api/espaces-verts/')
+    .then(r => r.json())
+    .then(data => {
+      layerGroup.clearLayers();
+      L.geoJSON(data, {
+        style: {
+          fillOpacity: 0,
+          color: '#22C55E',
+          weight: 2,
+        },
+        onEachFeature: function (feature, layer) {
+          const p = feature.properties;
+          layer.bindPopup(
+            `<strong>${p.nom}</strong><br>
+             Type: ${p.type_espace_vert || 'N/A'}<br>
+             État: ${p.etat || 'N/A'}<br>
+             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}`
+          );
+        }
+      }).addTo(layerGroup);
+    })
+    .catch(err => console.warn('Espaces verts non chargés:', err));
+  return layerGroup;
+}
+
+function loadVoiries(map, layerGroup) {
+  layerGroup = layerGroup || L.layerGroup().addTo(map);
+  fetch('/api/voiries/')
+    .then(r => r.json())
+    .then(data => {
+      layerGroup.clearLayers();
+      L.geoJSON(data, {
+        style: {
+          color: '#6B7280',
+          weight: 3,
+        },
+        onEachFeature: function (feature, layer) {
+          const p = feature.properties;
+          layer.bindPopup(
+            `<strong>${p.nom}</strong><br>
+             Type: ${p.type_voirie || 'N/A'}<br>
+             Revêtement: ${p.revetement || 'N/A'}<br>
+             État: ${p.etat || 'N/A'}<br>
+             Longueur: ${p.longueur ? p.longueur.toFixed(0) + ' m' : 'N/A'}`
+          );
+        }
+      }).addTo(layerGroup);
+    })
+    .catch(err => console.warn('Voiries non chargées:', err));
+  return layerGroup;
+}
+
+function loadPointsInteret(map, layerGroup) {
+  layerGroup = layerGroup || L.layerGroup().addTo(map);
+  fetch('/api/points-interet/')
+    .then(r => r.json())
+    .then(data => {
+      layerGroup.clearLayers();
+      L.geoJSON(data, {
+        pointToLayer: function (feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: 7,
+            fillColor: '#DB2777',
+            color: '#fff',
+            weight: 2,
+            fillOpacity: 0.9,
+          });
+        },
+        onEachFeature: function (feature, layer) {
+          const p = feature.properties;
+          layer.bindPopup(
+            `<strong>${p.nom}</strong><br>
+             Catégorie: ${p.categorie || 'N/A'}`
+          );
+        }
+      }).addTo(layerGroup);
+    })
+    .catch(err => console.warn('Points d\'intérêt non chargés:', err));
   return layerGroup;
 }
 

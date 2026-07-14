@@ -1,0 +1,36 @@
+
+{
+  "type": "FeatureCollection",
+  "name": "modele_espaces_campus",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "code": "ESP-001",
+        "nom": "Zone libre exemple",
+        "type_espace": "libre",
+        "usage": "Terrain disponible",
+        "description": "Exemple a remplacer par une vraie zone du campus",
+        "taux_occupation": 60
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-16.478000, 14.696000],
+            [-16.477700, 14.696000],
+            [-16.477700, 14.696250],
+            [-16.478000, 14.696250],
+            [-16.478000, 14.696000]
+          ]
+        ]
+      }
+    }
+  ]
+}

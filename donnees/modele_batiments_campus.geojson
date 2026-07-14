@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "name": "modele_batiments_campus",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "code": "BAT-001",
+        "nom": "Batiment exemple",
+        "fonction": "Enseignement",
+        "etages": 1,
+        "annee_construction": 2020,
+        "description": "Exemple a remplacer par un vrai batiment du campus"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-16.477500, 14.696100],
+            [-16.477400, 14.696100],
+            [-16.477400, 14.696200],
+            [-16.477500, 14.696200],
+            [-16.477500, 14.696100]
+          ]
+        ]
+      }
+    }
+  ]
+}

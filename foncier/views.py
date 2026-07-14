@@ -15,20 +15,38 @@ from accounts.decorators import foncier_required, domaine_required
 
 @login_required
 def cartographie(request):
-    from drones.models import Orthophoto
-    orthos = list(
-        Orthophoto.objects.filter(tiles_url__gt='')
-        .values('id', 'nom', 'date_prise', 'tiles_url', 'operateur')
+    from drones.models import Orthophoto, Mission
+    from .models import Terrain, EspaceVert, Voirie, PointInteret
+    ortho_qs = (
+        Orthophoto.objects.filter(
+            tiles_url__gt='',
+            valide=True,
+        )
+        .filter(Q(mission__isnull=True) | Q(mission__statut=Mission.STATUT_INTEGREE))
         .order_by('-date_prise')
     )
-    for o in orthos:
-        o['date_mission'] = o['date_prise'].strftime('%d/%m/%Y') if o['date_prise'] else ''
+    orthos = [
+        {
+            'id': o.id,
+            'nom': o.nom,
+            'date_prise': o.date_prise,
+            'tiles_url': o.tiles_url,
+            'operateur': o.operateur,
+            'bounds': o.emprise.extent if o.emprise else None,
+            'date_mission': o.date_prise.strftime('%d/%m/%Y') if o.date_prise else '',
+        }
+        for o in ortho_qs
+    ]
     return render(request, 'cartographie/map.html', {
         'orthophotos_json': json.dumps(orthos, ensure_ascii=False, default=str),
         'nb_orthophotos': len(orthos),
         'total_espaces': Espace.objects.count(),
         'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
         'total_batiments': Batiment.objects.filter(est_actif=True).count(),
+        'nb_terrains': Terrain.objects.count(),
+        'nb_espaces_verts': EspaceVert.objects.count(),
+        'nb_voiries': Voirie.objects.count(),
+        'nb_points_interet': PointInteret.objects.count(),
     })
 
 
@@ -69,16 +87,34 @@ def espaces_list(request):
     sup_constructible_totale = sum(
         (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_actifs
     )
+    pks_allouees = set()
+    pks_allouees_libres = set()
+    for e in espaces_actifs:
+        pks = NC.pks_pour_espace(e)
+        pks_allouees.update(pks)
+        if e.type_espace == Espace.TYPE_LIBRE:
+            pks_allouees_libres.update(pks)
+    sup_allouee_totale = sum(
+        c.superficie_souhaitee or 0
+        for c in NC.objects.filter(pk__in=pks_allouees)
+    ) if pks_allouees else 0.0
+    sup_allouee_libre = sum(
+        c.superficie_souhaitee or 0
+        for c in NC.objects.filter(pk__in=pks_allouees_libres)
+    ) if pks_allouees_libres else 0.0
+    sup_batie_totale = sum(e.superficie_batie for e in espaces_actifs)
+    sup_batie_libre = sum(
+        e.superficie_batie for e in espaces_actifs if e.type_espace == Espace.TYPE_LIBRE
+    )
+    if Espace.TYPE_LIBRE in stats:
+        stats[Espace.TYPE_LIBRE]['total'] = max(
+            0.0, (stats[Espace.TYPE_LIBRE]['total'] or 0) - sup_allouee_libre - sup_batie_libre
+        )
+    sup_constructible_nette = max(
+        0.0, sup_constructible_totale - sup_allouee_totale - sup_batie_totale
+    )
 
     # Constructions engagées par espace (via FK direct — 1 seule requête)
-    nc_engagee_par_espace = {}
-    for row in NC.objects.filter(
-        statut__in=NC.STATUTS_ENGAGES,
-        espace_souhaitee__isnull=False,
-    ).values('espace_souhaitee_id', 'superficie_souhaitee'):
-        eid = row['espace_souhaitee_id']
-        nc_engagee_par_espace[eid] = nc_engagee_par_espace.get(eid, 0.0) + (row['superficie_souhaitee'] or 0)
-
     # Nb constructions totales par espace (via FK direct)
     nc_count_par_espace = dict(
         NC.objects.filter(espace_souhaitee__isnull=False)
@@ -90,19 +126,18 @@ def espaces_list(request):
     # Nb espaces saturés (>= 80%) — tous espaces actifs
     nb_espaces_satures = 0
     for e in espaces_actifs:
-        sc = (e.superficie or 0) * (e.taux_occupation / 100)
-        if sc > 0 and (nc_engagee_par_espace.get(e.pk, 0) / sc) >= 0.80:
+        bilan = NC.bilan_espace(e)
+        if bilan['constructible'] > 0 and (bilan['occupee'] / bilan['constructible']) >= 0.80:
             nb_espaces_satures += 1
 
     # Enrichir chaque espace de la page avec les données de capacité
     for esp in page.object_list:
         if esp.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE):
-            sc  = (esp.superficie or 0) * (esp.taux_occupation / 100)
-            se  = nc_engagee_par_espace.get(esp.pk, 0.0)
-            pct = round(se / sc * 100, 1) if sc else 0.0
-            esp.cap_constructible = round(sc)
-            esp.cap_engagee       = round(se)
-            esp.cap_nette         = round(max(0.0, sc - se))
+            bilan = NC.bilan_espace(esp)
+            pct = bilan['pct']
+            esp.cap_constructible = round(bilan['constructible'])
+            esp.cap_engagee       = round(bilan['allouee'])
+            esp.cap_nette         = round(bilan['nette'])
             esp.cap_pct           = pct
             esp.cap_niveau        = 'danger' if pct >= 80 else ('warning' if pct >= 50 else 'success')
         else:
@@ -121,6 +156,8 @@ def espaces_list(request):
         'superficie_campus_ha':        round(SUPERFICIE_CAMPUS_M2 / 10000, 2),
         'sup_constructible_totale':    round(sup_constructible_totale),
         'sup_constructible_totale_ha': round(sup_constructible_totale / 10000, 2),
+        'sup_constructible_nette':     round(sup_constructible_nette),
+        'sup_constructible_nette_ha':  round(sup_constructible_nette / 10000, 2),
         'nb_espaces_satures':          nb_espaces_satures,
     })
 
@@ -135,19 +172,9 @@ def espace_detail(request, pk):
     actif            = espace.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE)
     sup_constructible = sup_brute * (espace.taux_occupation / 100) if actif else 0
 
-    def _pks(statuts):
-        base = NC.objects.filter(statut__in=statuts)
-        pks  = set(base.filter(espace_souhaitee=espace).values_list('pk', flat=True))
-        if espace.geometrie:
-            pks.update(base.filter(
-                zone_souhaitee__isnull=False,
-                zone_souhaitee__intersects=espace.geometrie,
-            ).values_list('pk', flat=True))
-        return pks
-
-    pks_eng = _pks(NC.STATUTS_ENGAGES)
-    pks_att = _pks([NC.STATUT_EN_COURS])
-    pks_all = _pks([s for s, _ in NC.STATUTS])
+    pks_eng = NC.pks_pour_espace(espace, NC.STATUTS_ENGAGES)
+    pks_att = NC.pks_pour_espace(espace, [NC.STATUT_EN_COURS])
+    pks_all = NC.pks_pour_espace(espace, [s for s, _ in NC.STATUTS])
 
     qs_eng = NC.objects.filter(pk__in=pks_eng).select_related('demandeur').order_by('-date_demande')
     qs_att = NC.objects.filter(pk__in=pks_att).select_related('demandeur').order_by('-date_demande')
@@ -155,8 +182,10 @@ def espace_detail(request, pk):
 
     sup_engagee = sum(c.superficie_souhaitee or 0 for c in qs_eng)
     sup_attente = sum(c.superficie_souhaitee or 0 for c in qs_att)
-    sup_nette   = max(0.0, sup_constructible - sup_engagee)
-    pct_utilise = round(sup_engagee / sup_constructible * 100, 1) if sup_constructible else 0.0
+    sup_batie   = espace.superficie_batie if actif else 0.0
+    sup_occupee = sup_engagee + sup_batie
+    sup_nette   = max(0.0, sup_constructible - sup_occupee)
+    pct_utilise = round(sup_occupee / sup_constructible * 100, 1) if sup_constructible else 0.0
 
     if pct_utilise >= 80:   niveau = 'danger'
     elif pct_utilise >= 50: niveau = 'warning'
@@ -173,6 +202,8 @@ def espace_detail(request, pk):
         'actif':                 actif,
         'sup_constructible':     round(sup_constructible),
         'sup_engagee':           round(sup_engagee),
+        'sup_batie':             round(sup_batie),
+        'sup_occupee':           round(sup_occupee),
         'sup_nette':             round(sup_nette),
         'sup_attente':           round(sup_attente),
         'pct_utilise':           pct_utilise,
@@ -229,6 +260,24 @@ def espace_delete(request, pk):
 
 # --- Bâtiments ---
 
+def _espaces_libres_json():
+    espaces = []
+    for espace in Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).order_by('nom'):
+        if not espace.geometrie:
+            continue
+        espaces.append({
+            'type': 'Feature',
+            'geometry': json.loads(espace.geometrie.geojson),
+            'properties': {
+                'id': espace.pk,
+                'code': espace.code,
+                'nom': espace.nom,
+                'superficie': espace.superficie,
+            },
+        })
+    return json.dumps(espaces, ensure_ascii=False)
+
+
 @login_required
 def batiments_list(request):
     qs = Batiment.objects.select_related('fonction').all()
@@ -264,7 +313,10 @@ def batiment_create(request):
         messages.success(request, f'Bâtiment « {bat.nom} » créé avec succès.')
         return redirect('foncier:batiments')
     return render(request, 'foncier/batiment_form.html', {
-        'form': form, 'action': 'Ajouter un bâtiment', 'obj': None
+        'form': form,
+        'action': 'Ajouter un bâtiment',
+        'obj': None,
+        'espaces_libres_json': _espaces_libres_json(),
     })
 
 
@@ -278,7 +330,10 @@ def batiment_update(request, pk):
         messages.success(request, f'Bâtiment « {bat.nom} » modifié.')
         return redirect('foncier:batiments')
     return render(request, 'foncier/batiment_form.html', {
-        'form': form, 'action': 'Modifier le bâtiment', 'obj': bat
+        'form': form,
+        'action': 'Modifier le bâtiment',
+        'obj': bat,
+        'espaces_libres_json': _espaces_libres_json(),
     })
 
 
@@ -293,6 +348,51 @@ def batiment_delete(request, pk):
         return redirect('foncier:batiments')
     return render(request, 'foncier/confirm_delete.html', {
         'obj': bat, 'type': 'le bâtiment', 'back_url': 'foncier:batiments'
+    })
+
+
+@login_required
+@domaine_required
+def batiment_import_sig(request):
+    import os
+    import tempfile
+    from django.core.management.base import CommandError
+    from .forms import BatimentImportForm
+    from .management.commands._sig_import import sync_batiments
+
+    form = BatimentImportForm(request.POST or None, request.FILES or None)
+    resultat = None
+
+    if request.method == 'POST' and form.is_valid():
+        fichier = form.cleaned_data['fichier']
+        suffix = os.path.splitext(fichier.name)[1] or '.geojson'
+        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        try:
+            for chunk in fichier.chunks():
+                tmp.write(chunk)
+            tmp.close()
+            resultat = sync_batiments(
+                tmp.name,
+                source_crs=form.cleaned_data.get('source_crs') or None,
+                dry_run=form.cleaned_data['dry_run'],
+            )
+            if resultat['created'] or resultat['updated']:
+                verbe = 'Prévisualisation' if form.cleaned_data['dry_run'] else 'Import'
+                messages.success(
+                    request,
+                    f"{verbe} terminé(e) : {resultat['created']} créé(s), "
+                    f"{resultat['updated']} mis à jour, {resultat['skipped']} ignoré(s)."
+                )
+            else:
+                messages.warning(request, "Aucun bâtiment valide trouvé dans ce fichier.")
+        except CommandError as exc:
+            messages.error(request, str(exc))
+        finally:
+            os.unlink(tmp.name)
+
+    return render(request, 'foncier/batiment_import_sig.html', {
+        'form': form,
+        'resultat': resultat,
     })
 
 

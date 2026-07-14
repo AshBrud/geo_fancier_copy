@@ -1,6 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.gis.db.models.functions import Area
 from django.contrib.gis.measure import A
+from django.db.models import Sum
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
@@ -70,6 +71,15 @@ class Espace(models.Model):
             return round(self.superficie / 10000, 4)
         return None
 
+    @property
+    def superficie_batie(self):
+        """Superficie cumulée des bâtiments déjà construits dans cet espace."""
+        if not self.geometrie:
+            return 0.0
+        return Batiment.objects.filter(
+            geometrie__intersects=self.geometrie
+        ).aggregate(t=Sum('superficie'))['t'] or 0.0
+
 
 class FonctionBatiment(models.Model):
     nom = models.CharField(max_length=100, unique=True)
@@ -120,6 +130,115 @@ class Batiment(models.Model):
         if self.superficie:
             return round(self.superficie / 10000, 4)
         return None
+
+
+class Terrain(models.Model):
+    """Terrain nu ou réserve foncière, importé depuis les levés QGIS/PostGIS."""
+    nom = models.CharField(max_length=200, verbose_name='Nom')
+    type_terrain = models.CharField(max_length=100, blank=True, verbose_name='Type')
+    etat = models.CharField(max_length=100, blank=True, verbose_name='État')
+    geometrie = models.MultiPolygonField(srid=4326, verbose_name='Géométrie')
+    superficie = models.FloatField(blank=True, null=True, verbose_name='Superficie (m²)')
+    observation = models.TextField(blank=True, verbose_name='Observation')
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Terrain'
+        verbose_name_plural = 'Terrains'
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+    def save(self, *args, **kwargs):
+        if self.geometrie:
+            geom_utm = self.geometrie.transform(32628, clone=True)
+            self.superficie = round(geom_utm.area, 2)
+        super().save(*args, **kwargs)
+
+    @property
+    def superficie_ha(self):
+        if self.superficie:
+            return round(self.superficie / 10000, 4)
+        return None
+
+
+class EspaceVert(models.Model):
+    """Espace vert (pelouse, jardin, zone plantée), importé depuis les levés QGIS/PostGIS."""
+    nom = models.CharField(max_length=200, verbose_name='Nom')
+    type_espace_vert = models.CharField(max_length=100, blank=True, verbose_name='Type')
+    etat = models.CharField(max_length=100, blank=True, verbose_name='État')
+    geometrie = models.MultiPolygonField(srid=4326, verbose_name='Géométrie')
+    superficie = models.FloatField(blank=True, null=True, verbose_name='Superficie (m²)')
+    observation = models.TextField(blank=True, verbose_name='Observation')
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Espace vert'
+        verbose_name_plural = 'Espaces verts'
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+    def save(self, *args, **kwargs):
+        if self.geometrie:
+            geom_utm = self.geometrie.transform(32628, clone=True)
+            self.superficie = round(geom_utm.area, 2)
+        super().save(*args, **kwargs)
+
+    @property
+    def superficie_ha(self):
+        if self.superficie:
+            return round(self.superficie / 10000, 4)
+        return None
+
+
+class Voirie(models.Model):
+    """Route, allée ou piste du campus, importée depuis les levés QGIS/PostGIS."""
+    nom = models.CharField(max_length=200, verbose_name='Nom')
+    type_voirie = models.CharField(max_length=100, blank=True, verbose_name='Type')
+    revetement = models.CharField(max_length=100, blank=True, verbose_name='Revêtement')
+    etat = models.CharField(max_length=100, blank=True, verbose_name='État')
+    geometrie = models.MultiLineStringField(srid=4326, verbose_name='Géométrie')
+    longueur = models.FloatField(blank=True, null=True, verbose_name='Longueur (m)')
+    observation = models.TextField(blank=True, verbose_name='Observation')
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Voirie'
+        verbose_name_plural = 'Voiries'
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+    def save(self, *args, **kwargs):
+        if self.geometrie:
+            geom_utm = self.geometrie.transform(32628, clone=True)
+            self.longueur = round(geom_utm.length, 2)
+        super().save(*args, **kwargs)
+
+
+class PointInteret(models.Model):
+    """Point d'intérêt du campus (entrée, parking, terrain de sport…)."""
+    nom = models.CharField(max_length=200, verbose_name='Nom')
+    categorie = models.CharField(max_length=100, blank=True, verbose_name='Catégorie')
+    geometrie = models.PointField(srid=4326, verbose_name='Géométrie')
+    observation = models.TextField(blank=True, verbose_name='Observation')
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Point d'intérêt"
+        verbose_name_plural = "Points d'intérêt"
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
 
 
 class SuiviTravaux(models.Model):

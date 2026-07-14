@@ -1,9 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from django.db.models import Sum, Count
-from .models import Espace, Batiment
-from .serializers import EspaceSerializer, BatimentSerializer
+from django.db.models import Sum, Count, Q
+from .models import Espace, Batiment, Terrain, EspaceVert, Voirie, PointInteret
+from .serializers import (
+    EspaceSerializer, BatimentSerializer,
+    TerrainSerializer, EspaceVertSerializer, VoirieSerializer, PointInteretSerializer,
+)
 
 
 class EspaceAPIView(APIView):
@@ -58,3 +61,55 @@ class StatsAPIView(APIView):
             ),
             'par_type': stats,
         })
+
+
+class OrthophotoAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from drones.models import Orthophoto, Mission
+
+        orthos = Orthophoto.objects.filter(
+            tiles_url__gt='',
+            valide=True,
+        ).filter(
+            Q(mission__isnull=True) | Q(mission__statut=Mission.STATUT_INTEGREE)
+        ).order_by('-date_prise').values('id', 'nom', 'date_prise', 'tiles_url', 'operateur')
+
+        data = [
+            {**o, 'date_prise': o['date_prise'].isoformat() if o['date_prise'] else None}
+            for o in orthos
+        ]
+        return Response(data)
+
+
+class TerrainAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = TerrainSerializer(Terrain.objects.all(), many=True)
+        return Response(serializer.data)
+
+
+class EspaceVertAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = EspaceVertSerializer(EspaceVert.objects.all(), many=True)
+        return Response(serializer.data)
+
+
+class VoirieAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = VoirieSerializer(Voirie.objects.all(), many=True)
+        return Response(serializer.data)
+
+
+class PointInteretAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        serializer = PointInteretSerializer(PointInteret.objects.all(), many=True)
+        return Response(serializer.data)

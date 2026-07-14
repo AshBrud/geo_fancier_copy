@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.conf import settings
+from django.utils import timezone
 from datetime import date as _today, datetime
 from django.core.paginator import Paginator
 from django.db.models import Q, Avg
@@ -12,8 +13,8 @@ import sys
 import subprocess
 import shutil
 import signal as _signal
-from .models import Orthophoto, FluxVideo, PhotoDrone
-from .forms import OrthophotoImportForm
+from .models import Orthophoto, FluxVideo, PhotoDrone, Mission
+from .forms import OrthophotoImportForm, MissionForm
 from accounts.decorators import domaine_required
 
 # Enregistrements actifs (par utilisateur — clé = user.pk)
@@ -82,32 +83,32 @@ def _extraire_metadata_geotiff(filepath):
         return {}
 
 
-# ── Hub orthophotos ───────────────────────────────────────────────────────────
+# ── Hub missions ──────────────────────────────────────────────────────────────
 
 @login_required
 @domaine_required
-def orthophotos_list(request):
-    """Hub de données drones — catalogue orthophotos + carte de couverture."""
+def mission_list(request):
+    """Hub principal — missions de vol, KPI de production cartographique et couverture."""
     q = request.GET.get('q', '')
+    statut = request.GET.get('statut', '')
 
-    qs = Orthophoto.objects.all().order_by('-date_prise')
+    qs = Mission.objects.all()
     if q:
         qs = qs.filter(Q(nom__icontains=q) | Q(operateur__icontains=q))
+    if statut:
+        qs = qs.filter(statut=statut)
 
-    paginator = Paginator(qs, 12)
-    page      = paginator.get_page(request.GET.get('page'))
+    paginator = Paginator(qs, 10)
+    page = paginator.get_page(request.GET.get('page'))
 
     all_orthos  = Orthophoto.objects.all()
     res_moyenne = all_orthos.filter(resolution__isnull=False).aggregate(avg=Avg('resolution'))['avg']
-    nb_georef   = all_orthos.filter(emprise__isnull=False).count()
 
     surface_ha = 0.0
     for ortho in all_orthos.filter(emprise__isnull=False):
-        try:
-            geom_utm = ortho.emprise.transform(32628, clone=True)
-            surface_ha += geom_utm.area / 10000
-        except Exception:
-            pass
+        sup = ortho.superficie_ha
+        if sup:
+            surface_ha += sup
 
     features = []
     for ortho in all_orthos.filter(emprise__isnull=False):
@@ -121,14 +122,18 @@ def orthophotos_list(request):
                 'operateur':  ortho.operateur,
                 'pk':         ortho.pk,
                 'layer_type': 'orthophoto',
+                'tiles_url':  ortho.tiles_url,
             },
         })
 
-    return render(request, 'drones/orthophotos_list.html', {
+    return render(request, 'drones/mission_list.html', {
         'page_obj':          page,
         'q':                 q,
+        'statut':            statut,
+        'statuts':           Mission.STATUTS,
+        'nb_missions':       Mission.objects.count(),
         'total_orthophotos': all_orthos.count(),
-        'nb_georeferencees': nb_georef,
+        'nb_validees':       all_orthos.filter(valide=True).count(),
         'res_moyenne':       round(res_moyenne, 1) if res_moyenne else None,
         'surface_ha':        round(surface_ha, 2),
         'coverage_geojson':  _json.dumps({'type': 'FeatureCollection', 'features': features}),
@@ -138,13 +143,100 @@ def orthophotos_list(request):
 
 @login_required
 @domaine_required
-def import_orthophoto(request):
+def mission_create(request):
+    form = MissionForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        mission = form.save()
+        messages.success(request, f'Mission « {mission.nom} » créée.')
+        return redirect('drones:mission_detail', pk=mission.pk)
+    return render(request, 'drones/mission_form.html', {'form': form, 'mission': None})
+
+
+@login_required
+@domaine_required
+def mission_update(request, pk):
+    mission = get_object_or_404(Mission, pk=pk)
+    form = MissionForm(request.POST or None, instance=mission)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, f'Mission « {mission.nom} » mise à jour.')
+        return redirect('drones:mission_detail', pk=mission.pk)
+    return render(request, 'drones/mission_form.html', {'form': form, 'mission': mission})
+
+
+@login_required
+@domaine_required
+def mission_delete(request, pk):
+    mission = get_object_or_404(Mission, pk=pk)
+    if request.method == 'POST':
+        nom = mission.nom
+        mission.delete()
+        messages.success(request, f'Mission « {nom} » supprimée. Les photos et orthophotos associées sont conservées.')
+        return redirect('drones:missions')
+    return render(request, 'drones/confirm_delete.html', {'obj': mission})
+
+
+@login_required
+@domaine_required
+def mission_detail(request, pk):
+    mission = get_object_or_404(Mission, pk=pk)
+    orthophoto = mission.orthophotos.order_by('-date_ajout').first()
+    photos = mission.photos.order_by('-date_capture')
+    return render(request, 'drones/mission_detail.html', {
+        'mission':    mission,
+        'orthophoto': orthophoto,
+        'photos':     photos,
+    })
+
+
+@login_required
+@domaine_required
+def mission_marquer_traitement(request, pk):
+    mission = get_object_or_404(Mission, pk=pk)
+    if request.method == 'POST' and mission.statut == Mission.STATUT_ATTENTE:
+        mission.statut = Mission.STATUT_TRAITEMENT
+        mission.save()
+        messages.success(request, f'Mission « {mission.nom} » marquée en traitement photogrammétrique.')
+    return redirect('drones:mission_detail', pk=mission.pk)
+
+
+# ── Import photos (mission) ───────────────────────────────────────────────────
+
+@login_required
+@domaine_required
+def mission_photos_import(request, pk):
+    mission = get_object_or_404(Mission, pk=pk)
+    if request.method == 'POST':
+        fichiers = request.FILES.getlist('images')
+        if not fichiers:
+            messages.error(request, 'Aucune photo sélectionnée.')
+        else:
+            for f in fichiers:
+                PhotoDrone.objects.create(
+                    nom=f.name, image=f, mission=mission,
+                    operateur=mission.operateur,
+                )
+            if mission.statut == Mission.STATUT_ATTENTE:
+                mission.statut = Mission.STATUT_TRAITEMENT
+                mission.save()
+            messages.success(request, f'{len(fichiers)} photo(s) importée(s) pour la mission « {mission.nom} ».')
+            return redirect('drones:mission_detail', pk=mission.pk)
+    return render(request, 'drones/mission_photos_import.html', {'mission': mission})
+
+
+# ── Import orthophoto (autonome ou lié à une mission) ─────────────────────────
+
+@login_required
+@domaine_required
+def import_orthophoto(request, pk=None):
     """Import d'une orthophoto avec extraction automatique des métadonnées GeoTIFF."""
+    mission = get_object_or_404(Mission, pk=pk) if pk else None
     form = OrthophotoImportForm(request.POST or None, request.FILES or None)
 
     if request.method == 'POST' and form.is_valid():
         ortho = form.save(commit=False)
         ortho.date_prise = _today.today()
+        ortho.mission = mission
         ortho.save()
 
         ext = os.path.splitext(ortho.fichier.name)[1].lower()
@@ -172,20 +264,74 @@ def import_orthophoto(request):
         else:
             messages.success(request, f'Orthophoto « {ortho.nom} » importée.')
 
+        if mission and mission.statut == Mission.STATUT_TRAITEMENT:
+            mission.statut = Mission.STATUT_TRAITEE
+            mission.save()
+
+        if mission:
+            return redirect('drones:mission_detail', pk=mission.pk)
         return redirect('drones:missions')
 
-    return render(request, 'drones/import_orthophoto.html', {'form': form})
+    return render(request, 'drones/import_orthophoto.html', {'form': form, 'mission': mission})
 
 
 @login_required
 @domaine_required
 def orthophoto_delete(request, pk):
     ortho = get_object_or_404(Orthophoto, pk=pk)
+    mission_pk = ortho.mission_id
     if request.method == 'POST':
         ortho.delete()
         messages.success(request, 'Orthophoto supprimée.')
+        if mission_pk:
+            return redirect('drones:mission_detail', pk=mission_pk)
         return redirect('drones:missions')
     return render(request, 'drones/confirm_delete.html', {'obj': ortho})
+
+
+@login_required
+@domaine_required
+def orthophoto_validate(request, pk):
+    ortho = get_object_or_404(Orthophoto, pk=pk)
+    if request.method == 'POST':
+        ortho.valide = True
+        ortho.date_validation = timezone.now()
+        ortho.validateur = request.user
+        ortho.save()
+        messages.success(request, f'Orthophoto « {ortho.nom} » validée.')
+    if ortho.mission_id:
+        return redirect('drones:mission_detail', pk=ortho.mission_id)
+    return redirect('drones:missions')
+
+
+@login_required
+@domaine_required
+def orthophoto_integrate(request, pk):
+    ortho = get_object_or_404(Orthophoto, pk=pk)
+    if request.method == 'POST':
+        if not ortho.valide:
+            messages.error(request, "L'orthophoto doit être validée avant d'être intégrée à la cartographie.")
+        elif not ortho.tiles_url:
+            messages.error(request, "Une URL de tuiles (WebODM) est requise pour afficher l'orthophoto sur la carte.")
+        else:
+            if ortho.mission:
+                ortho.mission.statut = Mission.STATUT_INTEGREE
+                ortho.mission.save()
+            messages.success(request, f'Orthophoto « {ortho.nom} » intégrée à la cartographie principale.')
+    if ortho.mission_id:
+        return redirect('drones:mission_detail', pk=ortho.mission_id)
+    return redirect('drones:missions')
+
+
+# ── Perspectives (flux live drone — hors périmètre principal) ────────────────
+
+@login_required
+@domaine_required
+def perspectives(request):
+    return render(request, 'drones/perspectives.html', {
+        'flux_count': FluxVideo.objects.count(),
+        'photos_count': PhotoDrone.objects.filter(mission__isnull=True).count(),
+    })
 
 
 # ── Enregistrement flux live (FFmpeg) ────────────────────────────────────────
@@ -337,6 +483,7 @@ def capture_photo(request):
         data       = _json.loads(request.body)
         image_data = data.get('image', '')
         nom        = data.get('nom', '').strip()
+        mission_id = data.get('mission_id')
     except Exception:
         return JsonResponse({'error': 'Données invalides'}, status=400)
 
@@ -354,8 +501,11 @@ def capture_photo(request):
     except Exception:
         return JsonResponse({'error': 'Décodage base64 échoué'}, status=400)
 
+    mission = Mission.objects.filter(pk=mission_id).first() if mission_id else None
+
     photo = PhotoDrone(
         nom=nom,
+        mission=mission,
         operateur=request.user.get_full_name() or request.user.username,
     )
     photo.image.save(filename, content, save=True)

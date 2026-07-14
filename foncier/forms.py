@@ -125,6 +125,42 @@ class BatimentForm(forms.ModelForm):
         return _to_multipolygon(geom)
 
 
+class BatimentImportForm(forms.Form):
+    fichier = forms.FileField(
+        label='Fichier SIG (GeoJSON, GPKG, Shapefile...)',
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': '.geojson,.json,.gpkg,.shp,.zip',
+        }),
+    )
+    source_crs = forms.CharField(
+        label='Projection source (si absente du fichier)',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 'placeholder': 'Ex : EPSG:32628',
+        }),
+    )
+    dry_run = forms.BooleanField(
+        label='Prévisualiser seulement (sans écrire en base)',
+        required=False, initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            'fichier',
+            'source_crs',
+            'dry_run',
+            ButtonHolder(
+                Submit('submit', 'Analyser / Importer', css_class='btn btn-primary'),
+                Button('cancel', 'Annuler', css_class='btn btn-secondary ms-2',
+                       onclick='window.history.back()'),
+            )
+        )
+
+
 class SuiviTravauxForm(forms.ModelForm):
     class Meta:
         model = SuiviTravaux

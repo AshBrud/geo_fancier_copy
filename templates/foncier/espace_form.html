@@ -413,6 +413,7 @@ drawMap.on(L.Draw.Event.DELETED, function() {
 
 loadEspaces(drawMap);
 loadBatiments(drawMap);
+loadPriorityOrthophoto(drawMap, { fit: false });
 
 // ── Superficie en temps réel ───────────────────────────────────────────────
 function updateSurface() {

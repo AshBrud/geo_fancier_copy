@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.debug_middleware.SessionDebugMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -117,6 +118,12 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# TEST DIAGNOSTIC TEMPORAIRE — a retirer une fois la cause confirmee
+SESSION_COOKIE_NAME = 'geofoncier_sid'
+
+# Session expirée après 30 min (depuis la connexion)
+SESSION_COOKIE_AGE = 1800
 
 # E-mail (console en développement — remplacer par SMTP en production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

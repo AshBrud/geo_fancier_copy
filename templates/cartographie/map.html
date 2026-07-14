@@ -293,35 +293,6 @@
         </div>
       </div>
 
-      <!-- Couches vecteur -->
-      <div class="cs-section">
-        <div class="cs-section-title">Couches vecteur</div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#16A34A;"></span>
-            <span class="layer-name">Espaces fonciers</span>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="layer-count">{{ total_espaces }}</span>
-            <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="layerEspaces" checked style="cursor:pointer;">
-            </div>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#1E3A8A;"></span>
-            <span class="layer-name">Bâtiments</span>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="layer-count">{{ total_batiments }}</span>
-            <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="layerBatiments" checked style="cursor:pointer;">
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Orthophotos WebODM -->
       <div class="cs-section">
         <div class="cs-section-title">
@@ -335,11 +306,6 @@
       <!-- Légende -->
       <div class="cs-section">
         <div class="cs-section-title">Légende</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#16A34A;"></span> Espaces libres</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#DC2626;"></span> Espaces occupés</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span> Espaces réservés</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#6B7280;"></span> Routes / Voies</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Bâtiments</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#0891b2;"></span> Orthophotos drone</div>
       </div>
 
@@ -347,18 +313,6 @@
 
     <!-- Statistiques en pied -->
     <div class="carto-sidebar-foot">
-      <div class="carto-stat-row">
-        <span><i class="bi bi-grid-3x3-gap me-1 text-muted"></i>Total espaces</span>
-        <span class="carto-stat-val">{{ total_espaces }}</span>
-      </div>
-      <div class="carto-stat-row">
-        <span><i class="bi bi-patch-check me-1 text-success"></i>Libres</span>
-        <span class="carto-stat-val text-success">{{ nb_espaces_libres }}</span>
-      </div>
-      <div class="carto-stat-row">
-        <span><i class="bi bi-building me-1 text-primary"></i>Bâtiments actifs</span>
-        <span class="carto-stat-val">{{ total_batiments }}</span>
-      </div>
       <div class="carto-stat-row">
         <span><i class="bi bi-camera-video me-1 text-info"></i>Orthophotos</span>
         <span class="carto-stat-val">{{ nb_orthophotos }}</span>
@@ -407,8 +361,6 @@
 
   /* ---- Initialisation carte ---- */
   var map = initCampusMap('campus-map', { hideLayerControl: true });
-  var layerEspaces   = loadEspaces(map);
-  var layerBatiments = loadBatiments(map);
 
   /* ---- Fond de carte ---- */
   function setBase(id) {
@@ -427,14 +379,6 @@
   document.getElementById('btnOsm').addEventListener('click', function () { setBase('osm'); });
   document.getElementById('btnSatellite').addEventListener('click', function () { setBase('satellite'); });
 
-  /* ---- Couches vecteur ---- */
-  document.getElementById('layerEspaces').addEventListener('change', function () {
-    this.checked ? map.addLayer(layerEspaces) : map.removeLayer(layerEspaces);
-  });
-  document.getElementById('layerBatiments').addEventListener('change', function () {
-    this.checked ? map.addLayer(layerBatiments) : map.removeLayer(layerBatiments);
-  });
-
   /* ---- Orthophotos ---- */
   var orthoContainer = document.getElementById('orthoLayers');
   var orthoLayers    = {};
@@ -447,28 +391,36 @@
       '<span style="font-size:10.5px;">Traitez une mission via WebODM puis configurez l\'URL des tuiles.</span>' +
       '</div>';
   } else {
-    ORTHOPHOTOS.forEach(function (m) {
-      orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url);
+    ORTHOPHOTOS.forEach(function (m, idx) {
+      // La plus récente orthophoto validée sert de carte interactive principale :
+      // opacité pleine, affichée par défaut, et la vue se cale sur son emprise.
+      var isPriority = idx === 0;
+      var defaultOpacity = isPriority ? 100 : 85;
+      orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url, { opacity: defaultOpacity / 100, maxNativeZoom: 24 });
 
       var card = document.createElement('div');
-      card.className = 'ortho-card';
+      card.className = 'ortho-card' + (isPriority ? ' is-active' : '');
       card.id = 'orthoCard_' + m.id;
       card.innerHTML =
         '<div class="ortho-card-hdr">' +
           '<div class="ortho-card-info">' +
-            '<div class="ortho-card-name" title="' + m.nom + '">' + m.nom + '</div>' +
+            '<div class="ortho-card-name" title="' + m.nom + '">' +
+              (isPriority ? '<i class="bi bi-star-fill me-1" title="Carte interactive principale"></i>' : '') +
+              m.nom +
+            '</div>' +
             '<div class="ortho-card-date"><i class="bi bi-calendar3 me-1"></i>' + m.date_mission + '</div>' +
           '</div>' +
           '<div class="form-check form-switch mb-0">' +
-            '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '" style="cursor:pointer;">' +
+            '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '" style="cursor:pointer;"' +
+                   (isPriority ? ' checked' : '') + '>' +
           '</div>' +
         '</div>' +
-        '<div class="ortho-slider-wrap" id="sliderWrap_' + m.id + '">' +
+        '<div class="ortho-slider-wrap' + (isPriority ? ' visible' : '') + '" id="sliderWrap_' + m.id + '">' +
           '<div class="ortho-slider-lbl">' +
             '<span>Opacité</span>' +
-            '<strong id="opLabel_' + m.id + '">85</strong>%' +
+            '<strong id="opLabel_' + m.id + '">' + defaultOpacity + '</strong>%' +
           '</div>' +
-          '<input type="range" class="form-range" min="10" max="100" value="85"' +
+          '<input type="range" class="form-range" min="10" max="100" value="' + defaultOpacity + '"' +
                  ' id="slider_' + m.id + '">' +
         '</div>';
       orthoContainer.appendChild(card);
@@ -481,6 +433,10 @@
           layer.addTo(map);
           wrap.classList.add('visible');
           cardEl.classList.add('is-active');
+          // Le satellite Esri n'a pas d'imagerie haute résolution sur toutes
+          // les zones du campus : on repasse sur OSM pour éviter les tuiles
+          // grises "Map data not yet available" autour de l'orthophoto.
+          if (map._activeBase === 'satellite') setBase('osm');
         } else {
           map.removeLayer(layer);
           wrap.classList.remove('visible');
@@ -492,6 +448,31 @@
         orthoLayers[m.id].setOpacity(this.value / 100);
         document.getElementById('opLabel_' + m.id).textContent = this.value;
       });
+
+      if (isPriority) {
+        orthoLayers[m.id].addTo(map);
+        setBase('osm');
+
+        // Cale la vue initiale sur l'emprise réelle de l'orthophoto pour que cette
+        // carte serve de vue par défaut plutôt qu'une simple couche en option.
+        if (m.bounds && m.bounds.length === 4) {
+          var b = m.bounds;
+          map.fitBounds([[b[1], b[0]], [b[3], b[2]]], { maxZoom: 21 });
+        } else {
+          // Repli pour les orthophotos WebODM sans emprise enregistrée : on tente
+          // de lire les bornes depuis le tiles.json du serveur de tuiles.
+          var tilesJsonUrl = m.tiles_url.split('/tiles/')[0] + '/tiles.json';
+          fetch(tilesJsonUrl)
+            .then(function (r) { return r.json(); })
+            .then(function (meta) {
+              if (meta.bounds && meta.bounds.length === 4) {
+                var b2 = meta.bounds;
+                map.fitBounds([[b2[1], b2[0]], [b2[3], b2[2]]], { maxZoom: 21 });
+              }
+            })
+            .catch(function () { /* pas grave, on garde la vue par défaut */ });
+        }
+      }
     });
   }
 

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{% if mission %}Modifier la mission{% else %}Nouvelle mission{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
+<li class="breadcrumb-item active">{% if mission %}Modifier{% else %}Nouvelle mission{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="bi bi-airplane me-2"></i>{% if mission %}Modifier la mission{% else %}Nouvelle mission de vol{% endif %}
+    </h1>
+    <p class="page-description">
+      Renseignez les paramètres du vol : opérateur, drone utilisé, altitude, durée et superficie prévue.
+    </p>
+  </div>
+  <a href="{% if mission %}{% url 'drones:mission_detail' mission.pk %}{% else %}{% url 'drones:missions' %}{% endif %}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clipboard-data text-primary me-2"></i>Paramètres de la mission</div>
+      <div class="card-body">
+        {% crispy form %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-diagram-3 me-2"></i>Étapes suivantes</div>
+      <div class="card-body">
+        <ol class="small text-muted ps-3 mb-0" style="line-height:2;">
+          <li>Importer les photos du vol</li>
+          <li>Traitement photogrammétrique (WebODM)</li>
+          <li>Importer l'orthophoto GeoTIFF</li>
+          <li>Valider puis intégrer à la carte</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

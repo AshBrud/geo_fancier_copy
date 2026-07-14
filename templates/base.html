@@ -19,7 +19,7 @@
 <div class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-logo sidebar-logo-uadb">
-      <img src="{% static 'images/logo_uad_sig.svg' %}" alt="Logo UADB">
+      <img src="{% static 'images/logo_uadb.jpg' %}" alt="Logo UADB">
     </div>
     <div class="sidebar-brand-text">
       <span>Géo<span style="color:#34d399; font-weight:800;">Foncier</span></span>
@@ -48,8 +48,11 @@
 
     {% if user.is_domaine_foncier %}
     <div class="nav-section-label mt-2">Données & Analyses</div>
-    <a href="{% url 'drones:missions' %}" class="nav-link {% if request.resolver_match.app_name == 'drones' %}active{% endif %}">
-      <i class="bi bi-camera-video"></i><span>Données Drones</span>
+    <a href="{% url 'drones:missions' %}" class="nav-link {% if request.resolver_match.app_name == 'drones' and 'perspectives' not in request.path %}active{% endif %}">
+      <i class="bi bi-airplane"></i><span>Missions Drones</span>
+    </a>
+    <a href="{% url 'drones:perspectives' %}" class="nav-link {% if 'perspectives' in request.path %}active{% endif %}" style="opacity:.7;font-size:.93em;">
+      <i class="bi bi-broadcast"></i><span>Perspectives</span>
     </a>
     <a href="{% url 'constructions:nouvelle' %}" class="nav-link {% if 'nouvelle' in request.path %}active{% endif %}">
       <i class="bi bi-building-add"></i><span>Nouvelle construction</span>

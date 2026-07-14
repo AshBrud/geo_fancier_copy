@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}Missions Drones{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Missions Drones</li>{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+.drone-kpi-band {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 22px;
+}
+@media (max-width: 992px) { .drone-kpi-band { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 576px) { .drone-kpi-band { grid-template-columns: repeat(2, 1fr); } }
+.dkpi {
+  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
+  padding: 16px 18px; display: flex; align-items: center; gap: 14px;
+  transition: box-shadow .2s, transform .2s;
+}
+.dkpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
+.dkpi-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.dkpi-val  { font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1; }
+.dkpi-lbl  { font-size: 11.5px; color: #64748b; margin-top: 3px; }
+
+.mission-row {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px; transition: box-shadow .2s;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.mission-row:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); }
+.mission-icon {
+  width: 42px; height: 42px; border-radius: 10px; background: #eef2ff; color: #4338ca;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.mission-info { flex: 1; min-width: 180px; }
+.mission-name { font-weight: 700; font-size: 14px; color: #1e293b; }
+.mission-meta { font-size: 11.5px; color: #64748b; }
+.mission-stats { display: flex; gap: 14px; font-size: 12px; color: #475569; }
+#coverage-map { height: 280px; border-radius: 10px; }
+.perspectives-callout {
+  background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;
+  padding: 12px 14px; font-size: 12.5px; color: #64748b; display: flex; align-items: center; gap: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-airplane me-2"></i>Missions Drones</h1>
+    <p class="page-description">Chaîne de production cartographique : vol, photos, traitement, orthophoto et intégration à la carte.</p>
+  </div>
+  <a href="{% url 'drones:mission_create' %}" class="btn btn-success">
+    <i class="bi bi-plus-lg me-2"></i>Nouvelle mission
+  </a>
+</div>
+
+<!-- ── KPI Band ── -->
+<div class="drone-kpi-band">
+  <div class="dkpi">
+    <div class="dkpi-icon" style="background:#eef2ff;"><i class="bi bi-airplane-fill" style="color:#4338ca;"></i></div>
+    <div>
+      <div class="dkpi-val">{{ nb_missions }}</div>
+      <div class="dkpi-lbl">Missions</div>
+    </div>
+  </div>
+  <div class="dkpi">
+    <div class="dkpi-icon" style="background:#eff6ff;"><i class="bi bi-images" style="color:#1E3A8A;"></i></div>
+    <div>
+      <div class="dkpi-val">{{ total_orthophotos }}</div>
+      <div class="dkpi-lbl">Orthophotos</div>
+    </div>
+  </div>
+  <div class="dkpi">
+    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-map" style="color:#16A34A;"></i></div>
+    <div>
+      <div class="dkpi-val">{{ surface_ha }} ha</div>
+      <div class="dkpi-lbl">Surface couverte</div>
+    </div>
+  </div>
+  <div class="dkpi">
+    <div class="dkpi-icon" style="background:#fefce8;"><i class="bi bi-rulers" style="color:#CA8A04;"></i></div>
+    <div>
+      <div class="dkpi-val">{% if res_moyenne %}{{ res_moyenne }} cm/px{% else %}—{% endif %}</div>
+      <div class="dkpi-lbl">Résolution moy.</div>
+    </div>
+  </div>
+  <div class="dkpi">
+    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-patch-check-fill" style="color:#16A34A;"></i></div>
+    <div>
+      <div class="dkpi-val">{{ nb_validees }}</div>
+      <div class="dkpi-lbl">Orthophotos validées</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Liste des missions ── -->
+  <div class="col-lg-8">
+
+    <form method="get" class="mb-3 d-flex gap-2">
+      <input type="text" name="q" value="{{ q }}" class="form-control"
+             placeholder="Rechercher une mission, un opérateur...">
+      <select name="statut" class="form-select" style="max-width:200px;" onchange="this.form.submit()">
+        <option value="">Tous les statuts</option>
+        {% for code, label in statuts %}
+        <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary px-4" type="submit"><i class="bi bi-search"></i></button>
+      {% if q or statut %}
+      <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+      {% endif %}
+    </form>
+
+    {% if page_obj.object_list %}
+    {% for mission in page_obj %}
+    <div class="mission-row">
+      <div class="mission-icon"><i class="bi bi-airplane-fill"></i></div>
+      <div class="mission-info">
+        <div class="mission-name">
+          <a href="{% url 'drones:mission_detail' mission.pk %}" class="text-decoration-none text-dark">{{ mission.nom }}</a>
+        </div>
+        <div class="mission-meta">
+          <i class="bi bi-calendar3 me-1"></i>{{ mission.date_vol|date:"d/m/Y" }}
+          {% if mission.operateur %}· <i class="bi bi-person me-1"></i>{{ mission.operateur }}{% endif %}
+          {% if mission.drone_utilise %}· <i class="bi bi-cpu me-1"></i>{{ mission.drone_utilise }}{% endif %}
+        </div>
+      </div>
+      <div class="mission-stats">
+        <span><i class="bi bi-camera me-1"></i>{{ mission.nb_photos }} photo{{ mission.nb_photos|pluralize }}</span>
+        <span>
+          {% if mission.a_orthophoto %}<i class="bi bi-check-circle-fill text-success me-1"></i>Orthophoto
+          {% else %}<i class="bi bi-dash-circle text-muted me-1"></i>Sans orthophoto{% endif %}
+        </span>
+      </div>
+      <span class="badge bg-{{ mission.badge_couleur }}">{{ mission.get_statut_display }}</span>
+      <div class="d-flex gap-1">
+        <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-eye"></i>
+        </a>
+        <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <a href="{% url 'drones:mission_delete' mission.pk %}" class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-trash"></i>
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4">
+      <ul class="pagination pagination-sm justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&statut={{ statut }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+          <a class="page-link" href="?page={{ num }}&q={{ q }}&statut={{ statut }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&statut={{ statut }}"><i class="bi bi-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-airplane fs-1 text-muted d-block mb-3"></i>
+      <h6 class="text-muted">Aucune mission{% if q %} pour « {{ q }} »{% endif %}</h6>
+      <p class="text-muted small mb-4">
+        Créez une mission pour démarrer la chaîne de production : vol, photos, traitement, orthophoto.
+      </p>
+      <a href="{% url 'drones:mission_create' %}" class="btn btn-success">
+        <i class="bi bi-plus-lg me-2"></i>Nouvelle mission
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── Carte de couverture ── -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-map text-primary"></i> Carte de couverture
+      </div>
+      <div class="card-body p-2">
+        <div id="coverage-map"></div>
+        {% if not has_geodata %}
+        <p class="text-muted small text-center mt-2 mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          Aucune donnée géoréférencée disponible.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="perspectives-callout mt-3">
+      <i class="bi bi-broadcast fs-5"></i>
+      <div>
+        Flux vidéo live, enregistrements et capture photo ad-hoc :
+        <a href="{% url 'drones:perspectives' %}">voir Perspectives</a>.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var map = initCampusMap('coverage-map', {});
+{% if has_geodata %}
+var geojson = {{ coverage_geojson|safe }};
+var layer = L.geoJSON(geojson, {
+  style: { color: '#1E3A8A', fillColor: '#3b82f6', fillOpacity: 0, weight: 2 },
+  onEachFeature: function(f, l) {
+    var p = f.properties;
+    l.bindPopup(
+      '<strong>' + p.nom + '</strong><br>' +
+      '<small>' + p.date + (p.resolution ? ' · ' + p.resolution + ' cm/px' : '') + '</small>'
+    );
+    if (p.tiles_url) {
+      loadOrthophoto(map, p.tiles_url, { opacity: 1, maxNativeZoom: 24 }).addTo(map);
+    }
+  }
+}).addTo(map);
+map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 20 });
+{% endif %}
+</script>
+{% endblock %}

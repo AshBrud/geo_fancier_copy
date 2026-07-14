@@ -210,7 +210,7 @@
       <i class="bi bi-building-add"></i> Construction
     </a>
     <a href="{% url 'drones:missions' %}" class="dash-quick-btn">
-      <i class="bi bi-camera-video"></i> Drones
+      <i class="bi bi-airplane"></i> Missions
     </a>
     {% endif %}
   </div>
@@ -288,6 +288,19 @@
       <div class="kpi-pro-lbl">Orthophotos</div>
       <div class="kpi-pro-foot">
         <i class="bi bi-geo-alt-fill text-success"></i>Données drones
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#eef2ff;color:#4338ca;">
+        <i class="bi bi-airplane-fill"></i>
+      </div>
+      <div class="kpi-pro-val">{{ total_missions }}</div>
+      <div class="kpi-pro-lbl">Missions de vol</div>
+      <div class="kpi-pro-foot">
+        <i class="bi bi-check-circle-fill text-success"></i>{{ missions_integrees }} intégrée{{ missions_integrees|pluralize }}
       </div>
     </div>
   </div>

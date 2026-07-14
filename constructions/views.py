@@ -26,15 +26,7 @@ def nouvelle_construction(request):
     espaces_data = []
     for e in espaces_libres:
         if e.geometrie:
-            sup_engagee = sum(
-                c.superficie_souhaitee or 0
-                for c in NouvelleConstruction.objects.filter(
-                    statut__in=NouvelleConstruction.STATUTS_ENGAGES,
-                    zone_souhaitee__intersects=e.geometrie,
-                )
-            )
-            sup_constructible = (e.superficie or 0) * (e.taux_occupation / 100)
-            sup_disponible = max(0.0, sup_constructible - sup_engagee)
+            bilan = NouvelleConstruction.bilan_espace(e)
 
             espaces_data.append({
                 'id': e.pk,
@@ -42,9 +34,10 @@ def nouvelle_construction(request):
                 'code': e.code,
                 'superficie': e.superficie or 0,
                 'taux_occupation': e.taux_occupation,
-                'sup_constructible': sup_constructible,
-                'sup_engagee': sup_engagee,
-                'sup_disponible': sup_disponible,
+                'sup_constructible': bilan['constructible'],
+                'sup_engagee': bilan['allouee'],
+                'sup_batie': bilan['batie'],
+                'sup_disponible': bilan['nette'],
                 'geojson': json.loads(e.geometrie.geojson),
             })
 

@@ -418,9 +418,9 @@
     </div>
 
     <div class="metric-tile metric-engagee">
-      <div class="metric-tile-label">Déjà allouée</div>
-      <div class="metric-tile-val">{{ resultat.stats.sup_engagee_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
-      <div class="metric-tile-sub">{{ resultat.stats.sup_engagee|floatformat:0 }} m²</div>
+      <div class="metric-tile-label">Déjà occupée</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_occupee_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_batie|floatformat:0 }} m² bâti · {{ resultat.stats.sup_engagee|floatformat:0 }} m² alloué</div>
       {% if resultat.stats.nb_engagees > 0 %}
       <span class="metric-tile-badge badge bg-warning-subtle text-warning border border-warning-subtle">{{ resultat.stats.nb_engagees }} construction{{ resultat.stats.nb_engagees|pluralize }}</span>
       {% else %}
@@ -445,7 +445,7 @@
   <div class="utilization-wrap">
     <div class="utilization-label">
       <span><i class="bi bi-bar-chart-fill me-1 text-primary"></i>Utilisation de la superficie constructible</span>
-      <span class="text-muted">{{ resultat.stats.pct_engagee }}% allouée &nbsp;·&nbsp; {{ resultat.stats.pct_nette }}% libre</span>
+      <span class="text-muted">{{ resultat.stats.pct_engagee }}% occupée &nbsp;·&nbsp; {{ resultat.stats.pct_nette }}% libre</span>
     </div>
     <div class="utilization-bar">
       <div class="bar-engagee" style="width:{{ resultat.stats.pct_engagee }}%"></div>
@@ -455,7 +455,7 @@
       {% endif %}
     </div>
     <div class="util-legend">
-      <span><span class="util-dot" style="background:#f97316"></span>Déjà allouée ({{ resultat.stats.sup_engagee_ha }} ha)</span>
+      <span><span class="util-dot" style="background:#f97316"></span>Déjà occupée ({{ resultat.stats.sup_occupee_ha }} ha)</span>
       <span><span class="util-dot" style="background:{% if resultat.disponible %}#16A34A{% else %}#DC2626{% endif %}"></span>Disponible nette ({{ resultat.stats.sup_nette_ha }} ha)</span>
       <span><span class="util-dot" style="background:#f1f5f9;border:1px solid #cbd5e1"></span>Réservée voiries/espaces verts ({{ resultat.stats.sup_reservee_ha }} ha)</span>
     </div>
@@ -676,6 +676,7 @@
   var map = initCampusMap('construction-map', { hideLayerControl: false });
   loadEspaces(map);
   loadBatiments(map);
+  loadPriorityOrthophoto(map);
 
   /* ---- Leaflet Draw ---- */
   var drawnItems = new L.FeatureGroup().addTo(map);

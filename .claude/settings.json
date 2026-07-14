@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"port 8000 status: %{http_code}\\\\n\" http://127.0.0.1:8000/)",
+      "Bash(curl -s -o /dev/null -w \"port 8000 dashboard: %{http_code}\\\\n\" http://127.0.0.1:8000/dashboard/)",
+      "Bash(taskkill //F //PID 1264)",
+      "Bash(venv/Scripts/python.exe manage.py shell -c ' *)",
+      "Read(//c/Users/Hp/Desktop/**)",
+      "Bash(venv/Scripts/python.exe -c \"import osgeo; print\\(osgeo.__file__\\)\")",
+      "Bash(venv/Scripts/python.exe -c \"import fiona; print\\(fiona.__version__\\)\")",
+      "Bash(curl -s http://127.0.0.1:8000/static/js/uad_sig.js -o /tmp/live_uad_sig.js)",
+      "Bash(curl -s http://127.0.0.1:8000/foncier/cartographie/ -o /tmp/live_carto.html -w \"%{http_code}\\\\n\")"
+    ]
+  }
+}

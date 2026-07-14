@@ -89,6 +89,60 @@ class NouvelleConstruction(models.Model):
         qs = self._qs_en_attente(zone)
         return sum(c.superficie_souhaitee or 0 for c in qs), qs.count()
 
+    @classmethod
+    def pks_pour_espace(cls, espace, statuts=None, exclude_pk=None):
+        """
+        Constructions qui consomment cet espace, par selection directe ou
+        intersection geometrique. Le set evite le double comptage.
+        """
+        statuts = statuts or cls.STATUTS_ENGAGES
+        base = cls.objects.filter(statut__in=statuts)
+        if exclude_pk:
+            base = base.exclude(pk=exclude_pk)
+
+        pks = set(base.filter(espace_souhaitee=espace).values_list('pk', flat=True))
+        if espace.geometrie:
+            pks.update(
+                base.filter(
+                    zone_souhaitee__isnull=False,
+                    zone_souhaitee__intersects=espace.geometrie,
+                ).values_list('pk', flat=True)
+            )
+        return pks
+
+    @classmethod
+    def superficie_allouee_espace(cls, espace, statuts=None, exclude_pk=None):
+        pks = cls.pks_pour_espace(espace, statuts=statuts, exclude_pk=exclude_pk)
+        if not pks:
+            return 0.0
+        return sum(
+            c.superficie_souhaitee or 0
+            for c in cls.objects.filter(pk__in=pks)
+        )
+
+    @classmethod
+    def bilan_espace(cls, espace, statuts=None, exclude_pk=None):
+        sup_brute = espace.superficie or 0
+        sup_constructible = (
+            sup_brute * (espace.taux_occupation / 100)
+            if espace.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE)
+            else 0
+        )
+        sup_allouee = cls.superficie_allouee_espace(
+            espace, statuts=statuts, exclude_pk=exclude_pk
+        )
+        sup_batie = espace.superficie_batie
+        sup_occupee = sup_allouee + sup_batie
+        return {
+            'brute': sup_brute,
+            'constructible': sup_constructible,
+            'batie': sup_batie,
+            'allouee': sup_allouee,
+            'occupee': sup_occupee,
+            'nette': max(0.0, sup_constructible - sup_occupee),
+            'pct': round(sup_occupee / sup_constructible * 100, 1) if sup_constructible else 0.0,
+        }
+
     # ------------------------------------------------------------------ #
     #  REJET AUTOMATIQUE DES CONCURRENTES APRÈS APPROBATION               #
     # ------------------------------------------------------------------ #
@@ -129,12 +183,16 @@ class NouvelleConstruction(models.Model):
                 type_espace=Espace.TYPE_LIBRE,
                 geometrie__intersects=zone_concurrent,
             )
-            sup_brute = sum(e.superficie or 0 for e in espaces_libres)
             sup_constructible = sum(
                 (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_libres
             )
-            sup_engagee = concurrent._superficie_engagee(zone_concurrent)
-            sup_nette = max(0, sup_constructible - sup_engagee)
+            sup_engagee = sum(
+                self.superficie_allouee_espace(e, exclude_pk=concurrent.pk)
+                for e in espaces_libres
+            )
+            sup_batie = sum(e.superficie_batie for e in espaces_libres)
+            sup_nette = max(0, sup_constructible - sup_engagee - sup_batie)
+            sup_brute = sum(e.superficie or 0 for e in espaces_libres)
             taux_moy = (sup_constructible / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
             if sup_nette < (concurrent.superficie_souhaitee or 0):
@@ -188,6 +246,10 @@ class NouvelleConstruction(models.Model):
                 'sup_engagee':        0,
                 'sup_engagee_ha':     0,
                 'nb_engagees':        0,
+                'sup_batie':          0,
+                'sup_batie_ha':       0,
+                'sup_occupee':        0,
+                'sup_occupee_ha':     0,
                 'sup_nette':          0,
                 'sup_nette_ha':       0,
                 'sup_requise':        sup_requise,
@@ -199,6 +261,7 @@ class NouvelleConstruction(models.Model):
                 'sup_attente_ha':     0,
                 'constructions_engagees': [],
                 'pct_engagee':        0,
+                'pct_occupee':        0,
                 'pct_nette':          0,
                 'pct_requise':        100,
             }
@@ -269,17 +332,24 @@ class NouvelleConstruction(models.Model):
         taux_moyen    = (sup_construct / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
 
         # ---- 3. Superficie engagée (approuvées/en cours/terminées) ----
-        list_eng    = list(self._qs_engagees(zone_analyse))
+        pks_eng = set()
+        for e in espaces:
+            pks_eng.update(self.pks_pour_espace(e, exclude_pk=self.pk))
+        list_eng    = list(NouvelleConstruction.objects.filter(pk__in=pks_eng))
         sup_engagee = sum(c.superficie_souhaitee or 0 for c in list_eng)
         nb_engagees = len(list_eng)
 
         # ---- 4. Demandes concurrentes en attente ----
         sup_attente, nb_attente = self._superficie_en_attente(zone_analyse)
 
-        # ---- 5. Superficie nette réelle ----
-        sup_nette   = max(0.0, sup_construct - sup_engagee)
+        # ---- 5. Superficie déjà bâtie (bâtiments existants dans la zone) ----
+        sup_batie   = sum(e.superficie_batie for e in espaces)
+        sup_occupee = sup_engagee + sup_batie
 
-        # ---- 6. Construction du rapport structuré ----
+        # ---- 6. Superficie nette réelle ----
+        sup_nette   = max(0.0, sup_construct - sup_occupee)
+
+        # ---- 7. Construction du rapport structuré ----
         lignes = ["=" * 48]
 
         if sup_nette >= sup_requise:
@@ -301,6 +371,11 @@ class NouvelleConstruction(models.Model):
         if nb_engagees > 0:
             lignes.append(
                 f"Déjà allouée ({nb_engagees} construction(s))    : -{sup_engagee:>11,.0f} m²  ({sup_engagee/10000:.2f} ha)"
+            )
+
+        if sup_batie > 0:
+            lignes.append(
+                f"Bâti existant (bâtiments déjà construits) : -{sup_batie:>11,.0f} m²  ({sup_batie/10000:.2f} ha)"
             )
 
         lignes += [
@@ -331,13 +406,13 @@ class NouvelleConstruction(models.Model):
         self.rapport_faisabilite = "\n".join(lignes)
         self.zones_alternatives  = ''
 
-        # ---- 7. Zones alternatives si non disponible ----
+        # ---- 8. Zones alternatives si non disponible ----
         if not self.disponible:
             alternatives = self._proposer_alternatives()
 
         self.save()
 
-        # ---- 8. Données structurées pour le rendu visuel ----
+        # ---- 9. Données structurées pour le rendu visuel ----
         manque = max(0.0, sup_requise - sup_nette)
         stats = {
             'espaces': [
@@ -354,6 +429,10 @@ class NouvelleConstruction(models.Model):
             'sup_engagee':      sup_engagee,
             'sup_engagee_ha':   round(sup_engagee / 10000, 2),
             'nb_engagees':      nb_engagees,
+            'sup_batie':        sup_batie,
+            'sup_batie_ha':     round(sup_batie / 10000, 2),
+            'sup_occupee':      sup_occupee,
+            'sup_occupee_ha':   round(sup_occupee / 10000, 2),
             'sup_nette':        sup_nette,
             'sup_nette_ha':     round(sup_nette / 10000, 2),
             'sup_requise':      sup_requise,
@@ -373,8 +452,8 @@ class NouvelleConstruction(models.Model):
                 for c in list_eng
             ],
             # Pourcentages pour la barre de progression (base = sup_construct)
-            'pct_engagee': min(100.0, round(sup_engagee / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
-            'pct_nette':   min(100.0, round(sup_nette   / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
+            'pct_engagee': min(100.0, round(sup_occupee / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
+            'pct_nette':   min(100.0, round(sup_nette    / sup_construct * 100, 1)) if sup_construct > 0 else 0.0,
             'pct_requise': min(100.0, round(sup_requise / sup_construct * 100, 1)) if sup_construct > 0 else 100.0,
         }
 
@@ -389,9 +468,10 @@ class NouvelleConstruction(models.Model):
 
         valides = []
         for esp in candidates:
-            eng = self._superficie_engagee(esp.geometrie)
             constructible = (esp.superficie or 0) * (esp.taux_occupation / 100)
-            nette = max(0, constructible - eng)
+            eng = self.superficie_allouee_espace(esp, exclude_pk=self.pk)
+            batie = esp.superficie_batie
+            nette = max(0, constructible - eng - batie)
             if nette >= (self.superficie_souhaitee or 0):
                 valides.append((esp, nette))
             if len(valides) >= 6:

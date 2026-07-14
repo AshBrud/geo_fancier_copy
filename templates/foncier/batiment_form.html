@@ -196,6 +196,27 @@
       </div>
     </div>
 
+    <!-- Espace libre source -->
+    <div class="sec-card">
+      <div class="sec-card-hdr">
+        <div class="sec-card-hdr-icon" style="background:#dcfce7;">
+          <i class="bi bi-cursor-fill" style="color:#16A34A;"></i>
+        </div>
+        <span class="sec-card-hdr-title">Depuis un espace libre</span>
+        <span class="sec-card-hdr-sub">Recommandé</span>
+      </div>
+      <div class="sec-card-body">
+        <label class="form-label">Espace libre déjà enregistré</label>
+        <select class="form-select" id="free-space-select">
+          <option value="">Sélectionner un espace libre...</option>
+        </select>
+        <div class="text-muted mt-2" style="font-size:11.5px;">
+          La sélection copie automatiquement le contour dans la géométrie du bâtiment.
+          On ne peut pas construire sur un espace déjà occupé.
+        </div>
+      </div>
+    </div>
+
     <!-- Caractéristiques -->
     <div class="sec-card">
       <div class="sec-card-hdr">
@@ -371,6 +392,7 @@
 const drawMap    = initCampusMap('draw-map');
 const drawnItems = new L.FeatureGroup().addTo(drawMap);
 const BAT_COLOR  = '#D97706';
+const FREE_SPACES = {{ espaces_libres_json|default:"[]"|safe }};
 
 const drawControl = new L.Control.Draw({
   draw: {
@@ -414,6 +436,59 @@ drawMap.on(L.Draw.Event.DELETED, function() {
 
 loadEspaces(drawMap);
 loadBatiments(drawMap);
+loadPriorityOrthophoto(drawMap, { fit: false });
+
+const freeSourceLayer = L.geoJSON(FREE_SPACES, {
+  style: {
+    color: '#16A34A',
+    fillColor: '#16A34A',
+    weight: 3,
+    dashArray: '6 4',
+    fillOpacity: 0.18,
+  },
+  onEachFeature: function(feature, layer) {
+    const p = feature.properties || {};
+    layer.bindTooltip((p.code || '') + ' - ' + (p.nom || ''), { sticky: true });
+    layer.on('click', function() {
+      selectFreeSpace(p.id);
+    });
+  }
+}).addTo(drawMap);
+
+if (FREE_SPACES.length) {
+  try { freeSourceLayer.bringToFront(); } catch(e) {}
+}
+
+const freeSelect = document.getElementById('free-space-select');
+FREE_SPACES.forEach(function(feature) {
+  const p = feature.properties || {};
+  const opt = document.createElement('option');
+  opt.value = p.id;
+  opt.textContent = (p.code || '') + ' - ' + (p.nom || '');
+  freeSelect.appendChild(opt);
+});
+freeSelect.addEventListener('change', function() {
+  if (this.value) selectFreeSpace(Number(this.value));
+});
+
+function selectFreeSpace(id) {
+  const feature = FREE_SPACES.find(function(item) {
+    return Number(item.properties && item.properties.id) === Number(id);
+  });
+  if (!feature) return;
+
+  drawnItems.clearLayers();
+  const selected = L.geoJSON(feature.geometry, {
+    style: { color: BAT_COLOR, fillColor: BAT_COLOR, fillOpacity: 0.45, weight: 2 }
+  });
+  selected.eachLayer(function(layer) {
+    drawnItems.addLayer(layer);
+  });
+  document.getElementById('id_geometrie').value = JSON.stringify(feature.geometry);
+  freeSelect.value = id;
+  drawMap.fitBounds(selected.getBounds(), { padding: [30, 30], maxZoom: 22 });
+  updateSurface();
+}
 
 // ── Superficie temps réel ──────────────────────────────────────────────────
 function geodesicArea(latlngs) {

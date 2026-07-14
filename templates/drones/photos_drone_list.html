@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Photos Drone{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Données Drones</a></li>
+<li class="breadcrumb-item"><a href="{% url 'drones:perspectives' %}">Perspectives</a></li>
 <li class="breadcrumb-item active">Photos Drone</li>
 {% endblock %}
 
@@ -40,8 +40,8 @@
     <h1 class="page-title"><i class="bi bi-camera me-2"></i>Photos Drone</h1>
     <p class="page-description">Captures instantanées prises depuis le flux live.</p>
   </div>
-  <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left me-2"></i>Retour Données Drones
+  <a href="{% url 'drones:perspectives' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-2"></i>Retour Perspectives
   </a>
 </div>
 
@@ -124,7 +124,7 @@
     Connectez un flux live, puis cliquez sur le bouton
     <strong><i class="bi bi-camera"></i> Photo</strong> en bas du lecteur.
   </p>
-  <a href="{% url 'drones:missions' %}" class="btn btn-primary">
+  <a href="{% url 'drones:perspectives' %}" class="btn btn-primary">
     <i class="bi bi-broadcast me-2"></i>Aller au flux live
   </a>
 </div>
