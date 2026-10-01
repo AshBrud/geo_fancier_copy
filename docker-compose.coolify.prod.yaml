@@ -1,0 +1,61 @@
+# ==============================================================================
+# docker-compose.coolify.prod.yaml — Déploiement en production Coolify v4 & Traefik v3
+# Réseau externe : coolify
+# ==============================================================================
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://localhost}
+      - DB_NAME=${DB_NAME:-uad_sig_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+    volumes:
+      - geofoncier_media_data:/app/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.geofoncier.rule=Host(`${COOLIFY_FQDN}`)"
+      - "traefik.http.routers.geofoncier.entrypoints=https"
+      - "traefik.http.routers.geofoncier.tls=true"
+      - "traefik.http.routers.geofoncier.tls.certresolver=letsencrypt"
+      - "traefik.http.services.geofoncier.loadbalancer.server.port=8000"
+
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-uad_sig_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - geofoncier_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-uad_sig_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - coolify
+
+volumes:
+  geofoncier_db_data:
+    name: geofoncier_db_data
+  geofoncier_media_data:
+    name: geofoncier_media_data
+
+networks:
+  coolify:
+    external: true

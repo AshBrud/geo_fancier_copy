@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1
+
+ARG PYTHON_VERSION=3.11-slim-bookworm
+FROM python:${PYTHON_VERSION} AS base
+
+# Prevents Python from writing pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Keeps Python from buffering stdout and stderr
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Installer les dépendances système nécessaires pour GeoDjango et PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    binutils \
+    libproj-dev \
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libpq-dev \
+    curl \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installer uv hermétiquement
+RUN pip install --no-cache-dir uv
+
+# Configurer le venv isolé
+ENV VIRTUAL_ENV=/opt/venv
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+ENV UV_LINK_MODE="copy"
+RUN uv venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Application Version
+ARG APP_VERSION=0.1.0-dev
+ENV APP_VERSION=${APP_VERSION}
+
+# Installer les dépendances de production uniquement
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-dev --no-install-project || uv sync --no-dev --no-install-project
+
+# Copier le reste du code source
+COPY . .
+
+# Préparer et rendre l'entrypoint exécutable
+RUN cp docker/entrypoint.sh /app/docker-entrypoint.sh && \
+    chmod +x /app/docker-entrypoint.sh
+
+RUN mkdir -p /app/app/media /app/app/staticfiles
+
+EXPOSE 8000
+
+# Healthcheck HTTP standardisé vérifiant la disponibilité de Django et PostGIS
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["gunicorn", "--chdir", "app", "config.wsgi:application", "--bind=0.0.0.0:8000", "--workers=3", "--timeout=120"]

@@ -1,50 +1,60 @@
-# Environnement virtuel
-venv/
-env/
-.venv/
-
-# Fichiers sensibles
-.env
-*.env
-
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-*.pyc
+*$py.class
+*.so
 .Python
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-
-# Distribution / packaging
-dist/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
 *.egg
 
-# IDE
-.vscode/
+# Environnements virtuels (uv / venv)
+.venv/
+venv/
+ENV/
+env/
+
+# Fichiers d'environnement sensibles
+.env
+.env.local
+.env.dev
+.env.prod.local
+*.env.local
+
+# Fichiers médias et statiques collectés Django
+media/
+app/media/
+staticfiles/
+app/staticfiles/
+
+# Logs de développement locaux
+*.log
+runserver-*.err
+runserver-*.out
+
+# Base de données locales sqlite (si jamais utilisées)
+*.sqlite3
+*.db
+
+# Fichiers temporaires Office
+~$*
+
+# IDE & OS
 .idea/
+.vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Tests
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Migrations (optionnel - décommentez si vous ne voulez pas versionner les migrations)
-# */migrations/*.py
-# !*/migrations/__init__.py

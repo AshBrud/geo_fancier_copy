@@ -9,8 +9,8 @@ dossier**.
 
 | Vous êtes… | Lisez dans cet ordre |
 |---|---|
-| Nouveau développeur | [prise_en_main.md](prise_en_main.md) → [technologies.md](technologies.md) → [architecture.md](architecture.md) → [territoires.md](territoires.md) |
-| Agent IA | [../.agents/AGENTS.md](../.agents/AGENTS.md), puis les fichiers ci-dessus selon la tâche |
+| Nouveau développeur | [prise_en_main.md](prise_en_main.md) → [technologies.md](technologies.md) → [architecture.md](architecture.md) → [vision/modele_open_core_et_territoires.md](vision/modele_open_core_et_territoires.md) |
+| Agent IA | [../.agents/vision-long-terme.md](../.agents/vision-long-terme.md), [../.agents/vision-global-initial.md](../.agents/vision-global-initial.md), puis les fichiers ci-dessous |
 | Géomaticien / importeur de données | [import_sig.md](import_sig.md) → [territoires.md](territoires.md) |
 | Encadrant / lecteur du mémoire | [architecture.md](architecture.md) (sections « Workflows ») |
 
@@ -18,6 +18,8 @@ dossier**.
 
 | Fichier | Sujet |
 |---|---|
+| [vision/modele_open_core_et_territoires.md](vision/modele_open_core_et_territoires.md) | **Vision stratégique long terme** : Modèle Open-Core (Netdata/Chatwoot), système de dossiers et RBAC multi-utilisateurs |
+| [rules/regle_agent_standardisation_docker_compose_scripts.md](rules/regle_agent_standardisation_docker_compose_scripts.md) | Normes Docker Compose (dev, local, coolify), outillage `scripts/` et variables `.env.*` |
 | [prise_en_main.md](prise_en_main.md) | Installation sous Windows, `.env`, premier lancement, commandes utiles |
 | [technologies.md](technologies.md) | Technologies utilisées (back-end, SIG, drone, front-end, outils), rôle de chacune et où elles servent |
 | [architecture.md](architecture.md) | Apps Django, modèles, workflows métier, rôles, API, carte |

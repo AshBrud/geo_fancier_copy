@@ -1,0 +1,19 @@
+# Dépendances principales GéoFoncier (converti en UTF-8)
+# Géré prioritairement via pyproject.toml et uv
+django>=5.2,<5.3
+djangorestframework>=3.15.0
+djangorestframework-gis>=1.1.0
+django-filter>=24.0
+django-crispy-forms>=2.1
+crispy-bootstrap5>=2024.2
+django-environ>=0.11.2
+psycopg2-binary>=2.9.9
+pillow>=10.0.0
+pyproj>=3.6.0
+shapely>=2.0.0
+geopandas>=0.14.0
+folium>=0.16.0
+numpy>=1.26.0
+gunicorn>=23.0.0
+whitenoise>=6.6.0
+tzdata>=2024.1

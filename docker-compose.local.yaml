@@ -1,0 +1,51 @@
+# ==============================================================================
+# docker-compose.local.yaml — Test local de la stack de production (image :local)
+# Projet Docker : geofoncier-prod-test
+# Réseau dédié : geofoncier-prod-network
+# ==============================================================================
+name: geofoncier-prod-test
+
+services:
+  app:
+    image: geofoncier-app:local
+    container_name: geofoncier-prod-test-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PROD_PORT:-8000}:8000"
+    env_file:
+      - .env.prod.local
+    volumes:
+      - geofoncier_prod_test_media:/app/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - geofoncier-prod-network
+
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: geofoncier-prod-test-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-uad_sig_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - geofoncier_prod_test_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-uad_sig_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geofoncier-prod-network
+
+volumes:
+  geofoncier_prod_test_db_data:
+    name: geofoncier_prod_test_db_data
+  geofoncier_prod_test_media:
+    name: geofoncier_prod_test_media
+
+networks:
+  geofoncier-prod-network:
+    driver: bridge

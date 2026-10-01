@@ -41,8 +41,7 @@ templates.
 
 | Technologie | Rôle | Remarques |
 |---|---|---|
-| **PostgreSQL** | Base de données relationnelle | Base `uad_sig_db` par défaut |
-| **PostGIS** | Extension spatiale : stockage et calculs géométriques | Requise par GeoDjango |
+| **PostgreSQL + PostGIS** | Base de données relationnelle et extension spatiale | PostgreSQL 17 + PostGIS 3.5 sur Alpine (image officielle `postgis/postgis:17-3.5-alpine`) avec base `uad_sig_db` par défaut. Fournit les fichiers `postgis.control` indispensables à GeoDjango. |
 | **GDAL / OGR** | 3.11.4 (wheel `osgeo`). Lit les GeoTIFF, en extrait les métadonnées, génère les tuiles (`gdal2tiles`) | DLL chargées depuis `venv/Lib/site-packages/osgeo` (voir `config/settings.py`) |
 | **GEOS** | Opérations géométriques (union, intersection, aire) | Fourni avec le wheel GDAL |
 | **PROJ / pyproj** | 3.7. Changements de projection | `PROJ_DATA` forcé pour éviter le PROJ de PostgreSQL |

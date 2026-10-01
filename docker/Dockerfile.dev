@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+
+ARG PYTHON_VERSION=3.11-slim-bookworm
+FROM python:${PYTHON_VERSION} AS base
+
+# Prevents Python from writing pyc files.
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Keeps Python from buffering stdout and stderr
+ENV PYTHONUNBUFFERED=1
+
+# Configurer l'environnement virtuel dédié pour uv (hors du volume monté /app)
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+ENV UV_LINK_MODE="copy"
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Installer les dépendances système nécessaires pour GeoDjango (GDAL, GEOS, PROJ, libpq, build-essential, curl, ffmpeg)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    binutils \
+    libproj-dev \
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libpq-dev \
+    curl \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installer uv via pip (fiable, sans dépendance d'authentification externe)
+RUN pip install --no-cache-dir uv
+
+# Copier les fichiers de dépendances
+COPY pyproject.toml uv.lock* ./
+
+# Installer toutes les dépendances directement depuis pyproject.toml
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-install-project
+
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["python", "app/manage.py", "runserver", "0.0.0.0:8000"]

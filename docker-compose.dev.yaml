@@ -1,0 +1,57 @@
+# ==============================================================================
+# docker-compose.dev.yaml — Stack de développement local avec live-reload
+# Projet Docker : geofoncier-dev
+# Réseau externe : geenkodev-network
+# ==============================================================================
+name: geofoncier-dev
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: geofoncier-dev-app
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - geofoncier_dev_media:/app/app/media
+    ports:
+      - "${APP_DEV_PORT:-8010}:8000"
+    env_file:
+      - .env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - geenkodev-network
+
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: geofoncier-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-uad_sig_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - geofoncier_dev_db_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_DEV_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-uad_sig_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geenkodev-network
+
+volumes:
+  geofoncier_dev_db_data:
+    name: geofoncier_dev_db_data
+  geofoncier_dev_media:
+    name: geofoncier_dev_media
+
+networks:
+  geenkodev-network:
+    external: true
