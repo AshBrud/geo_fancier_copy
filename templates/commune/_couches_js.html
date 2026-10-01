@@ -1,0 +1,172 @@
+<script>
+/* =====================================================================
+   SIG Ngogom — couches cartographiques partagées par toutes les cartes.
+   drawCommuneLayers(map, data, opts) → { groups, bounds, showMaisons(fc) }
+
+   data : { commune, villages[], pistes[], maisons[], signalements[] }
+   opts.focusVillageId   : zoome sur ce village et estompe les autres
+   opts.onVillageClick   : callback(feature, layer) au clic sur un village
+   opts.interactive      : false = couches de simple référence (formulaires)
+   opts.fit              : false = ne pas recadrer la carte
+   opts.layerControl     : false = pas de sélecteur de couches
+   ===================================================================== */
+var URL_SIGNALEMENT = "{% url 'commune:signalement_detail' 0 %}";
+var URL_VILLAGE = "{% url 'commune:village_detail' 0 %}";
+var COMMUNE_DEFAULT_VIEW = { center: [14.70, -16.40], zoom: 11 };  // département de Bambey
+
+function _esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function _m2(v) { return (Math.round((v || 0) * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' m²'; }
+function _urlId(tpl, id) { return tpl.replace('/0/', '/' + id + '/'); }
+
+function maisonPopup(p) {
+  return '<div style="min-width:170px"><div class="fw-bold mb-1"><i class="bi bi-house-fill me-1" style="color:' + p.couleur + '"></i>MAISON ' + _esc(p.code) + '</div>'
+    + 'Village : <b>' + _esc(p.village) + '</b><br>'
+    + 'Superficie : <b>' + _m2(p.superficie) + '</b><br>'
+    + 'Statut : <span class="badge" style="background:' + p.couleur + '">' + _esc(p.statut).toUpperCase() + '</span></div>';
+}
+
+function signalementPopup(p) {
+  return '<div style="min-width:210px"><div class="fw-bold"><i class="bi ' + p.icone + ' me-1" style="color:' + p.couleur + '"></i>' + _esc(p.titre) + '</div>'
+    + '<small class="text-muted">' + _esc(p.numero) + ' · ' + _esc(p.categorie) + '</small><hr class="my-1">'
+    + 'Village : <b>' + _esc(p.village) + '</b><br>'
+    + 'Description : ' + _esc(p.description) + '<br>'
+    + 'Date : ' + _esc(p.date) + '<br>'
+    + 'Statut : <span class="badge" style="background:' + p.statut_couleur + '">' + _esc(p.statut).toUpperCase() + '</span>'
+    + '<div class="mt-2"><a href="' + _urlId(URL_SIGNALEMENT, p.id) + '">Suivre le traitement →</a></div></div>';
+}
+
+function maisonsLayer(fc, interactive) {
+  return L.geoJSON(fc, {
+    interactive: interactive !== false,
+    style: function (f) { return { color: f.properties.couleur, weight: 1.2, fillColor: f.properties.couleur, fillOpacity: 0.55 }; },
+    onEachFeature: function (f, layer) { layer.bindPopup(maisonPopup(f.properties)); },
+  });
+}
+
+function signalementMarker(p, latlng, interactive) {
+  // Couleur = catégorie ; anneau = statut (rouge nouveau … vert résolu)
+  var resolu = p.statut_code === 'resolu';
+  return L.marker(latlng, {
+    interactive: interactive !== false,
+    zIndexOffset: 1000,
+    icon: L.divIcon({
+      className: '',
+      html: '<div class="sig-pin' + (resolu ? ' sig-pin-resolu' : '') + (p.statut_code === 'nouveau' ? ' sig-pin-nouveau' : '')
+        + '" style="background:' + p.couleur + ';box-shadow:0 0 0 3px ' + p.statut_couleur + ',0 2px 6px rgba(0,0,0,.4)">'
+        + '<i class="bi ' + p.icone + '"></i></div>',
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    }),
+  });
+}
+
+function drawCommuneLayers(map, data, opts) {
+  opts = opts || {};
+  var interactive = opts.interactive !== false;
+  var groups = {};
+  var bounds = null;
+  function extend(b) { if (b && b.isValid()) bounds = bounds ? bounds.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast()); }
+
+  // Orthophoto(s) drone : fond d'image sous toutes les couches vectorielles
+  groups.orthophoto = L.layerGroup((data.orthophotos || []).map(function (o) {
+    return L.tileLayer(o.tiles_url, {
+      pane: 'orthophotoPane', minZoom: 0, maxZoom: 24,
+      minNativeZoom: o.zoom_min, maxNativeZoom: o.zoom_max,
+      attribution: 'Orthophoto drone — commune de Ngogom',
+    });
+  })).addTo(map);
+
+  if (data.commune) {
+    groups.commune = L.geoJSON(data.commune, {
+      style: { color: '#1E3A8A', weight: 3, dashArray: '8 6', fillColor: '#1E3A8A', fillOpacity: 0.03 },
+      interactive: false,
+    }).addTo(map);
+    extend(groups.commune.getBounds());
+  }
+
+  groups.pistes = L.geoJSON({ type: 'FeatureCollection', features: data.pistes || [] }, {
+    interactive: interactive,
+    style: function (f) { return { color: f.properties.couleur, weight: f.properties.type === 'Piste' ? 2.5 : 4, dashArray: f.properties.type === 'Piste' ? '6 4' : null }; },
+    onEachFeature: function (f, layer) {
+      layer.bindPopup('<b>' + _esc(f.properties.nom) + '</b><br>' + _esc(f.properties.type)
+        + (f.properties.longueur ? '<br>' + (f.properties.longueur / 1000).toFixed(2) + ' km' : ''));
+    },
+  }).addTo(map);
+
+  groups.villages = L.geoJSON({ type: 'FeatureCollection', features: data.villages || [] }, {
+    interactive: interactive,
+    style: function (f) {
+      var focus = opts.focusVillageId && f.properties.id === opts.focusVillageId;
+      return { color: '#0F766E', weight: focus ? 3 : 2, fillColor: '#14B8A6',
+               fillOpacity: opts.focusVillageId ? (focus ? 0.08 : 0.03) : 0.18 };
+    },
+    onEachFeature: function (f, layer) {
+      var p = f.properties;
+      layer.bindTooltip(_esc(p.nom), { permanent: true, direction: 'center', className: 'village-label' });
+      if (opts.onVillageClick) {
+        layer.on('click', function () { opts.onVillageClick(f, layer); });
+      } else if (interactive) {
+        var html = '<b>VILLAGE : ' + _esc(p.nom) + '</b>';
+        if (data.peut_voir_maisons) {
+          html += '<br>Maisons : <b>' + p.nb_maisons + '</b> (' + p.nb_habitees + ' habitées, ' + p.nb_non_habitees + ' non habitées)'
+            + '<br>Superficie bâtie : <b>' + _m2(p.surface_batie) + '</b>'
+            + '<br><a href="' + _urlId(URL_VILLAGE, p.id) + '">Ouvrir le village →</a>';
+        }
+        layer.bindPopup(html);
+      }
+      if (opts.focusVillageId && p.id === opts.focusVillageId) extend(layer.getBounds());
+    },
+  }).addTo(map);
+  if (!opts.focusVillageId) extend(groups.villages.getBounds());
+
+  groups.maisons = maisonsLayer({ type: 'FeatureCollection', features: data.maisons || [] }, interactive).addTo(map);
+
+  groups.signalements = L.geoJSON({ type: 'FeatureCollection', features: data.signalements || [] }, {
+    pointToLayer: function (f, latlng) { return signalementMarker(f.properties, latlng, interactive); },
+    onEachFeature: function (f, layer) { layer.bindPopup(signalementPopup(f.properties)); },
+  }).addTo(map);
+
+  if (opts.layerControl !== false) {
+    var overlays = {};
+    if ((data.orthophotos || []).length) overlays['Orthophoto drone'] = groups.orthophoto;
+    if (groups.commune) overlays['Limite communale'] = groups.commune;
+    overlays['Villages'] = groups.villages;
+    overlays['Routes et pistes'] = groups.pistes;
+    if (data.peut_voir_maisons) overlays['Maisons'] = groups.maisons;
+    overlays['Signalements'] = groups.signalements;
+    L.control.layers(
+      { 'Plan (OSM)': map._baseLayers.osm, 'Satellite': map._baseLayers.satellite },
+      overlays, { position: 'topright', collapsed: true }
+    ).addTo(map);
+  }
+
+  // Rien de délimité encore : on cadre sur les zones survolées par le drone
+  if (!bounds) {
+    (data.orthophotos || []).forEach(function (o) {
+      o.zones.forEach(function (z) { extend(L.latLngBounds([[z.bbox[1], z.bbox[0]], [z.bbox[3], z.bbox[2]]])); });
+    });
+  }
+
+  if (bounds && opts.fit !== false) map.fitBounds(bounds, { padding: [30, 30] });
+
+  return {
+    groups: groups,
+    bounds: bounds,
+    showMaisons: function (fc) {
+      groups.maisons.clearLayers();
+      groups.maisons.addData(fc);
+    },
+  };
+}
+</script>
+<style>
+.village-label { background: rgba(255,255,255,.85); border: none; box-shadow: none; font-weight: 700; font-size: 11px; color: #0F766E; padding: 1px 6px; border-radius: 4px; }
+.village-label::before { display: none; }
+.sig-pin { width: 28px; height: 28px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid #fff; }
+.sig-pin-resolu { opacity: .55; }
+.sig-pin-nouveau { animation: sigPulse 1.6s ease-in-out infinite; }
+@keyframes sigPulse { 50% { transform: scale(1.18); } }
+</style>

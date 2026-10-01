@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Créer un compte — GéoFoncier UAD{% endblock %}
+{% block title %}Créer un compte — GéoFoncier NGOGOM_UAD{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -209,17 +209,17 @@
   position:absolute; left:13px; color:#94a3b8;
   font-size:14px; pointer-events:none; z-index:1; transition:color .2s;
 }
-.auth-input-wrap input {
+.auth-input-wrap input, .auth-input-wrap select {
   width:100%; height:44px; padding:0 12px 0 40px;
   border:1.5px solid #e2e8f0; border-radius:12px;
   font-size:.88rem; color:#0f172a; background:#f8fafc; transition:all .2s; outline:none;
 }
-.auth-input-wrap input:focus {
+.auth-input-wrap input:focus, .auth-input-wrap select:focus {
   border-color:#3b5bdb; background:#fff;
   box-shadow:0 0 0 4px rgba(59,91,219,.10);
 }
 .auth-input-wrap:focus-within .field-icon { color:#3b5bdb; }
-.auth-input-wrap input.is-invalid { border-color:#ef4444; background:#fff5f5; }
+.auth-input-wrap input.is-invalid, .auth-input-wrap select.is-invalid { border-color:#ef4444; background:#fff5f5; }
 .auth-input-wrap .toggle-eye {
   position:absolute; right:10px; background:none; border:none;
   padding:4px 8px; color:#94a3b8; cursor:pointer; border-radius:6px; transition:color .2s;
@@ -298,11 +298,13 @@
   <div class="auth-left-body">
 
     <div class="auth-univ-badge">
-      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white" style="font-size:13px;"></i></div>
-      <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
+      <div class="uv-dot" style="background:#fff;">
+        <img src="{% static 'images/logo_ngogom.jpg' %}" alt="" style="width:100%;height:100%;object-fit:contain;">
+      </div>
+      <span>Commune de Ngogom &mdash; Bambey, Sénégal</span>
     </div>
 
-    <div class="auth-app-title">Géo<span class="accent">Foncier</span></div>
+    <div class="auth-app-title">Géo<span class="accent">Foncier</span> <span style="font-size:.4em; letter-spacing:0; color:#fff; opacity:.9;">NGOGOM_UAD</span></div>
 
     <div class="auth-title-rule">
       <div class="rule-line"></div>
@@ -310,9 +312,9 @@
     </div>
 
     <p class="auth-app-sub">
-      Rejoignez la plateforme de gestion intelligente du domaine foncier de l'UAD.
-      Accédez aux outils de cartographie, d'analyse spatiale et de suivi des
-      aménagements du campus universitaire.
+      Habitants de la commune de {{ commune.nom|default:"Ngogom" }} : créez votre compte avec votre
+      numéro de téléphone pour signaler un problème (eau, électricité, route…) et
+      suivre son traitement par l'équipe communale.
     </p>
 
     <div class="auth-feat-container">
@@ -324,14 +326,14 @@
       </div>
       <div class="auth-marquee-col">
         <div class="auth-marquee-track up">
-          {% include 'accounts/_feat_items_alt.html' %}
-          {% include 'accounts/_feat_items_alt.html' %}
+          {% include 'accounts/_feat_commune.html' %}
+          {% include 'accounts/_feat_commune.html' %}
         </div>
       </div>
     </div>
 
     <div class="auth-left-footer">
-      <span class="footer-copy">&copy; 2026 GéoFoncier UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
+      <span class="footer-copy">&copy; 2026 GéoFoncier NGOGOM_UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
       <span class="footer-badge"><i class="bi bi-shield-check"></i> Sécurisé</span>
     </div>
 
@@ -345,12 +347,13 @@
 
   <!-- Logo avec anneaux pulsants -->
   <div class="auth-right-logo">
-    <img src="{% static 'images/logo_uad_sig.svg' %}" alt="GéoFoncier UAD" class="logo-img">
+    <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom" class="logo-img"
+         style="height:80px;object-fit:contain;background:#fff;padding:4px;">
   </div>
 
   <!-- Branding -->
   <div class="auth-right-brand">
-    <h2>Géo<span style="color:#15803d; font-weight:900;">Foncier</span> <span style="font-size:14px; color:#94a3b8; font-weight:500;">UAD</span></h2>
+    <h2>Géo<span style="color:#15803d; font-weight:900;">Foncier</span> <span style="font-size:14px; color:#94a3b8; font-weight:500;">NGOGOM_UAD</span></h2>
     <p>Système d'Information Géographique</p>
   </div>
 
@@ -363,7 +366,7 @@
       </div>
       <div class="auth-card-header-text">
         <h3>Créer un compte</h3>
-        <p>Rejoignez la plateforme GéoFoncier UAD</p>
+        <p>Rejoignez la plateforme GéoFoncier NGOGOM_UAD</p>
       </div>
     </div>
 
@@ -411,28 +414,35 @@
       </div>
 
       <div class="auth-field">
-        <label>Nom d'utilisateur</label>
+        <label>Numéro de téléphone</label>
         <div class="auth-input-wrap">
-          <i class="bi bi-at field-icon"></i>
-          <input type="text" name="username" placeholder="Identifiant unique"
-                 value="{{ form.username.value|default:'' }}"
-                 class="{% if form.username.errors %}is-invalid{% endif %}" autofocus>
+          <i class="bi bi-telephone field-icon"></i>
+          <input type="tel" name="telephone" placeholder="77 123 45 67" inputmode="tel" autocomplete="tel"
+                 value="{{ form.telephone.value|default:'' }}"
+                 class="{% if form.telephone.errors %}is-invalid{% endif %}">
         </div>
-        {% if form.username.errors %}
-          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
+        {% if form.telephone.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.telephone.errors.0 }}</div>
+        {% else %}
+          <div class="auth-hint" style="font-size:.72rem;color:#64748b;margin-top:4px;">
+            Il vous servira à vous connecter ; l'équipe technique pourra aussi vous appeler.
+          </div>
         {% endif %}
       </div>
 
       <div class="auth-field">
-        <label>Adresse e-mail</label>
+        <label>Village</label>
         <div class="auth-input-wrap">
-          <i class="bi bi-envelope field-icon"></i>
-          <input type="email" name="email" placeholder="exemple@uad.edu.sn"
-                 value="{{ form.email.value|default:'' }}"
-                 class="{% if form.email.errors %}is-invalid{% endif %}">
+          <i class="bi bi-houses field-icon"></i>
+          <select name="village" class="{% if form.village.errors %}is-invalid{% endif %}">
+            <option value="">— Choisir votre village —</option>
+            {% for v in form.fields.village.queryset %}
+            <option value="{{ v.pk }}" {% if form.village.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>{{ v.nom }}</option>
+            {% endfor %}
+          </select>
         </div>
-        {% if form.email.errors %}
-          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.email.errors.0 }}</div>
+        {% if form.village.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.village.errors.0 }}</div>
         {% endif %}
       </div>
 
@@ -446,9 +456,13 @@
             <i class="bi bi-eye" id="eye1"></i>
           </button>
         </div>
-        {% if form.password1.errors %}
-          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.password1.errors.0 }}</div>
-        {% endif %}
+        {% for e in form.password1.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+        {% empty %}
+          <div style="font-size:.72rem;color:#64748b;margin-top:4px;">
+            Au moins 6 caractères (lettres et/ou chiffres). Évitez 123456, votre numéro ou votre nom.
+          </div>
+        {% endfor %}
       </div>
 
       <div class="auth-field">
@@ -461,9 +475,9 @@
             <i class="bi bi-eye" id="eye2"></i>
           </button>
         </div>
-        {% if form.password2.errors %}
-          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.password2.errors.0 }}</div>
-        {% endif %}
+        {% for e in form.password2.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+        {% endfor %}
       </div>
 
       {% if form.non_field_errors %}

@@ -317,6 +317,42 @@
                 </a>
               </div>
             </div>
+            <div style="border-top:1px solid #334155;padding-top:14px;margin-top:14px;">
+              <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
+                Simuler un flux depuis une vidéo
+              </div>
+              {% if flux_videos_recentes %}
+              <div class="mb-2">
+                <select id="diff-video"
+                        style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;">
+                  <option value="">— Choisir une vidéo —</option>
+                  {% for v in flux_videos_recentes %}
+                  <option value="{{ v.pk }}">{{ v.nom }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="diff-boucle" checked>
+                <label class="form-check-label" for="diff-boucle" style="color:#94a3b8;font-size:11.5px;">Lecture en boucle</label>
+              </div>
+              <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-warning btn-sm flex-grow-1" onclick="diffuserDemarrer()" id="btn-diff-start">
+                  <i class="bi bi-broadcast-pin me-1"></i>Diffuser comme flux live
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="diffuserArreter()" id="btn-diff-stop" disabled>
+                  <i class="bi bi-stop-circle"></i>
+                </button>
+              </div>
+              <div id="diff-status" style="font-size:11.5px;color:#475569;">
+                Choisissez une vidéo, cliquez sur Diffuser, puis sur Connecter ci-dessus.
+              </div>
+              <div id="diff-error" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11.5px;color:#f87171;"></div>
+              {% else %}
+              <p class="text-muted mb-0" style="font-size:11.5px;">
+                Aucune vidéo enregistrée. <a href="{% url 'drones:flux_video_import' %}" style="color:#60a5fa;">Importez-en une</a> pour pouvoir la diffuser.
+              </p>
+              {% endif %}
+            </div>
             <div style="padding:10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;margin-top:14px;">
               <div style="color:#475569;font-size:10px;margin-bottom:4px;">URL du flux :</div>
               <code style="color:#60a5fa;font-size:10.5px;word-break:break-all;" id="live-url-preview">http://localhost:8888/drone/index.m3u8</code>
@@ -762,6 +798,55 @@ function srvStopRec() {
 
 function showSrvError(msg) {
   var el = document.getElementById('srv-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+/* ── Simuler un flux live à partir d'une vidéo déjà enregistrée ── */
+function diffuserDemarrer() {
+  var videoId = document.getElementById('diff-video').value;
+  if (!videoId) { showDiffError('Choisissez une vidéo à diffuser.'); return; }
+
+  var server = document.getElementById('live-server-url').value.trim()
+    .replace(/\/$/, '').replace(/^[a-z]+:\/\//i, '');
+  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
+  var rtspUrl = 'rtsp://' + server + ':8554/' + stream;
+  var boucle = document.getElementById('diff-boucle').checked;
+
+  document.getElementById('diff-error').style.display = 'none';
+
+  fetch('{% url "drones:flux_diffuser_start" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ video_id: videoId, rtsp_url: rtspUrl, boucle: boucle }),
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    if (d.error) { showDiffError(d.error); return; }
+    document.getElementById('btn-diff-start').disabled = true;
+    document.getElementById('btn-diff-stop').disabled = false;
+    document.getElementById('diff-status').innerHTML =
+      '<span style="color:#4ade80;">⏺ Diffusion en cours</span> — cliquez sur <strong>Connecter</strong> ci-dessus (quelques secondes le temps que le flux se stabilise).';
+  })
+  .catch(function () { showDiffError('Impossible de contacter le serveur Django.'); });
+}
+
+function diffuserArreter() {
+  fetch('{% url "drones:flux_diffuser_stop" %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    document.getElementById('btn-diff-start').disabled = false;
+    document.getElementById('btn-diff-stop').disabled = true;
+    if (d.error) { showDiffError(d.error); return; }
+    document.getElementById('diff-status').textContent = 'Diffusion arrêtée.';
+  })
+  .catch(function () { showDiffError('Erreur lors de l\'arrêt de la diffusion.'); });
+}
+
+function showDiffError(msg) {
+  var el = document.getElementById('diff-error');
   el.textContent = msg; el.style.display = 'block';
 }
 

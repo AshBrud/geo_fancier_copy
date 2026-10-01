@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ action }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url back_url %}">Retour</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<style>
+.cf-header { background: linear-gradient(135deg, {{ color }} 0%, {{ color }}cc 100%); border-radius: 16px; padding: 20px 26px; margin-bottom: 20px; color: #fff; display: flex; align-items: center; gap: 18px; }
+.cf-header h1 { font-size: 19px; font-weight: 800; margin: 0; }
+.sec-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 18px; overflow: hidden; }
+.sec-card-body { padding: 20px; }
+#draw-map { height: 580px; }
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 18px 20px; border-top: 1px solid #f1f5f9; background: #f8fafc; }
+.btn-save { flex: 1; background: {{ color }}; color: #fff; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 700; }
+.btn-save-alt { background: #fff; color: {{ color }}; border: 1.5px solid {{ color }}; border-radius: 10px; padding: 11px 14px; font-size: 13px; font-weight: 700; }
+.btn-cancel { background: #fff; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 11px 16px; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+.geom-input { font-family: monospace; font-size: 11px !important; background: #f8fafc !important; color: #64748b !important; }
+.asteriskField { display: none; }  /* pas d'étoile « * » après les libellés obligatoires */
+.area-live { font-size: 12.5px; font-weight: 700; color: {{ color }}; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cf-header">
+  <div>
+    <h1>{{ action }}</h1>
+    <p class="mb-0" style="opacity:.85;font-size:13px;">{% if obj %}Modification · <strong>{{ obj }}</strong>{% else %}Renseignez les informations et tracez la géométrie sur la carte{% endif %}</p>
+  </div>
+  <a href="{% url back_url %}" class="btn btn-sm ms-auto" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Le formulaire n'a pas pu être enregistré :</strong>
+    <ul class="mb-0 mt-1">
+      {% for field in form %}{% for error in field.errors %}<li>{{ field.label }} : {{ error }}</li>{% endfor %}{% endfor %}
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" novalidate>
+{% csrf_token %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="sec-card">
+      <div class="sec-card-body">
+        {{ form|crispy }}
+        <div class="area-live" id="area-live"></div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-save"><i class="bi bi-check-circle me-2"></i>Enregistrer</button>
+        {% if continuer %}
+        <button type="submit" name="continuer" value="1" class="btn-save-alt" title="Enregistrer puis saisir la maison suivante du même village"><i class="bi bi-plus-lg me-1"></i>Enregistrer et continuer</button>
+        {% endif %}
+        <a href="{% url back_url %}" class="btn-cancel"><i class="bi bi-x"></i>Annuler</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="sec-card" style="position:sticky; top:80px;">
+      <div id="draw-map"></div>
+      <div class="p-2 text-muted" style="font-size:11.5px;">
+        {% if geom_type == 'line' %}
+        Utilisez l'outil <strong>ligne</strong> pour tracer la route ou la piste (double-clic pour terminer).
+        {% else %}
+        Utilisez l'outil <strong>polygone</strong> ou <strong>rectangle</strong>. Passez en fond <strong>Satellite</strong> (icône en haut à droite) pour suivre les toits et les limites.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'commune/_couches_js.html' %}
+<script>
+(function () {
+  var COLOR = '{{ color }}';
+  var GEOM = '{{ geom_type }}';
+  var map = initCampusMap('draw-map', { hideLayerControl: true, base: 'satellite', center: COMMUNE_DEFAULT_VIEW.center, zoom: COMMUNE_DEFAULT_VIEW.zoom });
+
+  // Couches existantes en simple référence (non cliquables pour ne pas gêner le dessin)
+  var ref = drawCommuneLayers(map, {{ couches_json|safe }}, {
+    interactive: false,
+    {% if focus_village %}focusVillageId: {{ focus_village }},{% endif %}
+  });
+
+  // Formulaire maison : choisir un village recentre la carte dessus
+  var villageSelect = document.getElementById('id_village');
+  if (villageSelect) {
+    villageSelect.addEventListener('change', function () {
+      var id = Number(this.value);
+      ref.groups.villages.eachLayer(function (l) {
+        if (l.feature.properties.id === id) map.fitBounds(l.getBounds(), { padding: [30, 30], maxZoom: 18 });
+      });
+    });
+  }
+
+  var drawnItems = new L.FeatureGroup().addTo(map);
+  var shape = { color: COLOR, fillOpacity: 0.35, weight: 2 };
+  var off = { polygon: false, rectangle: false, polyline: false, marker: false, circle: false, circlemarker: false };
+  var drawOptions = Object.assign({}, off, GEOM === 'line'
+    ? { polyline: { shapeOptions: { color: COLOR, weight: 4 } } }
+    : { polygon: { allowIntersection: false, showArea: true, metric: true, shapeOptions: shape }, rectangle: { shapeOptions: shape } });
+  new L.Control.Draw({ draw: drawOptions, edit: { featureGroup: drawnItems } }).addTo(map);
+
+  var geomInput = document.getElementById('id_geometrie');
+  var areaLive = document.getElementById('area-live');
+
+  function sync() {
+    var f = drawnItems.toGeoJSON().features;
+    geomInput.value = f.length ? JSON.stringify(f[0].geometry) : '';
+    // Superficie indicative (la valeur officielle est recalculée en UTM 28N à l'enregistrement)
+    areaLive.textContent = '';
+    if (f.length && GEOM === 'polygon' && L.GeometryUtil && L.GeometryUtil.geodesicArea) {
+      var ring = drawnItems.getLayers()[0].getLatLngs();
+      while (Array.isArray(ring[0])) ring = ring[0];  // Polygon / MultiPolygon → anneau extérieur
+      var a = L.GeometryUtil.geodesicArea(ring);
+      areaLive.textContent = 'Superficie estimée : ' + a.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' m²';
+    }
+  }
+
+  if (geomInput && geomInput.value.trim()) {
+    try {
+      L.geoJSON(JSON.parse(geomInput.value), { style: shape }).eachLayer(function (l) {
+        // Un MultiPolygon d'une seule partie redevient un polygone éditable
+        drawnItems.addLayer(l);
+      });
+      map.fitBounds(drawnItems.getBounds(), { padding: [40, 40], maxZoom: 19 });
+      sync();
+    } catch (e) {}
+  }
+
+  map.on(L.Draw.Event.CREATED, function (e) { drawnItems.clearLayers(); drawnItems.addLayer(e.layer); sync(); });
+  map.on(L.Draw.Event.EDITED, sync);
+  map.on(L.Draw.Event.DELETED, sync);
+})();
+</script>
+{% endblock %}

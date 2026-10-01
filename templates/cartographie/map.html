@@ -330,6 +330,16 @@
         </div>
         <div class="layer-row">
           <div class="layer-row-left">
+            <span class="layer-dot" style="background:#DC2626;"></span>
+            <span class="layer-name">Sous-espaces occupés</span>
+            <span class="layer-count">{{ nb_espaces_occupes }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspacesOccupees" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
             <span class="layer-dot" style="background:#78350F;"></span>
             <span class="layer-name">Bâtiments</span>
             <span class="layer-count">{{ total_batiments }}</span>
@@ -398,6 +408,7 @@
         {% endif %}
         <div class="legend-item"><span class="legend-swatch" style="background:#16A34A;"></span> Sous-espaces libres</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span> Sous-espaces réservés</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#DC2626;"></span> Sous-espaces occupés</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#78350F;"></span> Bâtiments</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#2563EB;"></span> Terrains</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#F97316;"></span> Terrains sportifs</div>
@@ -482,6 +493,7 @@
   /* ---- Couches vecteur (toutes actives par défaut) ---- */
   var espacesLibresLayer = loadEspaces(map, null, { type: 'libre' });
   var espacesReserveesLayer = loadEspaces(map, null, { type: 'reserve' });
+  var espacesOccupeesLayer = loadEspaces(map, null, { type: 'occupe' });
   var batimentsLayer = L.layerGroup().addTo(map);
   loadBatiments(map, batimentsLayer);
   var terrainsLayer = L.layerGroup().addTo(map);
@@ -498,6 +510,9 @@
   });
   document.getElementById('layerEspacesReservees').addEventListener('change', function () {
     if (this.checked) { map.addLayer(espacesReserveesLayer); } else { map.removeLayer(espacesReserveesLayer); }
+  });
+  document.getElementById('layerEspacesOccupees').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(espacesOccupeesLayer); } else { map.removeLayer(espacesOccupeesLayer); }
   });
   document.getElementById('layerBatiments').addEventListener('change', function () {
     if (this.checked) { map.addLayer(batimentsLayer); } else { map.removeLayer(batimentsLayer); }
@@ -520,6 +535,7 @@
   if (campusLayer) overlayMaps['Limite du Campus'] = campusLayer;
   overlayMaps['Sous-espaces libres']    = espacesLibresLayer;
   overlayMaps['Sous-espaces réservés']  = espacesReserveesLayer;
+  overlayMaps['Sous-espaces occupés']   = espacesOccupeesLayer;
   overlayMaps['Bâtiments']              = batimentsLayer;
   overlayMaps['Voiries']                = voiriesLayer;
   overlayMaps['Terrains']               = terrainsLayer;

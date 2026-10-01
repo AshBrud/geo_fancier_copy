@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'commune:carte' %}">Commune de Ngogom</a></li>
+<li class="breadcrumb-item active">{{ titre }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+.st-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.st-kpi { background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid var(--c); border-radius: 12px; padding: 12px 14px; text-decoration: none; display: block; }
+.st-kpi.active { box-shadow: 0 0 0 2px var(--c); }
+.st-kpi b { font-size: 24px; font-weight: 800; color: #0f172a; display: block; line-height: 1.1; }
+.st-kpi span { font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+#sig-map { height: 460px; border-radius: 14px; }
+.badge-statut { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 20px; color: #fff; }
+.cat-dot { width: 26px; height: 26px; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-megaphone-fill" style="color:#E11D48;"></i> {{ titre|upper }}</h1>
+    <p class="page-description">{% if user.can_manage_signalements %}Problèmes signalés dans la commune et suivi de leur traitement.{% else %}Les problèmes que vous avez signalés et l'avancement de leur traitement.{% endif %}</p>
+  </div>
+  <a href="{% url 'commune:signalement_create' %}" class="btn btn-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>SIGNALER UN PROBLÈME</a>
+</div>
+
+<div class="st-kpis">
+  <a href="?" class="st-kpi {% if not statut %}active{% endif %}" style="--c:#0f172a"><b>{{ stats.total }}</b><span>Total</span></a>
+  <a href="?statut=nouveau" class="st-kpi {% if statut == 'nouveau' %}active{% endif %}" style="--c:#DC2626"><b>{{ stats.nouveaux }}</b><span>Nouveaux</span></a>
+  <a href="?statut=pris_en_charge" class="st-kpi {% if statut == 'pris_en_charge' %}active{% endif %}" style="--c:#F59E0B"><b>{{ stats.pris_en_charge }}</b><span>Pris en charge</span></a>
+  <a href="?statut=en_cours" class="st-kpi {% if statut == 'en_cours' %}active{% endif %}" style="--c:#2563EB"><b>{{ stats.en_cours }}</b><span>En cours</span></a>
+  <a href="?statut=resolu" class="st-kpi {% if statut == 'resolu' %}active{% endif %}" style="--c:#16A34A"><b>{{ stats.resolus }}</b><span>Résolus</span></a>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card"><div id="sig-map"></div></div>
+    <div class="small text-muted mt-2">Couleur du marqueur = catégorie · anneau = statut (<span style="color:#DC2626">nouveau</span>, <span style="color:#F59E0B">pris en charge</span>, <span style="color:#2563EB">en cours</span>, <span style="color:#16A34A">résolu</span>).</div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body py-2 border-bottom">
+        <form method="get" class="d-flex gap-2 flex-wrap">
+          <select name="categorie" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="">Toutes les catégories</option>
+            {% for code, label in categories %}<option value="{{ code }}" {% if code == categorie %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <select name="statut" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="">Tous les statuts</option>
+            {% for code, label in statuts %}<option value="{{ code }}" {% if code == statut %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-uad mb-0 align-middle">
+          <thead><tr><th></th><th>Signalement</th><th>Village</th><th>Date</th><th>Priorité</th><th>Statut</th></tr></thead>
+          <tbody>
+            {% for s in page_obj %}
+            <tr>
+              <td><span class="cat-dot" style="background:{{ s.couleur }}" title="{{ s.get_categorie_display }}"><i class="bi {{ s.icone }}"></i></span></td>
+              <td><a href="{% url 'commune:signalement_detail' s.pk %}" class="fw-semibold text-decoration-none">{{ s.titre }}</a><br><small class="text-muted">{{ s.numero }} · {{ s.get_categorie_display }}</small></td>
+              <td style="font-size:13px;">{{ s.village.nom|default:"—" }}</td>
+              <td style="font-size:13px;">{{ s.date_signalement|date:"d/m/Y" }}</td>
+              <td style="font-size:13px;">{% if s.priorite == 'urgente' %}<strong class="text-danger">Urgente</strong>{% else %}{{ s.get_priorite_display }}{% endif %}</td>
+              <td><span class="badge-statut" style="background:{{ s.statut_couleur }}">{{ s.get_statut_display|upper }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-check2-circle fs-2 d-block mb-2"></i>Aucun signalement.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if page_obj.has_other_pages %}
+      <div class="card-footer bg-transparent d-flex justify-content-end">
+        <ul class="pagination pagination-sm mb-0">
+          {% for num in page_obj.paginator.page_range %}
+          <li class="page-item {% if page_obj.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}&statut={{ statut }}&categorie={{ categorie }}">{{ num }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'commune/_couches_js.html' %}
+<script>
+(function () {
+  var DATA = {{ couches_json|safe }};
+  var FILTRE_STATUT = '{{ statut|escapejs }}';
+  var FILTRE_CAT = '{{ categorie|escapejs }}';
+  var CAT_LABELS = { {% for code, label in categories %}'{{ code }}': '{{ label|escapejs }}',{% endfor %} };
+  DATA.signalements = DATA.signalements.filter(function (f) {
+    return (!FILTRE_STATUT || f.properties.statut_code === FILTRE_STATUT)
+      && (!FILTRE_CAT || f.properties.categorie === CAT_LABELS[FILTRE_CAT]);
+  });
+  var map = initCampusMap('sig-map', { hideLayerControl: true, base: 'satellite', center: COMMUNE_DEFAULT_VIEW.center, zoom: COMMUNE_DEFAULT_VIEW.zoom });
+  var couches = drawCommuneLayers(map, DATA, { fit: false });
+  var b = couches.groups.signalements.getBounds();
+  if (b.isValid()) map.fitBounds(b, { padding: [40, 40], maxZoom: 16 });
+  else if (couches.bounds) map.fitBounds(couches.bounds, { padding: [30, 30] });
+})();
+</script>
+{% endblock %}

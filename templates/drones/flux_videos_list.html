@@ -42,9 +42,14 @@
     <h1 class="page-title"><i class="bi bi-film me-2"></i>Vidéos enregistrées</h1>
     <p class="page-description">Flux drones capturés et stockés sur le serveur.</p>
   </div>
-  <a href="{% url 'drones:perspectives' %}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left me-2"></i>Retour Perspectives
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'drones:flux_video_import' %}" class="btn btn-primary">
+      <i class="bi bi-cloud-upload me-2"></i>Importer une vidéo
+    </a>
+    <a href="{% url 'drones:perspectives' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Retour Perspectives
+    </a>
+  </div>
 </div>
 
 <!-- KPI -->
@@ -137,10 +142,13 @@
   <i class="bi bi-film fs-1 text-muted d-block mb-3"></i>
   <h6 class="text-muted">Aucune vidéo enregistrée</h6>
   <p class="text-muted small mb-4">
-    Connectez un flux live sur la page Perspectives,<br>
-    puis cliquez sur <strong>Sauvegarder sur le serveur</strong>.
+    Connectez un flux live sur la page Perspectives et cliquez sur <strong>Sauvegarder sur le serveur</strong>,<br>
+    ou importez directement un fichier vidéo déjà enregistré.
   </p>
-  <a href="{% url 'drones:perspectives' %}" class="btn btn-primary">
+  <a href="{% url 'drones:flux_video_import' %}" class="btn btn-primary me-2">
+    <i class="bi bi-cloud-upload me-2"></i>Importer une vidéo
+  </a>
+  <a href="{% url 'drones:perspectives' %}" class="btn btn-outline-secondary">
     <i class="bi bi-broadcast me-2"></i>Aller au flux live
   </a>
 </div>

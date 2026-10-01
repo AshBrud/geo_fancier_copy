@@ -14,11 +14,13 @@ import subprocess
 import shutil
 import signal as _signal
 from .models import Orthophoto, FluxVideo, PhotoDrone, Mission
-from .forms import OrthophotoImportForm, MissionForm
+from .forms import OrthophotoImportForm, MissionForm, FluxVideoImportForm
 from accounts.decorators import domaine_required
 
 # Enregistrements actifs (par utilisateur — clé = user.pk)
 _active_recordings = {}
+# Diffusions simulées actives (vidéo publiée en boucle vers MediaMTX comme flux live)
+_active_broadcasts = {}
 
 
 # ── Extraction automatique depuis GeoTIFF (GDAL) ──────────────────────────────
@@ -379,6 +381,7 @@ def perspectives(request):
         'total_voiries': Voirie.objects.count(),
         'total_terrains_sportifs': Terrain.objects.filter(type_terrain__icontains='sport').count(),
         'total_espaces_verts': EspaceVert.objects.count(),
+        'flux_videos_recentes': FluxVideo.objects.all()[:20],
     })
 
 
@@ -565,6 +568,133 @@ def flux_stop(request):
         })
 
     return JsonResponse({'status': 'stopped', 'warning': 'Fichier vide ou non créé'})
+
+
+# ── Diffusion simulée d'une vidéo enregistrée comme flux live (FFmpeg → MediaMTX) ──
+
+@login_required
+@domaine_required
+def flux_diffuser_start(request):
+    """Republie en boucle un fichier vidéo déjà stocké vers le serveur MediaMTX
+    (protocole RTSP), afin qu'il apparaisse comme un flux live dans le panneau
+    HLS/WebRTC — utile pour démontrer le SIG sans drone réellement connecté."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode POST requise'}, status=405)
+
+    if not shutil.which('ffmpeg'):
+        return JsonResponse({'error': 'FFmpeg non installé sur le serveur.'}, status=500)
+
+    try:
+        data = _json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Corps JSON invalide'}, status=400)
+
+    video_id = data.get('video_id')
+    rtsp_url = (data.get('rtsp_url') or '').strip()
+    boucle   = data.get('boucle', True)
+
+    if not video_id:
+        return JsonResponse({'error': 'Vidéo non spécifiée'}, status=400)
+    if not rtsp_url:
+        return JsonResponse({'error': 'URL RTSP de publication manquante'}, status=400)
+
+    video = get_object_or_404(FluxVideo, pk=video_id)
+    if not (video.fichier and os.path.exists(video.fichier.path)):
+        return JsonResponse({'error': 'Fichier vidéo introuvable sur le serveur.'}, status=404)
+
+    uid = request.user.pk
+    if uid in _active_broadcasts:
+        return JsonResponse({'error': 'Une diffusion est déjà en cours'}, status=400)
+
+    cmd = ['ffmpeg', '-re']
+    if boucle:
+        cmd += ['-stream_loop', '-1']
+    cmd += [
+        '-i', video.fichier.path,
+        '-c', 'copy',
+        '-f', 'rtsp',
+        '-rtsp_transport', 'tcp',
+        rtsp_url,
+    ]
+
+    kwargs = {}
+    if sys.platform == 'win32':
+        kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs)
+    except Exception as e:
+        return JsonResponse({'error': f'Impossible de démarrer FFmpeg : {e}'}, status=500)
+
+    _active_broadcasts[uid] = {
+        'proc':       proc,
+        'video':      video.nom,
+        'rtsp_url':   rtsp_url,
+        'start_time': datetime.now(),
+    }
+    return JsonResponse({'status': 'started', 'nom': video.nom})
+
+
+@login_required
+@domaine_required
+def flux_diffuser_stop(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode POST requise'}, status=405)
+
+    uid = request.user.pk
+    rec = _active_broadcasts.pop(uid, None)
+    if not rec:
+        return JsonResponse({'error': 'Aucune diffusion en cours'}, status=400)
+
+    proc = rec['proc']
+    try:
+        if sys.platform == 'win32':
+            proc.send_signal(_signal.CTRL_BREAK_EVENT)
+        else:
+            proc.send_signal(_signal.SIGINT)
+        proc.wait(timeout=10)
+    except Exception:
+        proc.kill()
+
+    return JsonResponse({'status': 'stopped'})
+
+
+def _duree_video_secondes(filepath):
+    """Interroge ffprobe (si présent) pour récupérer la durée d'un fichier vidéo."""
+    if not shutil.which('ffprobe'):
+        return None
+    try:
+        out = subprocess.run(
+            ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+             '-of', 'default=noprint_wrappers=1:nokey=1', filepath],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=15,
+        )
+        return int(float(out.stdout.decode().strip()))
+    except Exception:
+        return None
+
+
+# ── Import d'une vidéo déjà enregistrée (carte SD, export DJI…) ──────────────
+
+@login_required
+@domaine_required
+def flux_video_import(request):
+    """Import manuel d'un fichier vidéo existant (ex. export carte SD du drone)
+    dans le Centre de supervision, en complément de l'enregistrement live FFmpeg."""
+    form = FluxVideoImportForm(request.POST or None, request.FILES or None)
+
+    if request.method == 'POST' and form.is_valid():
+        video = form.save(commit=False)
+        video.taille_octets = video.fichier.size
+        if not video.operateur:
+            video.operateur = request.user.get_full_name() or request.user.username
+        video.save()
+        video.duree_secondes = _duree_video_secondes(video.fichier.path)
+        video.save(update_fields=['duree_secondes'])
+        messages.success(request, f'Vidéo « {video.nom} » importée avec succès.')
+        return redirect('drones:flux_videos')
+
+    return render(request, 'drones/flux_video_import.html', {'form': form})
 
 
 # ── Liste des flux vidéos enregistrés ────────────────────────────────────────

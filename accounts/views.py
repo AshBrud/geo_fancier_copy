@@ -6,24 +6,50 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 import datetime
 from .models import CustomUser, ActivityLog
 from .forms import LoginForm, RegisterForm, UserUpdateForm, ProfileForm
 from .decorators import admin_required
 
 
+def _suivant(request):
+    """URL de retour (?next=) si elle pointe bien vers la plateforme."""
+    nxt = request.POST.get('next') or request.GET.get('next') or ''
+    if url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()},
+                                       require_https=request.is_secure()):
+        return nxt
+    return ''
+
+
+def _contexte_commune():
+    """Identité de la commune et villages affichés dans le défilement des pages d'accès."""
+    from commune.models import Commune, Village
+    return {
+        'commune': Commune.objects.first(),
+        'villages_defilement': Village.objects.order_by('nom').only('nom', 'code'),
+    }
+
+
 def login_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard:index')
+    # Pas de redirection automatique quand une session est déjà ouverte : sur un
+    # ordinateur partagé, chacun doit pouvoir se connecter avec son propre compte
+    # (la nouvelle connexion remplace alors la session précédente).
     form = LoginForm(request, data=request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.get_user()
+        precedent = request.user if request.user.is_authenticated else None
+        if precedent and precedent.pk != user.pk:
+            ActivityLog.objects.create(
+                user=precedent, action='Déconnexion (changement de compte)',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
         login(request, user)
         ActivityLog.objects.create(
             user=user, action='Connexion',
             ip_address=request.META.get('REMOTE_ADDR')
         )
-        return redirect('dashboard:index')
+        return redirect(_suivant(request) or 'dashboard:index')
     from foncier.models import Espace, Batiment
     from drones.models import Orthophoto
     return render(request, 'accounts/login.html', {
@@ -31,19 +57,20 @@ def login_view(request):
         'nb_espaces': Espace.objects.count(),
         'nb_batiments': Batiment.objects.count(),
         'nb_orthophotos': Orthophoto.objects.count(),
+        'next': _suivant(request),
+        'page_auth': True,
+        **_contexte_commune(),
     })
 
 
 def register_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard:index')
     form = RegisterForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         login(request, user)
         messages.success(request, f'Bienvenue {user.get_full_name() or user.username} !')
         return redirect('dashboard:index')
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, 'accounts/register.html', {'form': form, 'page_auth': True, **_contexte_commune()})
 
 
 @login_required

@@ -121,6 +121,7 @@
   const geom = {{ batiment.geometrie.geojson|safe }};
   const layer = L.geoJSON(geom, { style: { color: '#1E3A8A', fillOpacity: 0.6, weight: 2 } }).addTo(map);
   map.fitBounds(layer.getBounds());
+  if (typeof loadPriorityOrthophoto === 'function') loadPriorityOrthophoto(map, { fit: false });
 </script>
 {% endif %}
 {% endblock %}

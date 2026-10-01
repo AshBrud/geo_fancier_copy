@@ -1,6 +1,6 @@
 @echo off
 echo ============================================
-echo   GeoFoncier UAD - Demarrage reseau
+echo   GeoFoncier NGOGOM_UAD - Demarrage reseau
 echo ============================================
 echo.
 

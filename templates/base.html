@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}GéoFoncier UAD{% endblock %} — GéoFoncier UAD</title>
+  <title>{% block title %}GéoFoncier NGOGOM_UAD{% endblock %} — GéoFoncier NGOGOM_UAD</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -14,22 +14,52 @@
 </head>
 <body>
 
-{% if user.is_authenticated %}
+{% if user.is_authenticated and not page_auth %}
 <!-- ===== SIDEBAR ===== -->
 <div class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="sidebar-logo sidebar-logo-uadb">
-      <img src="{% static 'images/logo_uadb.jpg' %}" alt="Logo UADB">
+    <div class="sidebar-logo sidebar-logo-uadb sidebar-logo-ngogom">
+      <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom">
     </div>
     <div class="sidebar-brand-text">
       <span>Géo<span style="color:#34d399; font-weight:800;">Foncier</span></span>
-      <small>UAD · Bambey</small>
+      <small>NGOGOM_UAD</small>
     </div>
   </div>
   <nav class="sidebar-nav">
-    <div class="nav-section-label">Navigation</div>
-    <a href="{% url 'dashboard:index' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+    {% with cn=request.resolver_match.app_name urln=request.resolver_match.url_name|default:'' %}
+    <div class="nav-section-label">Commune de Ngogom</div>
+    {% if user.can_view_commune %}
+    <a href="{% url 'dashboard:index' %}" class="nav-link {% if cn == 'dashboard' and urln == 'index' %}active{% endif %}">
       <i class="bi bi-speedometer2"></i><span>Tableau de bord</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'commune:carte' %}" class="nav-link {% if cn == 'commune' and urln == 'carte' or cn == 'commune' and urln == 'commune_edit' %}active{% endif %}">
+      <i class="bi bi-geo-fill"></i><span>Carte communale</span>
+    </a>
+    {% if user.can_view_commune %}
+    <a href="{% url 'commune:villages' %}" class="nav-link {% if cn == 'commune' and 'village' in urln %}active{% endif %}">
+      <i class="bi bi-houses-fill"></i><span>Villages</span>
+    </a>
+    <a href="{% url 'commune:maisons' %}" class="nav-link {% if cn == 'commune' and 'maison' in urln %}active{% endif %}">
+      <i class="bi bi-house-fill"></i><span>Maisons</span>
+    </a>
+    <a href="{% url 'commune:pistes' %}" class="nav-link {% if cn == 'commune' and 'piste' in urln %}active{% endif %}">
+      <i class="bi bi-signpost-split"></i><span>Routes et pistes</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'commune:signalements' %}" class="nav-link {% if cn == 'commune' and urln == 'signalements' or cn == 'commune' and urln == 'signalement_detail' %}active{% endif %}">
+      <i class="bi bi-megaphone-fill"></i><span>{% if user.can_manage_signalements %}Signalements{% else %}Mes signalements{% endif %}</span>
+    </a>
+    <a href="{% url 'commune:signalement_create' %}" class="nav-link {% if cn == 'commune' and urln == 'signalement_create' %}active{% endif %}" style="color:#fda4af;">
+      <i class="bi bi-exclamation-triangle-fill"></i><span>Signaler un problème</span>
+    </a>
+    {% endwith %}
+
+    {% if not user.is_role_communal %}
+    <div class="nav-section-label mt-2">Campus UAD</div>
+    <a href="{% url 'dashboard:universite' %}" class="nav-link {% if request.resolver_match.url_name == 'universite' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span>Tableau de bord campus</span>
     </a>
     <a href="{% url 'foncier:cartographie' %}" class="nav-link {% if 'cartographie' in request.path %}active{% endif %}">
       <i class="bi bi-map"></i><span>Cartographie</span>
@@ -72,6 +102,7 @@
     <a href="{% url 'constructions:historique' %}" class="nav-link {% if 'historique' in request.path %}active{% endif %}">
       <i class="bi bi-clock-history"></i><span>Historique</span>
     </a>
+    {% endif %}
 
     {% if user.is_admin %}
     <div class="nav-section-label mt-2">Administration</div>
@@ -101,9 +132,32 @@
       </nav>
     </div>
     <div class="topbar-right">
+      {% if not user.is_role_communal %}
       <a href="{% url 'navigation:recherche' %}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-search"></i>
       </a>
+      {% endif %}
+      <!-- Notifications (signalements communaux) -->
+      <div class="dropdown ms-1">
+        <button class="btn btn-sm btn-outline-secondary position-relative" data-bs-toggle="dropdown" aria-label="Notifications">
+          <i class="bi bi-bell{% if notif_non_lues %}-fill text-danger{% endif %}"></i>
+          {% if notif_non_lues %}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:10px;">{{ notif_non_lues }}</span>
+          {% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0" style="width:340px;">
+          <div class="px-3 py-2 border-bottom fw-semibold small">Notifications{% if notif_non_lues %} · <span class="text-danger">{{ notif_non_lues }} non lue{{ notif_non_lues|pluralize }}</span>{% endif %}</div>
+          {% for n in notif_recentes %}
+          <a href="{% url 'commune:notification_ouvrir' n.pk %}" class="dropdown-item py-2 small text-wrap {% if not n.lue %}fw-semibold{% endif %}" style="white-space:normal; {% if not n.lue %}background:#fff1f2;{% endif %}">
+            <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ n.message }}
+            <div class="text-muted" style="font-size:11px; font-weight:400;">{{ n.created_at|date:"d/m/Y H:i" }}</div>
+          </a>
+          {% empty %}
+          <div class="px-3 py-3 text-muted small">Aucune notification.</div>
+          {% endfor %}
+          <a href="{% url 'commune:notifications' %}" class="dropdown-item text-center small text-primary border-top py-2">Voir toutes les notifications</a>
+        </div>
+      </div>
       <div class="dropdown ms-1">
         <button class="btn btn-sm user-btn dropdown-toggle" data-bs-toggle="dropdown">
           {% if user.photo %}

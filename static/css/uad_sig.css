@@ -1,5 +1,5 @@
 /* =====================================================
-   GéoFoncier UAD — Design System
+   GéoFoncier NGOGOM_UAD — Design System
    Université Alioune Diop — Gestion Foncière
    ===================================================== */
 
@@ -88,6 +88,8 @@ h1, h2, h3, h4, h5, h6,
   object-position: center;
   border-radius: 50%;
 }
+/* Logo de la commune de Ngogom : image carrée non circulaire, on la montre en entier */
+.sidebar-logo-ngogom img { object-fit: contain; padding: 2px; }
 .sidebar-brand-text {
   display: flex;
   flex-direction: column;

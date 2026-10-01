@@ -1,4 +1,4 @@
-/* GéoFoncier UAD — Scripts principaux */
+/* GéoFoncier NGOGOM_UAD — Scripts principaux */
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -79,7 +79,11 @@ function initCampusMap(containerId, options) {
   map.createPane('orthophotoPane');
   map.getPane('orthophotoPane').style.zIndex = 250;
 
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // Les serveurs OSM refusent (403 « Access blocked ») les tuiles demandées sans
+  // en-tête Referer ; or Django impose « Referrer-Policy: same-origin » à toutes
+  // les pages. On rétablit donc l'envoi de l'origine pour cette seule couche.
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 28,
     maxNativeZoom: 19
@@ -92,11 +96,13 @@ function initCampusMap(containerId, options) {
     maxNativeZoom: 19
   });
 
-  osm.addTo(map);
+  // options.base = 'satellite' : fond image par défaut (cartes communales rurales)
+  const base = options.base === 'satellite' ? 'satellite' : 'osm';
+  (base === 'satellite' ? satellite : osm).addTo(map);
 
   // Référence aux fonds de carte pour le panneau custom
   map._baseLayers = { osm: osm, satellite: satellite };
-  map._activeBase = 'osm';
+  map._activeBase = base;
 
   if (!options.hideLayerControl) {
     L.control.layers(
@@ -132,7 +138,7 @@ function loadOrthophoto(map, tilesUrl, opts) {
     maxZoom: opts.maxZoom || 22,
     maxNativeZoom: opts.maxNativeZoom || 20,
     tms: opts.tms || false,
-    attribution: 'Orthophoto GéoFoncier UAD — WebODM/QGIS',
+    attribution: 'Orthophoto GéoFoncier NGOGOM_UAD — WebODM/QGIS',
   });
 }
 
@@ -244,7 +250,7 @@ function loadBatiments(map, layerGroup) {
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
-          layer.bindTooltip(p.code, {
+          layer.bindTooltip(p.nom, {
             permanent: true, direction: 'center', className: 'batiment-label',
           });
           layer.bindPopup('');

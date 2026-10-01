@@ -50,6 +50,7 @@ def cartographie(request):
         'total_espaces': Espace.objects.count(),
         'nb_espaces_libres': Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count(),
         'nb_espaces_reserves': Espace.objects.filter(type_espace=Espace.TYPE_RESERVE).count(),
+        'nb_espaces_occupes': Espace.objects.filter(type_espace=Espace.TYPE_OCCUPE).count(),
         'total_batiments': Batiment.objects.filter(est_actif=True).count(),
         'nb_terrains': Terrain.objects.exclude(type_terrain__icontains='sport').count(),
         'nb_terrains_sportifs': Terrain.objects.filter(type_terrain__icontains='sport').count(),

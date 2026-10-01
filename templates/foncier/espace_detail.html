@@ -504,6 +504,7 @@
   /* Charger aussi les autres espaces + bâtiments pour le contexte */
   if (typeof loadEspaces === 'function')   loadEspaces(map);
   if (typeof loadBatiments === 'function') loadBatiments(map);
+  if (typeof loadPriorityOrthophoto === 'function') loadPriorityOrthophoto(map, { fit: false });
 })();
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Connexion — GéoFoncier UAD{% endblock %}
+{% block title %}Connexion — GéoFoncier NGOGOM_UAD{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -79,10 +79,15 @@
 }
 .auth-univ-badge .uv-dot {
   width: 30px; height: 30px;
-  background: linear-gradient(135deg, #00e5a0, #00b4d8);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; flex-shrink: 0;
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #00e5a0, #00b4d8);
+}
+.auth-univ-badge .uv-dot i {
+  position: relative; z-index: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
 }
 .auth-univ-badge span {
   font-size: 0.74rem; font-weight: 600;
@@ -265,6 +270,15 @@
   animation: ringPulse 3.5s .5s ease-in-out infinite;
 }
 
+.auth-right-logos { display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 16px; }
+.auth-right-logos .auth-right-logo { margin-bottom: 0; }
+.auth-right-logo-ngogom {
+  width: 76px; height: 80px; object-fit: contain; background: #fff;
+  border-radius: 18px; padding: 4px;
+  box-shadow: 0 10px 28px rgba(14,36,160,0.22), 0 2px 6px rgba(14,36,160,0.12);
+  animation: fadeScaleIn .5s .1s ease both;
+}
+
 /* Brand */
 .auth-right-brand {
   position: relative; z-index: 2;
@@ -416,15 +430,17 @@
   100% { transform: translateY(0); }
 }
 
-/* ════════ LOGO SVG ════════ */
+/* ════════ LOGO — anneaux pulsants ════════ */
 .auth-right-logo {
   background: transparent !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
   padding: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  overflow: visible !important;
+  width: 76px !important; height: 76px !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+  filter:
+    drop-shadow(0 10px 28px rgba(14,36,160,0.48))
+    drop-shadow(0 2px 6px rgba(14,36,160,0.22));
 }
 .auth-right-logo::before {
   inset: -6px !important;
@@ -436,12 +452,14 @@
   border-radius: 31px !important;
   border-color: rgba(40,69,216,0.10) !important;
 }
-.logo-img {
-  width: 76px; height: 76px; display: block;
-  border-radius: 19px;
-  filter:
-    drop-shadow(0 10px 28px rgba(14,36,160,0.48))
-    drop-shadow(0 2px 6px rgba(14,36,160,0.22));
+.auth-right-logo-pin {
+  position: relative; z-index: 2;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 30px;
+  text-shadow:
+    0 1px 4px rgba(0,0,0,0.55),
+    0 0 14px rgba(0,0,0,0.35);
 }
 
 /* ════════ RESPONSIVE ════════ */
@@ -478,12 +496,14 @@
 
     <!-- Badge -->
     <div class="auth-univ-badge">
-      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white" style="font-size:13px;"></i></div>
-      <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
+      <div class="uv-dot" style="background:#fff;">
+        <img src="{% static 'images/logo_ngogom.jpg' %}" alt="" style="width:100%;height:100%;object-fit:contain;">
+      </div>
+      <span>Commune de Ngogom</span>
     </div>
 
     <!-- Titre -->
-    <div class="auth-app-title" style="font-size:3.4rem;">Géo<span class="accent">Foncier</span></div>
+    <div class="auth-app-title" style="font-size:3.4rem;">Géo<span class="accent">Foncier</span> <span style="font-size:.4em; letter-spacing:0; color:#fff; opacity:.9;">NGOGOM_UAD</span></div>
 
     <!-- Règle -->
     <div class="auth-title-rule">
@@ -537,15 +557,15 @@
       </div>
       <div class="auth-marquee-col">
         <div class="auth-marquee-track up">
-          {% include 'accounts/_feat_items_alt.html' %}
-          {% include 'accounts/_feat_items_alt.html' %}
+          {% include 'accounts/_feat_commune.html' %}
+          {% include 'accounts/_feat_commune.html' %}
         </div>
       </div>
     </div>
 
     <!-- Footer -->
     <div class="auth-left-footer">
-      <span class="footer-copy">&copy; 2026 GéoFoncier UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
+      <span class="footer-copy">&copy; 2026 GéoFoncier NGOGOM_UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
       <span class="footer-badge"><i class="bi bi-shield-check"></i> Sécurisé</span>
     </div>
 
@@ -557,14 +577,14 @@
 ══════════════════════════════════════ -->
 <div class="auth-right-panel">
 
-  <!-- Logo avec anneaux pulsants -->
-  <div class="auth-right-logo">
-    <img src="{% static 'images/logo_uad_sig.svg' %}" alt="GéoFoncier UAD" class="logo-img">
+  <!-- Logo de la commune de Ngogom -->
+  <div class="auth-right-logos">
+    <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom" class="auth-right-logo-ngogom">
   </div>
 
   <!-- Branding -->
   <div class="auth-right-brand">
-    <h2>Géo<span style="color:#1e3a8a; font-weight:900;">Foncier</span> <span style="font-size:14px; color:#94a3b8; font-weight:500;">UAD</span></h2>
+    <h2>Géo<span style="color:#1e3a8a; font-weight:900;">Foncier</span> <span style="font-size:14px; color:#94a3b8; font-weight:500;">NGOGOM_UAD</span></h2>
     <p>Système d'Information Géographique</p>
   </div>
 
@@ -590,16 +610,28 @@
       {% endfor %}
     {% endif %}
 
+    {% if user.is_authenticated %}
+    <div class="auth-alert mb-3">
+      <i class="bi bi-person-check-fill flex-shrink-0"></i>
+      <div>
+        Session ouverte : <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ user.get_role_display }}).
+        Ce n'est pas vous ? Connectez-vous ci-dessous avec <strong>votre propre compte</strong>.
+        <a href="{{ next|default:'/dashboard/' }}">Continuer en tant que {{ user.username }}</a>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Formulaire -->
     <form method="post" novalidate>
       {% csrf_token %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
       <div class="auth-field">
-        <label>Nom d'utilisateur</label>
+        <label>Téléphone ou nom d'utilisateur</label>
         <div class="auth-input-wrap">
           <i class="bi bi-person field-icon"></i>
           <input type="text" name="username"
-                 placeholder="Votre identifiant"
+                 placeholder="77 123 45 67 ou identifiant"
                  value="{{ form.username.value|default:'' }}"
                  class="{% if form.username.errors %}is-invalid{% endif %}"
                  autofocus required>

@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord — Commune de {{ commune.nom|default:"Ngogom" }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Tableau de bord</li>{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+{% include 'dashboard/_styles.html' %}
+<style>
+.dash-banner.commune { background: linear-gradient(135deg, #064e3b 0%, #0F766E 55%, #0d9488 100%); }
+.vil-row { display: flex; align-items: center; gap: 12px; padding: .7rem 1.25rem; border-bottom: 1px solid #f8fafc; text-decoration: none; }
+.vil-row:last-child { border-bottom: none; }
+.vil-row:hover { background: #f8fafc; }
+.vil-name { font-size: 13px; font-weight: 600; color: #1e293b; }
+.vil-meta { font-size: 11px; color: #94a3b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
+    <p class="page-description">Vue d'ensemble de la commune de {{ commune.nom|default:"Ngogom" }} : villages, bâti{% if sig_total is not None %} et signalements{% endif %}.</p>
+  </div>
+  <span class="text-muted small d-none d-md-flex align-items-center gap-2">
+    <i class="bi bi-calendar3"></i>{% now "l d F Y" %}
+  </span>
+</div>
+
+<div class="dash-banner commune">
+  <div class="dash-banner-left">
+    <div class="dash-greeting">Bonjour, {{ user.first_name|default:user.username }} 👋</div>
+    <div class="dash-role-badge"><i class="bi bi-shield-check"></i> {{ user.get_role_display }}</div>
+    <div class="dash-tagline">
+      {% if commune %}Commune de {{ commune.nom }} — Département de {{ commune.departement }}, région de {{ commune.region }}
+      {% else %}Commune de Ngogom — Système d'Information Géographique{% endif %}
+    </div>
+  </div>
+  <div class="dash-banner-right">
+    <a href="{% url 'commune:carte' %}" class="dash-quick-btn"><i class="bi bi-geo-fill"></i> Carte</a>
+    <a href="{% url 'commune:villages' %}" class="dash-quick-btn"><i class="bi bi-houses-fill"></i> Villages</a>
+    <a href="{% url 'commune:maisons' %}" class="dash-quick-btn"><i class="bi bi-house-fill"></i> Maisons</a>
+    {% if user.can_manage_signalements %}
+    <a href="{% url 'commune:signalements' %}" class="dash-quick-btn"><i class="bi bi-megaphone-fill"></i> Signalements</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if not commune %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <div>La limite communale n'est pas encore enregistrée.
+    {% if user.can_edit_commune %}<a href="{% url 'commune:commune_edit' %}" class="alert-link">La tracer maintenant</a>.{% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ===== INDICATEURS CLÉS ===== -->
+<div class="dash-section-lbl">Indicateurs clés de la commune</div>
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#f0fdfa;color:#0F766E;"><i class="bi bi-map-fill"></i></div>
+      <div class="kpi-pro-val">{{ commune.superficie_km2|default:"—" }}</div>
+      <div class="kpi-pro-lbl">Superficie communale (km²)</div>
+      <div class="kpi-pro-foot"><i class="bi bi-geo-alt-fill" style="color:#0F766E;"></i> Limite administrative</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#eff6ff;color:#1E3A8A;"><i class="bi bi-houses-fill"></i></div>
+      <div class="kpi-pro-val">{{ stats.nb_villages }}</div>
+      <div class="kpi-pro-lbl">Villages</div>
+      <div class="kpi-pro-foot"><i class="bi bi-signpost-split"></i> {{ nb_pistes }} tronçon{{ nb_pistes|pluralize }} · {{ longueur_pistes_km }} km de voies</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#fff1f2;color:#dc2626;"><i class="bi bi-house-fill"></i></div>
+      <div class="kpi-pro-val">{{ stats.nb_maisons }}</div>
+      <div class="kpi-pro-lbl">Maisons recensées</div>
+      <div class="kpi-pro-foot">
+        <i class="bi bi-circle-fill text-danger" style="font-size:8px;"></i> {{ stats.nb_habitees }} habitée{{ stats.nb_habitees|pluralize }}
+        · {{ stats.nb_non_habitees }} non habitée{{ stats.nb_non_habitees|pluralize }}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#fffbeb;color:#d97706;"><i class="bi bi-bounding-box"></i></div>
+      <div class="kpi-pro-val">{{ superficie_batie_ha }}</div>
+      <div class="kpi-pro-lbl">Superficie bâtie (ha)</div>
+      <div class="kpi-pro-foot"><i class="bi bi-percent"></i> Taux d'habitation : {{ taux_habitation }}%</div>
+    </div>
+  </div>
+
+  {% if sig_total is not None %}
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#fff1f2;color:#E11D48;"><i class="bi bi-megaphone-fill"></i></div>
+      <div class="kpi-pro-val" style="color:#E11D48;">{{ sig_ouverts }}</div>
+      <div class="kpi-pro-lbl">Signalements à traiter</div>
+      <div class="kpi-pro-foot"><i class="bi bi-list-check"></i> {{ sig_total }} signalement{{ sig_total|pluralize }} au total</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== BÂTI ===== -->
+<div class="dash-section-lbl">Bâti et occupation</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-4">
+    <div class="ch-card">
+      <div class="ch-card-hdr"><div class="ch-card-title"><i class="bi bi-pie-chart-fill text-danger"></i>Statut d'occupation des maisons</div></div>
+      <div class="p-3" style="height:260px;">
+        {% if stats.nb_maisons %}<canvas id="maisonsChart"></canvas>
+        {% else %}<div class="text-center text-muted py-5"><i class="bi bi-house fs-1 d-block mb-2 opacity-25"></i><p class="small mb-0">Aucune maison recensée</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="ch-card">
+      <div class="ch-card-hdr"><div class="ch-card-title"><i class="bi bi-bar-chart-fill" style="color:#0F766E;"></i>Maisons par village</div></div>
+      <div class="p-3" style="height:260px;">
+        {% if villages %}<canvas id="villagesChart"></canvas>
+        {% else %}<div class="text-center text-muted py-5"><i class="bi bi-houses fs-1 d-block mb-2 opacity-25"></i><p class="small mb-0">Aucun village enregistré</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Villages -->
+  <div class="col-lg-{% if sig_total is not None %}6{% else %}12{% endif %}">
+    <div class="ch-card h-100">
+      <div class="ch-card-hdr">
+        <div class="ch-card-title"><i class="bi bi-houses-fill" style="color:#0F766E;"></i>Villages</div>
+        <a href="{% url 'commune:villages' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+      {% for v in villages|slice:":8" %}
+      <a href="{% url 'commune:village_detail' v.pk %}" class="vil-row">
+        <div class="cst-ico" style="background:#f0fdfa;color:#0F766E;"><i class="bi bi-house-door-fill"></i></div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="vil-name text-truncate">{{ v.nom }} <span class="vil-meta">{{ v.code }}</span></div>
+          <div class="vil-meta">{{ v.nb_habitees }} habitée{{ v.nb_habitees|pluralize }} · {{ v.surface_batie|default:0|floatformat:0 }} m² bâtis</div>
+        </div>
+        <span class="badge bg-light text-dark border">{{ v.nb_maisons }} maison{{ v.nb_maisons|pluralize }}</span>
+      </a>
+      {% empty %}
+      <div class="text-center text-muted py-5"><i class="bi bi-houses fs-1 d-block mb-2 opacity-25"></i><p class="small mb-0">Aucun village enregistré</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if sig_total is not None %}
+  <!-- Signalements récents -->
+  <div class="col-lg-6">
+    <div class="ch-card h-100">
+      <div class="ch-card-hdr">
+        <div class="ch-card-title"><i class="bi bi-megaphone-fill" style="color:#E11D48;"></i>Signalements récents</div>
+        <a href="{% url 'commune:signalements' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+      {% for s in signalements_recents %}
+      <a href="{% url 'commune:signalement_detail' s.pk %}" class="vil-row">
+        <div class="cst-ico" style="background:{{ s.couleur }}1a;color:{{ s.couleur }};"><i class="bi {{ s.icone }}"></i></div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="vil-name text-truncate">{{ s.titre }}</div>
+          <div class="vil-meta">{{ s.numero }} · {{ s.get_categorie_display }} · {{ s.village.nom|default:"—" }} · {{ s.date_signalement|date:"d/m/Y" }}</div>
+        </div>
+        <span class="badge" style="background:{{ s.statut_couleur }};">{{ s.get_statut_display }}</span>
+      </a>
+      {% empty %}
+      <div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i><p class="small mb-0">Aucun signalement</p></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if sig_total is not None %}
+<!-- ===== SIGNALEMENTS ===== -->
+<div class="dash-section-lbl">Suivi des signalements</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="ch-card">
+      <div class="ch-card-hdr"><div class="ch-card-title"><i class="bi bi-kanban-fill text-primary"></i>Avancement du traitement</div></div>
+      <div class="p-3">
+        {% for st in sig_statuts %}
+        <div class="occ-row">
+          <div class="occ-hd"><span class="occ-name">{{ st.libelle }}</span><span class="occ-pct" style="color:{{ st.couleur }};">{{ st.nb }}</span></div>
+          <div class="occ-bar"><div class="occ-fill" style="width:{{ st.pct }}%;background:{{ st.couleur }};"></div></div>
+          <div class="occ-sub">{{ st.pct }}% des signalements</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="ch-card">
+      <div class="ch-card-hdr"><div class="ch-card-title"><i class="bi bi-bar-chart-fill" style="color:#E11D48;"></i>Signalements par catégorie</div></div>
+      <div class="p-3" style="height:260px;">
+        {% if sig_total %}<canvas id="categoriesChart"></canvas>
+        {% else %}<div class="text-center text-muted py-5"><i class="bi bi-bar-chart fs-1 d-block mb-2 opacity-25"></i><p class="small mb-0">Aucun signalement</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const font = { family: 'Poppins', size: 12 };
+  const barOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
+      x: { grid: { display: false } }
+    }
+  };
+
+  const maisons = document.getElementById('maisonsChart');
+  if (maisons) new Chart(maisons, {
+    type: 'doughnut',
+    data: {
+      labels: ['Habitées', 'Non habitées'],
+      datasets: [{ data: {{ maisons_json|safe }}, backgroundColor: ['#DC2626', '#94A3B8'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+               plugins: { legend: { position: 'bottom', labels: { padding: 16, font } } } }
+  });
+
+  const villages = document.getElementById('villagesChart');
+  if (villages) new Chart(villages, {
+    type: 'bar',
+    data: { labels: {{ villages_labels|safe }},
+            datasets: [{ label: 'Maisons', data: {{ villages_data|safe }}, backgroundColor: '#0F766E', borderRadius: 6 }] },
+    options: barOptions
+  });
+
+  {% if sig_total %}
+  const categories = document.getElementById('categoriesChart');
+  if (categories) new Chart(categories, {
+    type: 'bar',
+    data: { labels: {{ categories_labels|safe }},
+            datasets: [{ label: 'Signalements', data: {{ categories_data|safe }}, backgroundColor: {{ categories_couleurs|safe }}, borderRadius: 6 }] },
+    options: barOptions
+  });
+  {% endif %}
+})();
+</script>
+{% endblock %}

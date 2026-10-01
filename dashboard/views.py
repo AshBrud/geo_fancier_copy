@@ -5,11 +5,80 @@ from foncier.models import Espace, Batiment, Campus, Terrain, EspaceVert, Voirie
 from drones.models import Orthophoto, Mission
 from constructions.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
+from commune.views import _json_script
+from commune.models import Commune, Maison, OrthophotoCommune, Piste, Signalement, Village
 import json
 
 
 @login_required
 def index(request):
+    """Accueil : tableau de bord de la commune de Ngogom."""
+    user = request.user
+    # Le citoyen n'a pas accès aux données foncières : son accueil reste la carte.
+    if not user.can_view_commune:
+        if user.is_role_communal:
+            return redirect('commune:carte')
+        return redirect('dashboard:universite')
+
+    commune = Commune.objects.first()
+    stats = commune.stats_bati() if commune else {
+        'nb_villages': Village.objects.count(), 'nb_maisons': 0, 'nb_habitees': 0,
+        'nb_non_habitees': 0, 'superficie_batie': 0,
+    }
+    nb_maisons = stats['nb_maisons']
+    taux_habitation = round(stats['nb_habitees'] / nb_maisons * 100, 1) if nb_maisons else 0
+
+    villages = Village.objects.annotate(
+        nb_maisons=Count('maisons'),
+        nb_habitees=Count('maisons', filter=Q(maisons__statut_occupation=Maison.HABITEE)),
+        surface_batie=Sum('maisons__superficie'),
+    ).order_by('-nb_maisons', 'nom')
+
+    pistes = Piste.objects.aggregate(nb=Count('id'), longueur=Sum('longueur'))
+
+    context = {
+        'commune': commune,
+        'stats': stats,
+        'taux_habitation': taux_habitation,
+        'superficie_batie_ha': round(stats['superficie_batie'] / 10000, 2),
+        'villages': villages,
+        'nb_pistes': pistes['nb'],
+        'longueur_pistes_km': round((pistes['longueur'] or 0) / 1000, 2),
+        'nb_orthophotos': OrthophotoCommune.objects.count(),
+        'maisons_json': json.dumps([stats['nb_habitees'], stats['nb_non_habitees']]),
+        'villages_labels': _json_script([v.nom for v in villages[:12]]),
+        'villages_data': json.dumps([v.nb_maisons for v in villages[:12]]),
+    }
+
+    if user.can_manage_signalements:
+        signalements = Signalement.objects.all()
+        agg = signalements.aggregate(
+            total=Count('id'),
+            **{code: Count('id', filter=Q(statut=code)) for code, _ in Signalement.STATUTS},
+        )
+        par_categorie = dict(signalements.values_list('categorie').annotate(n=Count('id')))
+        context.update({
+            'sig_total': agg['total'],
+            'sig_ouverts': agg['total'] - agg[Signalement.RESOLU],
+            'sig_statuts': [
+                {'libelle': lib, 'nb': agg[code], 'couleur': Signalement.STATUT_COULEURS[code],
+                 'pct': round(agg[code] / agg['total'] * 100) if agg['total'] else 0}
+                for code, lib in Signalement.STATUTS
+            ],
+            'categories_labels': json.dumps([lib for code, lib in Signalement.CATEGORIES], ensure_ascii=False),
+            'categories_data': json.dumps([par_categorie.get(code, 0) for code, _ in Signalement.CATEGORIES]),
+            'categories_couleurs': json.dumps([Signalement.CATEGORIE_STYLE[code][0] for code, _ in Signalement.CATEGORIES]),
+            'signalements_recents': signalements.select_related('village')[:6],
+        })
+
+    return render(request, 'dashboard/commune.html', context)
+
+
+@login_required
+def universite(request):
+    """Tableau de bord du campus de l'UAD."""
+    if request.user.is_role_communal:
+        return redirect('dashboard:index')
     # KPIs fonciers — le Campus est la seule référence de superficie totale,
     # il n'est jamais compté comme un espace ordinaire.
     campus = Campus.objects.first()

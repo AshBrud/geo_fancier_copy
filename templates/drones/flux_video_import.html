@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Importer une vidéo{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'drones:perspectives' %}">Perspectives</a></li>
+<li class="breadcrumb-item"><a href="{% url 'drones:flux_videos' %}">Vidéos enregistrées</a></li>
+<li class="breadcrumb-item active">Importer une vidéo</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <i class="bi bi-cloud-upload me-2"></i>Importer une vidéo
+    </h1>
+    <p class="page-description">
+      Ajoutez un fichier vidéo déjà enregistré (export carte SD du drone, montage…) au stockage du Centre de supervision.
+    </p>
+  </div>
+  <a href="{% url 'drones:flux_videos' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-film text-primary me-2"></i>Fichier vidéo</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% crispy form %}
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-2"></i>À savoir</div>
+      <div class="card-body">
+        <ul class="small text-muted ps-3 mb-0" style="line-height:2;">
+          <li>Formats acceptés : MP4, MOV, AVI, MKV</li>
+          <li>La durée est détectée automatiquement si <code>ffprobe</code> est disponible sur le serveur</li>
+          <li>Le fichier est copié sur le serveur, au même endroit que les flux enregistrés en direct</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
