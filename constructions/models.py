@@ -132,11 +132,15 @@ class NouvelleConstruction(models.Model):
             espace, statuts=statuts, exclude_pk=exclude_pk
         )
         sup_batie = espace.superficie_batie
-        sup_occupee = sup_allouee + sup_batie
+        sup_terrains = espace.superficie_terrains
+        sup_espaces_verts = espace.superficie_espaces_verts
+        sup_occupee = sup_allouee + sup_batie + sup_terrains + sup_espaces_verts
         return {
             'brute': sup_brute,
             'constructible': sup_constructible,
             'batie': sup_batie,
+            'terrains': sup_terrains,
+            'espaces_verts': sup_espaces_verts,
             'allouee': sup_allouee,
             'occupee': sup_occupee,
             'nette': max(0.0, sup_constructible - sup_occupee),
@@ -190,7 +194,10 @@ class NouvelleConstruction(models.Model):
                 self.superficie_allouee_espace(e, exclude_pk=concurrent.pk)
                 for e in espaces_libres
             )
-            sup_batie = sum(e.superficie_batie for e in espaces_libres)
+            sup_batie = sum(
+                e.superficie_batie + e.superficie_terrains + e.superficie_espaces_verts
+                for e in espaces_libres
+            )
             sup_nette = max(0, sup_constructible - sup_engagee - sup_batie)
             sup_brute = sum(e.superficie or 0 for e in espaces_libres)
             taux_moy = (sup_constructible / sup_brute * 100) if sup_brute else self.TAUX_OCCUPATION_MAX * 100
@@ -278,11 +285,11 @@ class NouvelleConstruction(models.Model):
             espace_obj = self.espace_souhaitee
             zone_analyse = espace_obj.geometrie  # MultiPolygon exact
 
-            # Vérifier que l'espace est encore libre
-            if espace_obj.type_espace != Espace.TYPE_LIBRE:
+            # Vérifier que l'espace est d'un type constructible (libre ou occupé)
+            if espace_obj.type_espace not in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE):
                 self.disponible = False
                 self.rapport_faisabilite = (
-                    f"L'espace « {espace_obj.nom} » ({espace_obj.code}) n'est plus disponible "
+                    f"L'espace « {espace_obj.nom} » ({espace_obj.code}) n'est pas constructible "
                     f"(statut actuel : {espace_obj.get_type_espace_display()})."
                 )
                 self.zones_alternatives = ''
@@ -300,7 +307,7 @@ class NouvelleConstruction(models.Model):
         elif self.zone_souhaitee:
             zone_analyse = self.zone_souhaitee
             espaces = list(Espace.objects.filter(
-                type_espace=Espace.TYPE_LIBRE,
+                type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
                 geometrie__intersects=zone_analyse,
             ))
         else:
@@ -312,9 +319,9 @@ class NouvelleConstruction(models.Model):
         if not espaces:
             self.disponible = False
             self.rapport_faisabilite = (
-                "La zone sélectionnée ne contient aucun espace libre. "
-                "Elle est peut-être déjà occupée, réservée, ou sa géométrie "
-                "ne correspond à aucun espace libre enregistré."
+                "La zone sélectionnée ne contient aucun espace constructible. "
+                "Elle est peut-être réservée, une voirie, ou sa géométrie "
+                "ne correspond à aucun espace enregistré."
             )
             self.zones_alternatives = ''
             alternatives = self._proposer_alternatives()
@@ -342,9 +349,12 @@ class NouvelleConstruction(models.Model):
         # ---- 4. Demandes concurrentes en attente ----
         sup_attente, nb_attente = self._superficie_en_attente(zone_analyse)
 
-        # ---- 5. Superficie déjà bâtie (bâtiments existants dans la zone) ----
-        sup_batie   = sum(e.superficie_batie for e in espaces)
-        sup_occupee = sup_engagee + sup_batie
+        # ---- 5. Superficie déjà occupée (bâtiments, terrains, espaces verts existants dans la zone) ----
+        sup_batie         = sum(e.superficie_batie for e in espaces)
+        sup_terrains      = sum(e.superficie_terrains for e in espaces)
+        sup_espaces_verts = sum(e.superficie_espaces_verts for e in espaces)
+        sup_batie_totale  = sup_batie + sup_terrains + sup_espaces_verts
+        sup_occupee = sup_engagee + sup_batie_totale
 
         # ---- 6. Superficie nette réelle ----
         sup_nette   = max(0.0, sup_construct - sup_occupee)
@@ -373,9 +383,9 @@ class NouvelleConstruction(models.Model):
                 f"Déjà allouée ({nb_engagees} construction(s))    : -{sup_engagee:>11,.0f} m²  ({sup_engagee/10000:.2f} ha)"
             )
 
-        if sup_batie > 0:
+        if sup_batie_totale > 0:
             lignes.append(
-                f"Bâti existant (bâtiments déjà construits) : -{sup_batie:>11,.0f} m²  ({sup_batie/10000:.2f} ha)"
+                f"Bâti/terrains/espaces verts existants : -{sup_batie_totale:>11,.0f} m²  ({sup_batie_totale/10000:.2f} ha)"
             )
 
         lignes += [
@@ -429,8 +439,10 @@ class NouvelleConstruction(models.Model):
             'sup_engagee':      sup_engagee,
             'sup_engagee_ha':   round(sup_engagee / 10000, 2),
             'nb_engagees':      nb_engagees,
-            'sup_batie':        sup_batie,
-            'sup_batie_ha':     round(sup_batie / 10000, 2),
+            'sup_batie':        sup_batie_totale,
+            'sup_batie_ha':     round(sup_batie_totale / 10000, 2),
+            'sup_terrains':     sup_terrains,
+            'sup_espaces_verts': sup_espaces_verts,
             'sup_occupee':      sup_occupee,
             'sup_occupee_ha':   round(sup_occupee / 10000, 2),
             'sup_nette':        sup_nette,
@@ -462,7 +474,7 @@ class NouvelleConstruction(models.Model):
     def _proposer_alternatives(self):
         """Cherche des espaces libres avec assez de superficie nette."""
         candidates = Espace.objects.filter(
-            type_espace=Espace.TYPE_LIBRE,
+            type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
             superficie__gte=self.superficie_souhaitee,
         ).order_by('superficie')
 
@@ -470,7 +482,7 @@ class NouvelleConstruction(models.Model):
         for esp in candidates:
             constructible = (esp.superficie or 0) * (esp.taux_occupation / 100)
             eng = self.superficie_allouee_espace(esp, exclude_pk=self.pk)
-            batie = esp.superficie_batie
+            batie = esp.superficie_batie + esp.superficie_terrains + esp.superficie_espaces_verts
             nette = max(0, constructible - eng - batie)
             if nette >= (self.superficie_souhaitee or 0):
                 valides.append((esp, nette))

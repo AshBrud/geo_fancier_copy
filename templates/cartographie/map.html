@@ -239,7 +239,7 @@
       {{ total_espaces }} espace{{ total_espaces|pluralize }}
     </span>
     <span class="carto-chip">
-      <span class="carto-chip-dot" style="background:#1E3A8A;"></span>
+      <span class="carto-chip-dot" style="background:#78350F;"></span>
       {{ total_batiments }} bâtiment{{ total_batiments|pluralize }}
     </span>
     <span class="carto-chip">
@@ -296,24 +296,86 @@
       <!-- Couches vecteur -->
       <div class="cs-section">
         <div class="cs-section-title">Couches vecteur</div>
+        {% if campus %}
         <div class="layer-row">
           <div class="layer-row-left">
-            <span class="layer-dot" style="background:#6b7280;"></span>
-            <span class="layer-name">Espaces fonciers</span>
-            <span class="layer-count">{{ total_espaces }}</span>
+            <span class="layer-dot" style="background:#1E3A8A;"></span>
+            <span class="layer-name">Campus</span>
+            <span class="layer-count">{{ campus.superficie_ha }} ha</span>
           </div>
           <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspaces" style="cursor:pointer;" checked>
+            <input class="form-check-input" type="checkbox" id="layerCampus" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        {% endif %}
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#16A34A;"></span>
+            <span class="layer-name">Sous-espaces libres</span>
+            <span class="layer-count">{{ nb_espaces_libres }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspacesLibres" style="cursor:pointer;" checked>
           </div>
         </div>
         <div class="layer-row">
           <div class="layer-row-left">
-            <span class="layer-dot" style="background:#1E3A8A;"></span>
+            <span class="layer-dot" style="background:#F59E0B;"></span>
+            <span class="layer-name">Sous-espaces réservés</span>
+            <span class="layer-count">{{ nb_espaces_reserves }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspacesReservees" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#78350F;"></span>
             <span class="layer-name">Bâtiments</span>
             <span class="layer-count">{{ total_batiments }}</span>
           </div>
           <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerBatiments" style="cursor:pointer;">
+            <input class="form-check-input" type="checkbox" id="layerBatiments" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#2563EB;"></span>
+            <span class="layer-name">Terrains</span>
+            <span class="layer-count">{{ nb_terrains }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerTerrains" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#F97316;"></span>
+            <span class="layer-name">Terrains sportifs</span>
+            <span class="layer-count">{{ nb_terrains_sportifs }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerTerrainsSportifs" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#22C55E;"></span>
+            <span class="layer-name">Espaces verts</span>
+            <span class="layer-count">{{ nb_espaces_verts }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerEspacesVerts" style="cursor:pointer;" checked>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-row-left">
+            <span class="layer-dot" style="background:#A16207;"></span>
+            <span class="layer-name">Voiries</span>
+            <span class="layer-count">{{ nb_voiries }}</span>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="layerVoiries" style="cursor:pointer;" checked>
           </div>
         </div>
       </div>
@@ -331,8 +393,16 @@
       <!-- Légende -->
       <div class="cs-section">
         <div class="cs-section-title">Légende</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#6b7280;"></span> Espaces fonciers</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Bâtiments</div>
+        {% if campus %}
+        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Campus (limite)</div>
+        {% endif %}
+        <div class="legend-item"><span class="legend-swatch" style="background:#16A34A;"></span> Sous-espaces libres</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span> Sous-espaces réservés</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#78350F;"></span> Bâtiments</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#2563EB;"></span> Terrains</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#F97316;"></span> Terrains sportifs</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#22C55E;"></span> Espaces verts</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#A16207;"></span> Voiries</div>
         <div class="legend-item"><span class="legend-swatch" style="background:#0891b2;"></span> Orthophotos drone</div>
       </div>
 
@@ -385,21 +455,77 @@
 <script>
 (function () {
   var ORTHOPHOTOS = {{ orthophotos_json|safe }};
+  var CAMPUS_GEOM = {{ campus_geom_json|safe }};
 
   /* ---- Initialisation carte ---- */
   var map = initCampusMap('campus-map', { hideLayerControl: true });
 
-  /* ---- Couches vecteur ---- */
-  var espacesLayer   = loadEspaces(map);
-  var batimentsLayer = L.layerGroup();
-  loadBatiments(map, batimentsLayer);
+  /* ---- Couche Campus (contour de référence, non modifiable ici) ---- */
+  var campusLayer = L.layerGroup();
+  if (CAMPUS_GEOM) {
+    var campusOutline = L.geoJSON(CAMPUS_GEOM, {
+      style: { color: '#facc15', fillColor: '#1E3A8A', fillOpacity: 0.06, weight: 5, dashArray: '10,6', lineCap: 'round' },
+    }).addTo(campusLayer);
+    campusOutline.bindTooltip('Limite du Campus', { sticky: true });
+    campusLayer.addTo(map);
+    campusOutline.bringToFront();
+    var layerCampusToggle = document.getElementById('layerCampus');
+    if (layerCampusToggle) {
+      layerCampusToggle.addEventListener('change', function () {
+        if (this.checked) { map.addLayer(campusLayer); campusOutline.bringToFront(); } else { map.removeLayer(campusLayer); }
+      });
+    }
+  } else {
+    console.warn('Aucune géométrie de Campus à afficher sur la carte.');
+  }
 
-  document.getElementById('layerEspaces').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(espacesLayer); } else { map.removeLayer(espacesLayer); }
+  /* ---- Couches vecteur (toutes actives par défaut) ---- */
+  var espacesLibresLayer = loadEspaces(map, null, { type: 'libre' });
+  var espacesReserveesLayer = loadEspaces(map, null, { type: 'reserve' });
+  var batimentsLayer = L.layerGroup().addTo(map);
+  loadBatiments(map, batimentsLayer);
+  var terrainsLayer = L.layerGroup().addTo(map);
+  loadTerrains(map, terrainsLayer, { sport: false });
+  var terrainsSportLayer = L.layerGroup().addTo(map);
+  loadTerrains(map, terrainsSportLayer, { sport: true });
+  var espacesVertsLayer = L.layerGroup().addTo(map);
+  loadEspacesVerts(map, espacesVertsLayer);
+  var voiriesLayer = L.layerGroup().addTo(map);
+  loadVoiries(map, voiriesLayer);
+
+  document.getElementById('layerEspacesLibres').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(espacesLibresLayer); } else { map.removeLayer(espacesLibresLayer); }
+  });
+  document.getElementById('layerEspacesReservees').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(espacesReserveesLayer); } else { map.removeLayer(espacesReserveesLayer); }
   });
   document.getElementById('layerBatiments').addEventListener('change', function () {
     if (this.checked) { map.addLayer(batimentsLayer); } else { map.removeLayer(batimentsLayer); }
   });
+  document.getElementById('layerTerrains').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(terrainsLayer); } else { map.removeLayer(terrainsLayer); }
+  });
+  document.getElementById('layerTerrainsSportifs').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(terrainsSportLayer); } else { map.removeLayer(terrainsSportLayer); }
+  });
+  document.getElementById('layerEspacesVerts').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(espacesVertsLayer); } else { map.removeLayer(espacesVertsLayer); }
+  });
+  document.getElementById('layerVoiries').addEventListener('change', function () {
+    if (this.checked) { map.addLayer(voiriesLayer); } else { map.removeLayer(voiriesLayer); }
+  });
+
+  /* ---- Contrôle des couches natif Leaflet (checklist ☑ demandée) ---- */
+  var overlayMaps = {};
+  if (campusLayer) overlayMaps['Limite du Campus'] = campusLayer;
+  overlayMaps['Sous-espaces libres']    = espacesLibresLayer;
+  overlayMaps['Sous-espaces réservés']  = espacesReserveesLayer;
+  overlayMaps['Bâtiments']              = batimentsLayer;
+  overlayMaps['Voiries']                = voiriesLayer;
+  overlayMaps['Terrains']               = terrainsLayer;
+  overlayMaps['Terrains sportifs']      = terrainsSportLayer;
+  overlayMaps['Espaces verts']          = espacesVertsLayer;
+  L.control.layers(map._baseLayers, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
 
   /* ---- Fond de carte ---- */
   function setBase(id) {
@@ -515,6 +641,12 @@
     });
   }
 
+  // Cadrage final : quel que soit l'état des orthophotos, la vue par défaut
+  // du "Voir le Campus" doit couvrir l'étendue complète du Campus.
+  if (CAMPUS_GEOM) {
+    try { map.fitBounds(L.geoJSON(CAMPUS_GEOM).getBounds(), { padding: [20, 20] }); } catch (e) {}
+  }
+
   /* ---- Collapse sidebar ---- */
   var sidebar     = document.getElementById('cartoSidebar');
   var collapseBtn = document.getElementById('collapseBtn');
@@ -532,6 +664,12 @@
 
   /* ---- Barre d'outils carte ---- */
   document.getElementById('btnRecentrer').addEventListener('click', function () {
+    if (CAMPUS_GEOM) {
+      try {
+        map.fitBounds(L.geoJSON(CAMPUS_GEOM).getBounds(), { padding: [20, 20] });
+        return;
+      } catch (e) {}
+    }
     map.setView([14.696291168874254, -16.477368387258974], 17);
   });
   document.getElementById('btnZoomIn').addEventListener('click', function () { map.zoomIn(); });

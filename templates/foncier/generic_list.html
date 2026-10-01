@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="#">Gestion Foncière</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+}
+.table-card-title {
+  font-size: 14px; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.table-card-title .count-pill {
+  font-size: 11px; background: #f1f5f9; color: #64748b;
+  border-radius: 20px; padding: 2px 8px; font-weight: 600;
+}
+.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.gl-nom { font-size: 13.5px; font-weight: 600; color: #1e293b; }
+.gl-nom:hover { color: #1E3A8A; }
+.gl-badge {
+  background: #f1f5f9; border-radius: 20px; padding: 3px 10px;
+  font-size: 11.5px; font-weight: 600; color: #374151; display: inline-block;
+}
+.empty-state { padding: 48px 24px; text-align: center; color: #94a3b8; }
+.empty-state i { font-size: 42px; display: block; margin-bottom: 10px; opacity: .45; }
+.empty-state p { margin: 0; font-size: 13.5px; }
+.page-link { border-radius: 7px !important; border: 1px solid #e2e8f0; color: #374151; font-size: 12.5px; margin: 0 2px; }
+.page-item.active .page-link { background: #1E3A8A; border-color: #1E3A8A; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi {{ icon }}" style="color:{{ color }};"></i> {{ title }}</h1>
+    <p class="page-description">{{ total }} élément{{ total|pluralize }} enregistré{{ total|pluralize }} sur le campus de l'UAD.</p>
+  </div>
+  {% if user.is_domaine_foncier %}
+  <a href="{% url add_url %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> {{ add_label }}
+  </a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="table-card-header">
+    <div class="table-card-title">
+      <i class="bi bi-table text-primary"></i>
+      Liste
+      <span class="count-pill">{{ page_obj.paginator.count }} élément{{ page_obj.paginator.count|pluralize }}</span>
+    </div>
+    <form method="get" class="filter-bar">
+      <div class="input-group input-group-sm" style="width:240px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
+        </span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0"
+               placeholder="Nom ou type…" value="{{ q }}" style="font-size:12.5px;">
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary px-3">Rechercher</button>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>État</th>
+          <th>{{ mesure_label }}</th>
+          {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="{% url detail_url row.pk %}" class="gl-nom text-decoration-none">{{ row.nom }}</a></td>
+          <td><span style="font-size:12.5px; color:#374151;">{{ row.sous_titre }}</span></td>
+          <td><span class="gl-badge">{{ row.badge }}</span></td>
+          <td><span style="font-weight:600; color:#1e293b; font-size:13px;">{{ row.mesure }}</span></td>
+          {% if user.is_domaine_foncier %}
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{% url detail_url row.pk %}" class="btn btn-icon btn-outline-info btn-sm" data-bs-toggle="tooltip" title="Voir le détail">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url update_url row.pk %}" class="btn btn-icon btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url delete_url row.pk %}" class="btn btn-icon btn-outline-danger btn-sm" data-bs-toggle="tooltip" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if user.is_domaine_foncier %}5{% else %}4{% endif %}">
+            <div class="empty-state">
+              <i class="bi bi-inbox"></i>
+              <p>Aucun élément trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3 px-4">
+    <small class="text-muted">
+      Page <strong>{{ page_obj.number }}</strong> / {{ page_obj.paginator.num_pages }}
+    </small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}"><i class="bi bi-chevron-left" style="font-size:10px;"></i></a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a></li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}"><i class="bi bi-chevron-right" style="font-size:10px;"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

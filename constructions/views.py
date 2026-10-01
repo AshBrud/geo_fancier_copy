@@ -3,9 +3,43 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 from .models import NouvelleConstruction, HistoriqueConstruction
 from .forms import NouvelleConstructionForm, HistoriqueConstructionForm
+from .recommandation import recommander_emplacements
 from accounts.decorators import foncier_required
+
+
+@login_required
+@foncier_required
+def recommander_emplacements_view(request):
+    """Endpoint AJAX : système d'aide à la décision — analyse et classe les
+    sous-espaces Libres pour un type de projet et une superficie donnés."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
+
+    type_construction = request.POST.get('type_construction', '').strip()
+    try:
+        superficie = float(request.POST.get('superficie_souhaitee', 0))
+    except (TypeError, ValueError):
+        superficie = 0
+
+    if superficie <= 0:
+        return JsonResponse({'error': 'Veuillez renseigner une superficie souhaitée valide.'}, status=400)
+
+    from foncier.models import Campus
+    if not Campus.objects.first():
+        return JsonResponse({'error': "Aucun Campus n'est défini : impossible d'analyser les emplacements."}, status=400)
+
+    resultats = recommander_emplacements(type_construction, superficie)
+    compatibles = [r for r in resultats if r['compatible']]
+
+    return JsonResponse({
+        'resultats':      resultats,
+        'nb_analyses':    len(resultats),
+        'nb_compatibles': len(compatibles),
+        'meilleur':       compatibles[0] if compatibles else None,
+    })
 
 
 # --- Nouvelle Construction ---
@@ -22,7 +56,9 @@ def nouvelle_construction(request):
     zones_alternatives = []
 
     # Sérialiser les espaces libres pour la carte, avec calcul de superficie disponible
-    espaces_libres = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).order_by('nom')
+    espaces_libres = Espace.objects.filter(
+        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE]
+    ).order_by('nom')
     espaces_data = []
     for e in espaces_libres:
         if e.geometrie:

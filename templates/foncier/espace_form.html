@@ -152,6 +152,25 @@
   </a>
 </div>
 
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Le formulaire n'a pas pu être enregistré :</strong>
+    <ul class="mb-0 mt-1">
+      {% for field in form %}
+        {% for error in field.errors %}
+        <li>{{ field.label }} : {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
 <form method="post" id="espaceForm" novalidate>
 {% csrf_token %}
 
@@ -230,16 +249,11 @@
             </div>
             <div class="type-check" style="background:#F59E0B;"><i class="bi bi-check"></i></div>
           </div>
-          <div class="type-btn {% if form.instance.type_espace == 'route' %}active active-route{% endif %}"
-               data-type="route" onclick="selectType('route')">
-            <div class="type-dot" style="background:#f1f5f9;"><i class="bi bi-signpost-fill" style="color:#6B7280;"></i></div>
-            <div>
-              <p class="type-label">Route / Voie</p>
-              <p class="type-desc">Circulation</p>
-            </div>
-            <div class="type-check" style="background:#6B7280;"><i class="bi bi-check"></i></div>
-          </div>
         </div>
+        <p class="text-muted mt-2 mb-0" style="font-size:11px;">
+          <i class="bi bi-info-circle me-1"></i>Le type « Occupé » est positionné automatiquement
+          lorsqu'une construction est approuvée dans cet espace.
+        </p>
         <div style="display:none;">{{ form.type_espace }}</div>
         {% if form.type_espace.errors %}
         <div class="text-danger small mt-2">{{ form.type_espace.errors }}</div>
@@ -331,10 +345,9 @@
           Double-clic pour terminer le tracé.
         </span>
         <div class="ms-auto d-flex gap-3">
+          <div class="map-legend"><div class="map-legend-dot" style="background:#1E3A8A;"></div>Campus</div>
           <div class="map-legend"><div class="map-legend-dot" style="background:#16A34A;"></div>Libre</div>
-          <div class="map-legend"><div class="map-legend-dot" style="background:#DC2626;"></div>Occupé</div>
           <div class="map-legend"><div class="map-legend-dot" style="background:#F59E0B;"></div>Réservé</div>
-          <div class="map-legend"><div class="map-legend-dot" style="background:#6B7280;"></div>Route</div>
         </div>
       </div>
     </div>
@@ -359,8 +372,17 @@ const TYPE_COLORS = {
   libre:   '#16A34A',
   occupe:  '#DC2626',
   reserve: '#F59E0B',
-  route:   '#6B7280',
 };
+
+// Contour du Campus — référence visuelle fixe, non modifiable ici
+const campusGeom = {{ campus_geom_json|default:"null"|safe }};
+if (campusGeom) {
+  const campusLayer = L.geoJSON(campusGeom, {
+    style: { color: '#1E3A8A', fillColor: '#1E3A8A', fillOpacity: 0.04, weight: 2.5, dashArray: '6,4' },
+    interactive: false,
+  }).addTo(drawMap);
+  try { drawMap.fitBounds(campusLayer.getBounds(), { padding: [30, 30] }); } catch(e) {}
+}
 
 function currentColor() {
   const t = document.getElementById('id_type_espace').value;
@@ -413,6 +435,9 @@ drawMap.on(L.Draw.Event.DELETED, function() {
 
 loadEspaces(drawMap);
 loadBatiments(drawMap);
+loadTerrains(drawMap);
+loadEspacesVerts(drawMap);
+loadVoiries(drawMap);
 loadPriorityOrthophoto(drawMap, { fit: false });
 
 // ── Superficie en temps réel ───────────────────────────────────────────────

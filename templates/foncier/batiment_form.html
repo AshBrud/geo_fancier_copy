@@ -436,6 +436,9 @@ drawMap.on(L.Draw.Event.DELETED, function() {
 
 loadEspaces(drawMap);
 loadBatiments(drawMap);
+loadTerrains(drawMap);
+loadEspacesVerts(drawMap);
+loadVoiries(drawMap);
 loadPriorityOrthophoto(drawMap, { fit: false });
 
 const freeSourceLayer = L.geoJSON(FREE_SPACES, {

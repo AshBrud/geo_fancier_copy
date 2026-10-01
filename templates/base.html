@@ -36,11 +36,20 @@
     </a>
 
     <div class="nav-section-label mt-2">Gestion Foncière</div>
-    <a href="{% url 'foncier:espaces' %}" class="nav-link {% if 'espaces' in request.path %}active{% endif %}">
+    <a href="{% url 'foncier:espaces' %}" class="nav-link {% if request.path|slice:':16' == '/foncier/espaces' and 'verts' not in request.path %}active{% endif %}">
       <i class="bi bi-grid-3x3-gap"></i><span>Espaces</span>
     </a>
     <a href="{% url 'foncier:batiments' %}" class="nav-link {% if 'batiments' in request.path %}active{% endif %}">
       <i class="bi bi-building"></i><span>Bâtiments</span>
+    </a>
+    <a href="{% url 'foncier:terrains' %}" class="nav-link {% if 'terrains' in request.path %}active{% endif %}">
+      <i class="bi bi-map-fill"></i><span>Terrains</span>
+    </a>
+    <a href="{% url 'foncier:espaces_verts' %}" class="nav-link {% if 'espaces-verts' in request.path %}active{% endif %}">
+      <i class="bi bi-tree-fill"></i><span>Espaces verts</span>
+    </a>
+    <a href="{% url 'foncier:voiries' %}" class="nav-link {% if 'voiries' in request.path %}active{% endif %}">
+      <i class="bi bi-signpost-split-fill"></i><span>Voiries</span>
     </a>
     <a href="{% url 'foncier:suivi_travaux' %}" class="nav-link {% if 'suivi-travaux' in request.path %}active{% endif %}">
       <i class="bi bi-clipboard2-check"></i><span>Suivi des travaux</span>
@@ -51,8 +60,8 @@
     <a href="{% url 'drones:missions' %}" class="nav-link {% if request.resolver_match.app_name == 'drones' and 'perspectives' not in request.path %}active{% endif %}">
       <i class="bi bi-airplane"></i><span>Missions Drones</span>
     </a>
-    <a href="{% url 'drones:perspectives' %}" class="nav-link {% if 'perspectives' in request.path %}active{% endif %}" style="opacity:.7;font-size:.93em;">
-      <i class="bi bi-broadcast"></i><span>Perspectives</span>
+    <a href="{% url 'drones:perspectives' %}" class="nav-link {% if 'perspectives' in request.path %}active{% endif %}">
+      <i class="bi bi-display"></i><span>Centre de supervision</span>
     </a>
     <a href="{% url 'constructions:nouvelle' %}" class="nav-link {% if 'nouvelle' in request.path %}active{% endif %}">
       <i class="bi bi-building-add"></i><span>Nouvelle construction</span>
@@ -63,19 +72,6 @@
     <a href="{% url 'constructions:historique' %}" class="nav-link {% if 'historique' in request.path %}active{% endif %}">
       <i class="bi bi-clock-history"></i><span>Historique</span>
     </a>
-    <a href="{% url 'navigation:recherche' %}" class="nav-link {% if request.resolver_match.app_name == 'navigation' %}active{% endif %}">
-      <i class="bi bi-search"></i><span>Recherche</span>
-    </a>
-
-    {% if user.can_manage_foncier %}
-    <div class="nav-section-label mt-2">Planification</div>
-    <a href="{% url 'pdu:aide_pdu' %}" class="nav-link {% if request.resolver_match.app_name == 'pdu' and 'statistiques' not in request.path %}active{% endif %}">
-      <i class="bi bi-diagram-3"></i><span>Aide au PDU</span>
-    </a>
-    <a href="{% url 'pdu:statistiques' %}" class="nav-link {% if 'statistiques' in request.path %}active{% endif %}">
-      <i class="bi bi-bar-chart-line"></i><span>Statistiques</span>
-    </a>
-    {% endif %}
 
     {% if user.is_admin %}
     <div class="nav-section-label mt-2">Administration</div>

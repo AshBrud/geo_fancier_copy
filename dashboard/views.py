@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
-from foncier.models import Espace, Batiment, SUPERFICIE_CAMPUS_M2
+from foncier.models import Espace, Batiment, Campus, Terrain, EspaceVert, Voirie
 from drones.models import Orthophoto, Mission
 from constructions.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
@@ -10,12 +10,31 @@ import json
 
 @login_required
 def index(request):
-    # KPIs fonciers
-    superficie_totale = SUPERFICIE_CAMPUS_M2  # superficie officielle campus UAD
-    superficie_occupee = Espace.objects.filter(
-        type_espace=Espace.TYPE_OCCUPE).aggregate(t=Sum('superficie'))['t'] or 0
-    superficie_reservee = Espace.objects.filter(
-        type_espace=Espace.TYPE_RESERVE).aggregate(t=Sum('superficie'))['t'] or 0
+    # KPIs fonciers — le Campus est la seule référence de superficie totale,
+    # il n'est jamais compté comme un espace ordinaire.
+    campus = Campus.objects.first()
+    superficie_totale   = campus.superficie if campus else 0
+    superficie_occupee  = campus.superficie_occupee if campus else 0    # bâtiments + terrains sportifs + espaces verts + voiries
+    superficie_reservee = campus.superficie_reservee if campus else 0   # sous-espaces de type Réservé (non occupés)
+    superficie_libre    = campus.superficie_libre if campus else 0      # campus − occupée − réservée
+    taux_occupation     = campus.taux_occupation if campus else 0       # occupée / campus × 100
+
+    def _pct_campus(val):
+        return round(val / superficie_totale * 100, 1) if superficie_totale else 0
+    pct_libre    = _pct_campus(superficie_libre)
+    pct_reservee = _pct_campus(superficie_reservee)
+
+    # Détail de l'occupation — mêmes couches et même géométrie campus que
+    # Campus.superficie_occupee, pour que le compte affiché reste toujours
+    # cohérent avec la superficie occupée annoncée.
+    if campus and campus.geometrie:
+        nb_batiments_occ       = Batiment.objects.filter(geometrie__intersects=campus.geometrie).count()
+        nb_terrains_sportifs   = Terrain.objects.filter(geometrie__intersects=campus.geometrie, type_terrain__icontains='sport').count()
+        nb_espaces_verts_occ   = EspaceVert.objects.filter(geometrie__intersects=campus.geometrie).count()
+        nb_voiries_occ         = Voirie.objects.filter(geometrie__intersects=campus.geometrie).count()
+    else:
+        nb_batiments_occ = nb_terrains_sportifs = nb_espaces_verts_occ = nb_voiries_occ = 0
+
     def _sup_statut(statut):
         return NouvelleConstruction.objects.filter(
             statut=statut
@@ -24,10 +43,7 @@ def index(request):
     sup_approuvee  = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
     sup_en_cours   = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
     sup_allouee    = sup_approuvee + sup_en_cours
-    # Superficie libre = superficie totale officielle − superficie réellement utilisée
-    superficie_libre = max(0, superficie_totale - superficie_occupee - superficie_reservee - sup_allouee)
-    superficie_prise = superficie_occupee + sup_allouee
-    taux_occupation = round((superficie_prise / superficie_totale * 100) if superficie_totale else 0, 1)
+    superficie_prise = superficie_occupee
 
     total_batiments = Batiment.objects.filter(est_actif=True).count()
     total_orthophotos = Orthophoto.objects.count()
@@ -102,6 +118,12 @@ def index(request):
         'superficie_libre': round(superficie_libre / 10000, 2),
         'superficie_reservee': round(superficie_reservee / 10000, 2),
         'taux_occupation': taux_occupation,
+        'pct_libre': pct_libre,
+        'pct_reservee': pct_reservee,
+        'nb_batiments_occ':     nb_batiments_occ,
+        'nb_terrains_sportifs': nb_terrains_sportifs,
+        'nb_espaces_verts_occ': nb_espaces_verts_occ,
+        'nb_voiries_occ':       nb_voiries_occ,
         'total_batiments': total_batiments,
         'total_orthophotos': total_orthophotos,
         'total_constructions': total_constructions,

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ action }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url back_url %}">Liste</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<style>
+.gf-header {
+  background: linear-gradient(135deg, {{ color }} 0%, {{ color }}cc 100%);
+  border-radius: 16px; padding: 24px 28px; margin-bottom: 24px;
+  color: #fff; display: flex; align-items: center; gap: 18px;
+}
+.gf-header h1 { font-size: 19px; font-weight: 800; margin: 0; }
+.sec-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 18px; overflow: hidden; }
+.sec-card-body { padding: 20px; }
+#draw-map { height: 480px; }
+.form-actions { display: flex; gap: 12px; padding: 20px; border-top: 1px solid #f1f5f9; background: #f8fafc; }
+.btn-save { flex: 1; background: {{ color }}; color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-cancel { background: #fff; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 20px; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+.geom-wrapper textarea { font-family: monospace; font-size: 11px; resize: none; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="gf-header">
+  <div>
+    <h1>{{ action }}</h1>
+    <p class="mb-0" style="opacity:.85;font-size:13px;">{% if obj %}Modification · <strong>{{ obj.nom }}</strong>{% else %}Renseignez les informations et tracez la géométrie sur la carte{% endif %}</p>
+  </div>
+  <a href="{% url back_url %}" class="btn btn-sm ms-auto" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Le formulaire n'a pas pu être enregistré :</strong>
+    <ul class="mb-0 mt-1">
+      {% for field in form %}
+        {% for error in field.errors %}
+        <li>{{ field.label }} : {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+{% csrf_token %}
+<div class="row g-4">
+  <div class="col-lg-5">
+
+    {% if obj.photo %}
+    <div class="sec-card">
+      <div class="sec-card-body text-center">
+        <img src="{{ obj.photo.url }}" alt="Photo actuelle" style="max-height:140px; border-radius:8px; border:1px solid #e2e8f0;">
+        <div class="text-muted small mt-1">Photo actuelle</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if geom_type != 'line' %}
+    <div class="sec-card">
+      <div class="sec-card-body">
+        <label class="form-label fw-semibold small mb-1">Depuis un espace libre <span class="text-muted fw-normal">(optionnel)</span></label>
+        <select class="form-select form-select-sm" id="free-space-select">
+          <option value="">Sélectionner un espace libre...</option>
+        </select>
+        <div class="text-muted mt-2" style="font-size:11.5px;">
+          La sélection copie automatiquement le contour de l'espace choisi dans la géométrie ci-dessous.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="sec-card">
+      <div class="sec-card-body">
+        {{ form|crispy }}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-save">
+          <i class="bi bi-{% if obj %}check-circle{% else %}plus-circle{% endif %} me-2"></i>
+          {% if obj %}Enregistrer les modifications{% else %}Enregistrer{% endif %}
+        </button>
+        <a href="{% url back_url %}" class="btn-cancel">
+          <i class="bi bi-x"></i>Annuler
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="sec-card" style="position:sticky; top:80px;">
+      <div id="draw-map"></div>
+      <div class="p-2 text-muted" style="font-size:11.5px;">
+        {% if geom_type == 'line' %}
+        Utilisez l'outil <strong>ligne</strong> (polyline) pour tracer le tronçon.
+        {% else %}
+        Utilisez l'outil <strong>polygone</strong> ou <strong>rectangle</strong> pour délimiter la zone.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var drawMap = initCampusMap('draw-map');
+  var drawnItems = new L.FeatureGroup().addTo(drawMap);
+  var COLOR = '{{ color }}';
+  var isLine = '{{ geom_type }}' === 'line';
+
+  var drawOptions = isLine
+    ? { polyline: { shapeOptions: { color: COLOR, weight: 4 } }, polygon: false, rectangle: false, circle: false, marker: false, circlemarker: false }
+    : { polygon: { shapeOptions: { color: COLOR, fillOpacity: 0.35 } }, rectangle: { shapeOptions: { color: COLOR, fillOpacity: 0.35 } }, polyline: false, circle: false, marker: false, circlemarker: false };
+
+  new L.Control.Draw({ draw: drawOptions, edit: { featureGroup: drawnItems } }).addTo(drawMap);
+
+  var geomInput = document.getElementById('id_geometrie');
+  if (geomInput && geomInput.value.trim()) {
+    try {
+      var layer = L.geoJSON(JSON.parse(geomInput.value), { style: { color: COLOR, fillOpacity: 0.35, weight: 4 } });
+      layer.addTo(drawnItems);
+      drawMap.fitBounds(layer.getBounds(), { padding: [30, 30] });
+    } catch (e) {}
+  }
+
+  drawMap.on(L.Draw.Event.CREATED, function (e) {
+    drawnItems.clearLayers();
+    drawnItems.addLayer(e.layer);
+    geomInput.value = JSON.stringify(drawnItems.toGeoJSON().features[0].geometry);
+  });
+  drawMap.on(L.Draw.Event.EDITED, function () {
+    var f = drawnItems.toGeoJSON().features;
+    if (f.length) geomInput.value = JSON.stringify(f[0].geometry);
+  });
+  drawMap.on(L.Draw.Event.DELETED, function () {
+    geomInput.value = '';
+  });
+
+  loadEspaces(drawMap);
+  loadBatiments(drawMap);
+  loadTerrains(drawMap);
+  loadEspacesVerts(drawMap);
+  loadVoiries(drawMap);
+  loadPriorityOrthophoto(drawMap, { fit: false });
+
+  // ── Depuis un espace libre ──────────────────────────────────────────────
+  var FREE_SPACES = {{ espaces_libres_json|default:"[]"|safe }};
+  var freeSelect = document.getElementById('free-space-select');
+  if (freeSelect) {
+    FREE_SPACES.forEach(function (feature) {
+      var p = feature.properties || {};
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = (p.code || '') + ' - ' + (p.nom || '');
+      freeSelect.appendChild(opt);
+    });
+    freeSelect.addEventListener('change', function () {
+      if (!this.value) return;
+      var feature = FREE_SPACES.find(function (item) {
+        return Number(item.properties && item.properties.id) === Number(freeSelect.value);
+      });
+      if (!feature) return;
+      drawnItems.clearLayers();
+      var selected = L.geoJSON(feature.geometry, { style: { color: COLOR, fillOpacity: 0.35, weight: 2 } });
+      selected.eachLayer(function (layer) { drawnItems.addLayer(layer); });
+      geomInput.value = JSON.stringify(feature.geometry);
+      drawMap.fitBounds(selected.getBounds(), { padding: [30, 30], maxZoom: 22 });
+    });
+  }
+})();
+</script>
+{% endblock %}

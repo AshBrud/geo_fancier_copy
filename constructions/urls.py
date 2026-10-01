@@ -5,6 +5,7 @@ app_name = 'constructions'
 
 urlpatterns = [
     path('nouvelle/', views.nouvelle_construction, name='nouvelle'),
+    path('recommander/', views.recommander_emplacements_view, name='recommander'),
     path('liste/', views.constructions_list, name='list'),
     path('<int:pk>/statut/', views.construction_update_statut, name='update_statut'),
     path('<int:pk>/supprimer/', views.construction_delete, name='delete'),

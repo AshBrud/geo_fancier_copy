@@ -455,17 +455,24 @@
             <span class="occ-pct text-danger">{{ taux_occupation }}%</span>
           </div>
           <div class="occ-bar"><div class="occ-fill bg-danger" style="width:{{ taux_occupation|stringformat:'g' }}%;"></div></div>
-          <div class="occ-sub">{{ superficie_occupee }} ha · {{ total_batiments }} bâtiment{{ total_batiments|pluralize }}</div>
+          <div class="occ-sub">
+            {{ superficie_occupee }} ha d'espaces occupés
+            <span class="d-block" style="font-size:10px;color:#94a3b8;margin-top:2px;">
+              {{ nb_batiments_occ }} bâtiment{{ nb_batiments_occ|pluralize }} ·
+              {{ nb_voiries_occ }} voirie{{ nb_voiries_occ|pluralize }} ·
+              {{ nb_espaces_verts_occ }} espace{{ nb_espaces_verts_occ|pluralize }} vert{{ nb_espaces_verts_occ|pluralize }} ·
+              {{ nb_terrains_sportifs }} terrain{{ nb_terrains_sportifs|pluralize }} sportif{{ nb_terrains_sportifs|pluralize }}
+            </span>
+          </div>
         </div>
 
         <div class="occ-row">
           <div class="occ-hd">
             <span class="occ-name">Libre</span>
-            <span class="occ-pct text-success">{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}{% endif %}%</span>
+            <span class="occ-pct text-success">{{ pct_libre }}%</span>
           </div>
           <div class="occ-bar">
-            <div class="occ-fill bg-success"
-                 style="width:{% if superficie_totale %}{% widthratio superficie_libre superficie_totale 100 %}{% endif %}%;"></div>
+            <div class="occ-fill bg-success" style="width:{{ pct_libre|stringformat:'g' }}%;"></div>
           </div>
           <div class="occ-sub">{{ superficie_libre }} ha · {{ nb_espaces_libres }} espace{{ nb_espaces_libres|pluralize }}</div>
         </div>
@@ -473,11 +480,10 @@
         <div class="occ-row">
           <div class="occ-hd">
             <span class="occ-name">Réservé</span>
-            <span class="occ-pct text-warning">{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}{% endif %}%</span>
+            <span class="occ-pct text-warning">{{ pct_reservee }}%</span>
           </div>
           <div class="occ-bar">
-            <div class="occ-fill bg-warning"
-                 style="width:{% if superficie_totale %}{% widthratio superficie_reservee superficie_totale 100 %}{% endif %}%;"></div>
+            <div class="occ-fill bg-warning" style="width:{{ pct_reservee|stringformat:'g' }}%;"></div>
           </div>
           <div class="occ-sub">{{ superficie_reservee }} ha réservés</div>
         </div>

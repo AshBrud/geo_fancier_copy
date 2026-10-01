@@ -87,7 +87,13 @@ class TerrainAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        serializer = TerrainSerializer(Terrain.objects.all(), many=True)
+        terrains = Terrain.objects.all()
+        sport = request.GET.get('sport')
+        if sport == '1':
+            terrains = terrains.filter(type_terrain__icontains='sport')
+        elif sport == '0':
+            terrains = terrains.exclude(type_terrain__icontains='sport')
+        serializer = TerrainSerializer(terrains, many=True)
         return Response(serializer.data)
 
 

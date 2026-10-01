@@ -24,8 +24,9 @@ urlpatterns = [
     path('orthophoto/<int:pk>/valider/', views.orthophoto_validate, name='orthophoto_validate'),
     path('orthophoto/<int:pk>/integrer/', views.orthophoto_integrate, name='orthophoto_integrate'),
 
-    # Perspectives (flux live drone relocalisé + photos ad-hoc)
+    # Centre de supervision (flux live drone + monitoring temps réel du campus)
     path('perspectives/', views.perspectives, name='perspectives'),
+    path('perspectives/donnees/', views.supervision_donnees, name='supervision_donnees'),
     path('flux/start/', views.flux_start, name='flux_start'),
     path('flux/stop/', views.flux_stop, name='flux_stop'),
     path('flux/videos/', views.flux_videos_list, name='flux_videos'),

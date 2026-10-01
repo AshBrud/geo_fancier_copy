@@ -131,6 +131,12 @@ class Orthophoto(models.Model):
         verbose_name='URL tuiles XYZ (WebODM)',
         help_text='Format : /static/tiles/{z}/{x}/{y}.png ou URL WebODM'
     )
+    tuiles_locales = models.BooleanField(
+        default=False,
+        verbose_name='Tuiles générées localement',
+        help_text="Si activé, tiles_url pointe vers des tuiles stockées sur ce serveur "
+                   "(indépendantes de WebODM) plutôt que vers WebODM directement.",
+    )
     description = models.TextField(blank=True)
     valide = models.BooleanField(default=False, verbose_name='Validée')
     date_validation = models.DateTimeField(blank=True, null=True, verbose_name='Date de validation')

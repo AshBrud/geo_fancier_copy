@@ -176,9 +176,16 @@ function loadPriorityOrthophoto(map, opts) {
 /* =====================================================
    Charger les couches GeoJSON depuis l'API
    ===================================================== */
-function loadEspaces(map, layerGroup) {
+function formatCoords(latlng) {
+  return `<span style="font-family:monospace;font-size:11px;color:#64748b;">`
+    + `GPS : ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}</span>`;
+}
+
+function loadEspaces(map, layerGroup, options) {
+  options = options || {};
   layerGroup = layerGroup || L.layerGroup().addTo(map);
-  fetch('/api/espaces/')
+  const url = '/api/espaces/' + (options.type ? '?type=' + encodeURIComponent(options.type) : '');
+  fetch(url)
     .then(r => r.json())
     .then(data => {
       layerGroup.clearLayers();
@@ -205,12 +212,17 @@ function loadEspaces(map, layerGroup) {
           const batieLigne = p.type_espace === 'libre'
             ? `<br>Bâti: ${sup_batie.toFixed(0)} m² · Disponible: ${sup_dispo.toFixed(0)} m²`
             : '';
-          layer.bindPopup(
-            `<strong>${p.nom}</strong><br>
-             Code: ${p.code}<br>
-             Type: ${p.type_display}<br>
-             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}${batieLigne}`
-          );
+          const descLigne = p.description ? `<br>${p.description}` : '';
+          layer.bindPopup('');
+          layer.on('click', function (e) {
+            layer.setPopupContent(
+              `<strong>${p.nom}</strong><br>
+               Code: ${p.code}<br>
+               Type: ${p.type_display}<br>
+               Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}${batieLigne}${descLigne}
+               <br>${formatCoords(e.latlng)}`
+            );
+          });
         }
       }).addTo(layerGroup);
     })
@@ -226,20 +238,27 @@ function loadBatiments(map, layerGroup) {
       layerGroup.clearLayers();
       L.geoJSON(data, {
         style: {
-          fillColor: '#1E3A8A',
-          color: '#fff',
+          fillOpacity: 0,
+          color: '#78350F',
           weight: 1.5,
-          fillOpacity: 0.7,
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
-          layer.bindPopup(
-            `<strong>${p.nom}</strong><br>
-             Code: ${p.code}<br>
-             Fonction: ${p.fonction_nom || 'N/A'}<br>
-             Étages: ${p.etages}<br>
-             Superficie: ${p.superficie ? p.superficie.toFixed(0) + ' m²' : 'N/A'}`
-          );
+          layer.bindTooltip(p.code, {
+            permanent: true, direction: 'center', className: 'batiment-label',
+          });
+          layer.bindPopup('');
+          layer.on('click', function (e) {
+            layer.setPopupContent(
+              `<strong>${p.nom}</strong><br>
+               Code: ${p.code}<br>
+               Fonction: ${p.fonction_nom || 'N/A'}<br>
+               Étages: ${p.etages}<br>
+               Superficie: ${p.superficie ? p.superficie.toFixed(0) + ' m²' : 'N/A'}
+               ${p.description ? '<br>' + p.description : ''}
+               <br>${formatCoords(e.latlng)}`
+            );
+          });
         }
       }).addTo(layerGroup);
     })
@@ -247,27 +266,35 @@ function loadBatiments(map, layerGroup) {
   return layerGroup;
 }
 
-function loadTerrains(map, layerGroup) {
+function loadTerrains(map, layerGroup, options) {
+  options = options || {};
   layerGroup = layerGroup || L.layerGroup().addTo(map);
-  fetch('/api/terrains/')
+  const url = '/api/terrains/' + (options.sport !== undefined ? '?sport=' + (options.sport ? '1' : '0') : '');
+  const fillColor = options.sport ? '#F97316' : '#2563EB';
+  fetch(url)
     .then(r => r.json())
     .then(data => {
       layerGroup.clearLayers();
       L.geoJSON(data, {
         style: {
-          fillColor: '#A16207',
+          fillColor: fillColor,
           color: '#fff',
           weight: 1.5,
           fillOpacity: 0.5,
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
-          layer.bindPopup(
-            `<strong>${p.nom}</strong><br>
-             Type: ${p.type_terrain || 'N/A'}<br>
-             État: ${p.etat || 'N/A'}<br>
-             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}`
-          );
+          layer.bindPopup('');
+          layer.on('click', function (e) {
+            layer.setPopupContent(
+              `<strong>${p.nom}</strong><br>
+               Type: ${p.type_terrain || 'N/A'}<br>
+               État: ${p.etat || 'N/A'}<br>
+               Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}
+               ${p.observation ? '<br>' + p.observation : ''}
+               <br>${formatCoords(e.latlng)}`
+            );
+          });
         }
       }).addTo(layerGroup);
     })
@@ -290,12 +317,17 @@ function loadEspacesVerts(map, layerGroup) {
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
-          layer.bindPopup(
-            `<strong>${p.nom}</strong><br>
-             Type: ${p.type_espace_vert || 'N/A'}<br>
-             État: ${p.etat || 'N/A'}<br>
-             Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}`
-          );
+          layer.bindPopup('');
+          layer.on('click', function (e) {
+            layer.setPopupContent(
+              `<strong>${p.nom}</strong><br>
+               Type: ${p.type_espace_vert || 'N/A'}<br>
+               État: ${p.etat || 'N/A'}<br>
+               Superficie: ${p.superficie ? (p.superficie / 10000).toFixed(2) + ' ha' : 'N/A'}
+               ${p.observation ? '<br>' + p.observation : ''}
+               <br>${formatCoords(e.latlng)}`
+            );
+          });
         }
       }).addTo(layerGroup);
     })
@@ -311,18 +343,23 @@ function loadVoiries(map, layerGroup) {
       layerGroup.clearLayers();
       L.geoJSON(data, {
         style: {
-          color: '#6B7280',
+          color: '#A16207',
           weight: 3,
         },
         onEachFeature: function (feature, layer) {
           const p = feature.properties;
-          layer.bindPopup(
-            `<strong>${p.nom}</strong><br>
-             Type: ${p.type_voirie || 'N/A'}<br>
-             Revêtement: ${p.revetement || 'N/A'}<br>
-             État: ${p.etat || 'N/A'}<br>
-             Longueur: ${p.longueur ? p.longueur.toFixed(0) + ' m' : 'N/A'}`
-          );
+          layer.bindPopup('');
+          layer.on('click', function (e) {
+            layer.setPopupContent(
+              `<strong>${p.nom}</strong><br>
+               Type: ${p.type_voirie || 'N/A'}<br>
+               Revêtement: ${p.revetement || 'N/A'}<br>
+               État: ${p.etat || 'N/A'}<br>
+               Longueur: ${p.longueur ? p.longueur.toFixed(0) + ' m' : 'N/A'}
+               ${p.observation ? '<br>' + p.observation : ''}
+               <br>${formatCoords(e.latlng)}`
+            );
+          });
         }
       }).addTo(layerGroup);
     })
