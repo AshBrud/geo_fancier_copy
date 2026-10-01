@@ -1,0 +1,664 @@
+/* ==============================================================================
+   GéoFoncier — Design System : Authentification
+   Arrière-plan global clair, Carte Hero gauche flottante (arrondie avec cadre),
+   Split Screen 50% / 50% No-Scroll (100vw x 100vh),
+   Formulaires unifiés (Login, Register, Password Reset)
+   ============================================================================== */
+
+/* --- Conteneur global de page auth : Fond clair épuré (100vw x 100vh) --- */
+.auth-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.auth-page input,
+.auth-page select,
+.auth-page button,
+.auth-page textarea {
+  font-family: inherit;
+}
+
+/* ==============================================================================
+   1. PANNEAU GAUCHE : Floating Hero Card (Cadre particulier & Bords arrondis)
+   ============================================================================== */
+.auth-left-panel {
+  width: calc(50vw - 2.5rem);
+  flex: 0 0 calc(50vw - 2.5rem);
+  height: calc(100vh - 2.5rem);
+  max-height: calc(100vh - 2.5rem);
+  margin: 1.25rem 0.75rem 1.25rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #020c1b;
+  border-radius: 28px;
+  box-shadow:
+    0 25px 50px -12px rgba(2, 12, 27, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  border: 1px solid rgba(0, 229, 160, 0.22);
+}
+
+/* Photo drone campus dans la carte (discrète & texturée) */
+.auth-drone-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  /* opacity: 0.55; */
+  filter: saturate(1.15);
+  border-radius: 28px;
+}
+
+/* Overlay sombre, opaque & technologique */
+.auth-left-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: linear-gradient(160deg,
+      rgba(2, 12, 27, 0.98) 0%,
+      rgba(5, 20, 52, 0.94) 8%,
+      rgba(2, 34, 25, 0.90) 90%,
+      rgba(2, 12, 27, 0.98) 100%);
+}
+
+/* Grille de points animée en arrière-plan */
+.auth-left-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  z-index: 1;
+  background-image: radial-gradient(circle, rgba(0, 229, 160, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  animation: gridFade 6s ease-in-out infinite alternate;
+}
+
+@keyframes gridFade {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 1.0;
+  }
+}
+
+/* Corps de la carte gauche (minimaliste & aéré) */
+.auth-left-body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3rem 3rem 2.75rem;
+  height: 100%;
+  overflow: hidden;
+  animation: fadeInLeft 0.7s ease both;
+}
+
+/* Badge identité */
+.auth-univ-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 229, 160, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+  border-radius: 50px;
+  padding: 6px 16px 6px 6px;
+  margin-bottom: 1.5rem;
+  width: fit-content;
+  animation: fadeSlideDown 0.6s 0.1s ease both;
+}
+
+.auth-univ-badge .uv-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #00e5a0, #00b4d8);
+}
+
+.auth-univ-badge span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.3px;
+}
+
+/* Titre principal */
+.auth-app-title {
+  font-size: clamp(2.3rem, 3.1vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: #fff;
+  margin-bottom: 0.35rem;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  animation: fadeSlideDown 0.6s 0.18s ease both;
+}
+
+.auth-app-title .accent {
+  background: linear-gradient(135deg, #00e5a0 0%, #38ef7d 60%, #00b4d8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==============================================================================
+   TICKER GÉOMATIQUE (Animation grand format en bas à droite)
+   ============================================================================== */
+.auth-geo-ticker-container {
+  margin-top: auto;
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  pointer-events: none;
+  animation: fadeSlideUp 0.8s 0.2s ease both;
+}
+
+.auth-geo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(0, 229, 160, 0.9);
+  margin-bottom: 0.35rem;
+}
+
+.auth-geo-tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00e5a0;
+  box-shadow: 0 0 10px rgba(0, 229, 160, 0.8);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.auth-geo-display {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: clamp(2.8rem, 4vw, 4.2rem);
+  position: relative;
+}
+
+.auth-geo-word {
+  font-size: clamp(2.2rem, 3.4vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  color: #ffffff;
+  display: inline-block;
+  text-align: right;
+  white-space: nowrap;
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.auth-geo-word.word-exit {
+  transform: translateY(-24px);
+  opacity: 0;
+}
+
+.auth-geo-word.word-enter {
+  animation: wordSlideIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes wordSlideIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseDot {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================================================================
+   2. PANNEAU DROIT (Fond clair, formulaire centré sur fond blanc avec ombre douce)
+   ============================================================================== */
+.auth-right-panel {
+  width: calc(50vw + 0.5rem);
+  flex: 0 0 calc(50vw + 0.5rem);
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 1.5rem 2.5rem;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* En-tête panneau droit : Logos & Titre */
+.auth-right-logos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+
+.auth-right-logo-ngogom {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.auth-right-brand {
+  text-align: center;
+  margin-bottom: 1.15rem;
+  position: relative;
+  z-index: 2;
+}
+
+.auth-right-brand h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+
+.auth-right-brand p {
+  font-size: 0.76rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Carte Formulaire principale */
+.auth-card-box {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 20px;
+  padding: 1.85rem 2rem;
+  position: relative;
+  z-index: 2;
+  animation: fadeScaleIn 0.5s ease both;
+}
+
+/* Formulaire d'inscription plus large (2 colonnes aérées) sans impacter le login */
+.auth-card-box.register-card {
+  max-width: 530px;
+}
+
+/* En-tête de carte formulaire */
+.auth-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.auth-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.auth-card-icon.login-icon {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b5bdb 100%);
+  box-shadow: 0 6px 16px rgba(30, 58, 138, 0.28);
+}
+
+.auth-card-icon.register-icon {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.28);
+}
+
+.auth-card-header-text h2,
+.auth-card-header-text h3 {
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  margin: 0 0 0.35rem;
+}
+
+.auth-card-header-text p {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Grille 2 colonnes pour formulaires denses (Inscription) */
+.auth-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.95rem;
+}
+
+.auth-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+/* Champs de saisie */
+.auth-field {
+  margin-bottom: 0.95rem;
+}
+
+.auth-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0.38rem;
+}
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrap .field-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-input-wrap input,
+.auth-input-wrap select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px 0 36px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #f8fafc;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  outline: none;
+}
+
+.auth-input-wrap input:focus,
+.auth-input-wrap select:focus {
+  border-color: #1e3a8a;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.08);
+}
+
+.auth-input-wrap input.is-invalid,
+.auth-input-wrap select.is-invalid {
+  border-color: #ef4444;
+  background: #fff5f5;
+}
+
+.auth-input-wrap .toggle-eye {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.auth-input-wrap .toggle-eye:hover {
+  color: #475569;
+}
+
+.auth-invalid-msg {
+  font-size: 0.72rem;
+  color: #ef4444;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Bouton principal */
+.auth-btn {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 11px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.15rem;
+  transition: transform 0.18s, opacity 0.18s, box-shadow 0.18s;
+}
+
+.auth-btn:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+
+.auth-btn:active {
+  transform: translateY(0);
+}
+
+.auth-btn.btn-login {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b5bdb 100%);
+  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.28);
+}
+
+.auth-btn.btn-register {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 60%, #4ade80 100%);
+  box-shadow: 0 6px 22px rgba(21, 128, 61, 0.28);
+}
+
+/* Alerte erreurs globales */
+.auth-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 0.78rem;
+  color: #b91c1c;
+  margin-top: 0.65rem;
+}
+
+/* Lien mot de passe oublié */
+.auth-forgot-link {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.auth-forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Lien bascule bas de carte */
+.auth-switch-link {
+  text-align: center;
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.auth-switch-link a {
+  color: #1e3a8a;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.auth-switch-link a:hover {
+  text-decoration: underline;
+}
+
+/* Footer discret panneau droit */
+.auth-right-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: 1rem;
+  font-size: 0.67rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* ==============================================================================
+   3. ANIMATIONS
+   ============================================================================== */
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ==============================================================================
+   4. RESPONSIVE MOBILE (< 960px)
+   ============================================================================== */
+@media (max-width: 960px) {
+  .auth-page {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+    background: #f8fafc;
+  }
+
+  .auth-left-panel {
+    display: none;
+  }
+
+  .auth-right-panel {
+    width: 100vw;
+    flex: 0 0 100vw;
+    min-height: 100vh;
+    height: auto;
+    padding: 2.5rem 1.25rem;
+    background: transparent;
+  }
+
+  .auth-card-box {
+    max-width: 440px;
+    padding: 1.75rem 1.5rem;
+  }
+
+  .auth-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card-box {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+  }
+}

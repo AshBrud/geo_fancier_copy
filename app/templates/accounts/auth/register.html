@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Créer un compte — GéoFoncier NGOGOM_UAD{% endblock %}
+
+{% block auth_content %}
+<div style="display:contents">
+
+  <!-- Panneau gauche unifié (50% largeur, drone, branding, KPIs, tickers) -->
+  {% include 'accounts/auth/components/_left_panel.html' %}
+
+  <!-- Panneau droit (50% largeur, formulaire centré) -->
+  <div class="auth-right-panel">
+
+    <!-- <div class="auth-right-logos">
+      <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo" class="auth-right-logo-ngogom">
+    </div>
+
+    <div class="auth-right-brand">
+      <h2>Géo<span style="color:#15803d; font-weight:900;">Foncier</span></h2>
+      <p>Système d'Information Géographique</p>
+    </div> -->
+
+    <div class="auth-card-box register-card">
+
+      <div class="auth-card-header">
+        <div class="auth-card-header-text">
+          <h2>Créer un compte</h2>
+          <p>Rejoignez la plateforme GéoFoncier</p>
+        </div>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="auth-alert mb-2">
+        <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="auth-form-grid">
+          <!-- Colonne 1 : Prénom -->
+          <div class="auth-field mb-0">
+            <label>Prénom</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person field-icon"></i>
+              <input type="text" name="first_name" placeholder="Prénom" value="{{ form.first_name.value|default:'' }}"
+                class="{% if form.first_name.errors %}is-invalid{% endif %}" autofocus>
+            </div>
+            {% if form.first_name.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Colonne 2 : Nom -->
+          <div class="auth-field mb-0">
+            <label>Nom</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person field-icon"></i>
+              <input type="text" name="last_name" placeholder="Nom" value="{{ form.last_name.value|default:'' }}"
+                class="{% if form.last_name.errors %}is-invalid{% endif %}">
+            </div>
+            {% if form.last_name.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Colonne 1 : Téléphone -->
+          <div class="auth-field mb-0">
+            <label>Numéro de téléphone</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-telephone field-icon"></i>
+              <input type="tel" name="telephone" placeholder="77 123 45 67" inputmode="tel" autocomplete="tel"
+                value="{{ form.telephone.value|default:'' }}"
+                class="{% if form.telephone.errors %}is-invalid{% endif %}">
+            </div>
+            {% if form.telephone.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.telephone.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Colonne 2 : Village -->
+          <div class="auth-field mb-0">
+            <label>Village</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-houses field-icon"></i>
+              <select name="village" class="{% if form.village.errors %}is-invalid{% endif %}">
+                <option value="">— Choisir votre village —</option>
+                {% for v in form.fields.village.queryset %}
+                <option value="{{ v.pk }}" {% if form.village.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>{{ v.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% if form.village.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.village.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Colonne 1 : Mot de passe -->
+          <div class="auth-field mb-0">
+            <label>Mot de passe</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-lock field-icon"></i>
+              <input type="password" name="password1" id="pwd1" placeholder="Choisir un mot de passe"
+                class="{% if form.password1.errors %}is-invalid{% endif %}">
+              <button type="button" class="toggle-eye" id="toggle1">
+                <i class="bi bi-eye" id="eye1"></i>
+              </button>
+            </div>
+            {% for e in form.password1.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Colonne 2 : Confirmer mot de passe -->
+          <div class="auth-field mb-0">
+            <label>Confirmation</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-lock-fill field-icon"></i>
+              <input type="password" name="password2" id="pwd2" placeholder="Répéter le mot de passe"
+                class="{% if form.password2.errors %}is-invalid{% endif %}">
+              <button type="button" class="toggle-eye" id="toggle2">
+                <i class="bi bi-eye" id="eye2"></i>
+              </button>
+            </div>
+            {% for e in form.password2.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="auth-alert">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+          {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <button type="submit" class="auth-btn btn-register">
+          <i class="bi bi-person-check-fill"></i> Créer mon compte
+        </button>
+      </form>
+
+      <div class="auth-switch-link">
+        Déjà inscrit ?
+        <a href="{% url 'accounts:login' %}">Se connecter</a>
+      </div>
+
+    </div>
+
+    <!-- <div class="auth-right-footer">
+      Université Alioune Diop de Bambey &mdash; Domaine Foncier &mdash; 2026
+    </div> -->
+
+  </div>
+</div>
+
+<script>
+  function togglePwd(inputId, iconId) {
+    const p = document.getElementById(inputId);
+    const i = document.getElementById(iconId);
+    p.type = p.type === 'password' ? 'text' : 'password';
+    i.classList.toggle('bi-eye'); i.classList.toggle('bi-eye-slash');
+  }
+  document.getElementById('toggle1').addEventListener('click', () => togglePwd('pwd1', 'eye1'));
+  document.getElementById('toggle2').addEventListener('click', () => togglePwd('pwd2', 'eye2'));
+</script>
+{% endblock %}

@@ -5,26 +5,7 @@
 {% block auth_content %}
 <div style="display:contents">
 
-<div class="auth-left-panel">
-  <img src="{% static 'images/drone_campus.jpg' %}" alt="Campus UAD"
-       class="auth-drone-img" onerror="this.style.display='none'">
-  <div class="auth-left-overlay"></div>
-  <div class="auth-left-body">
-    <div class="auth-univ-badge">
-      <div class="uv-dot"><i class="bi bi-geo-alt-fill text-white"></i></div>
-      <span>Université Alioune Diop &mdash; Bambey, Sénégal</span>
-    </div>
-    <div class="auth-app-title">UAD <span class="accent">SIG</span></div>
-    <div class="auth-title-rule">
-      <div class="rule-line"></div>
-      <span>Système d'Information Géographique</span>
-    </div>
-    <div class="auth-left-footer">
-      <span class="footer-copy">&copy; 2026 GéoFoncier NGOGOM_UAD &mdash; UFR SATIC &mdash; Licence 3 SRT</span>
-      <span class="footer-badge"><i class="bi bi-shield-check"></i> Sécurisé</span>
-    </div>
-  </div>
-</div>
+{% include 'accounts/auth/components/_left_panel.html' with mode='minimal' %}
 
 <div class="auth-right-panel">
   <div class="auth-card-box">

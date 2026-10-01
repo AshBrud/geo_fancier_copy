@@ -4,7 +4,7 @@
 
 ```text
                  ┌────────────────────────── Navigateur (PC / téléphone) ──────────────────────────┐
-                 │  Templates Django + Bootstrap 5 + Leaflet  (static/js/uad_sig.js)                │
+                 │  Templates Django + Bootstrap 5 + Leaflet  (static/js/geofoncier.js & modules)   │
                  └───────────────┬──────────────────────────────────────┬───────────────────────────┘
                                  │ HTML                                  │ GeoJSON (/api/…)
 ┌────────────────────────────────▼──────────────────────────────────────▼───────────────────────────┐
@@ -159,7 +159,7 @@ Les réponses sont en GeoJSON (`rest_framework_gis`).
 ## 7. Front-end
 
 - `templates/base.html` : gabarit, menu selon le rôle, notifications.
-- `static/js/uad_sig.js` : initialisation Leaflet partagée (centre par défaut
+- `static/js/geofoncier.js` (et `static/js/map.js`) : initialisation Leaflet partagée (centre par défaut
   **codé en dur sur le campus**, voir [territoires.md](territoires.md)).
 - `templates/cartographie/map.html` : carte principale du site.
 - `templates/commune/carte.html` + `_couches_js.html` : carte communale.

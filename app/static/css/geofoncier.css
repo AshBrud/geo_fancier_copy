@@ -1,0 +1,25 @@
+/* ==============================================================================
+   GéoFoncier NGOGOM_UAD — Design System (Bundle Principal)
+   Université Alioune Diop & Commune de Ngogom — Système d'Information Foncier
+   ==============================================================================
+   Ce fichier orchestre l'ensemble des modules CSS du projet pour assurer
+   une maintenance claire et une modularité maximale sans casser le code existant.
+   ============================================================================== */
+
+/* 1. Fondations globales : variables :root, typographie, reset, layout, sidebar, topbar, responsive */
+@import url("global.css");
+
+/* 2. Composants d'interface : cartes, KPI, tables, badges, boutons, statistiques, recherche */
+@import url("components.css");
+
+/* 3. Formulaires et interactions : inputs, selects, form-cards, faisabilité, drag & drop upload */
+@import url("forms.css");
+
+/* 4. Cartographie et SIG : conteneur Leaflet, toolbar, panneau flottant de couches, légendes */
+@import url("map.css");
+
+/* 5. Authentification : split-screen login/register, défilement animé marquee, formulaires auth */
+@import url("auth.css");
+
+/* 6. Drones et Télédétection : filtres de missions, cartes missions, miniatures orthophotos */
+@import url("drones.css");

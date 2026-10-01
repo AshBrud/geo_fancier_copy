@@ -193,7 +193,7 @@ geo_fancier_copy/
 │   ├── foncier/                         # Inventaire foncier du campus UAD (espaces, bâtiments, voiries)
 │   ├── navigation/                      # Moteur de recherche spatiale
 │   ├── pdu/                             # Statistiques d'urbanisme (Plan Directeur d'Urbanisme)
-│   ├── static/                          # CSS, logos et JavaScript cartographique (uad_sig.js)
+│   ├── static/                          # Design System modulaire (geofoncier.css, geofoncier.js, modules)
 │   ├── templates/                       # Gabarits HTML Bootstrap 5 (base.html, cartes, formulaires)
 │   ├── config/                          # Configuration Django (settings.py, urls.py, wsgi.py)
 │   └── manage.py                        # Point d'entrée des commandes Django

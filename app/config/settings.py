@@ -5,6 +5,9 @@ import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Rendre toutes les applications métier situées dans app/apps/ directement importables
+sys.path.insert(0, str(BASE_DIR / 'apps'))
+
 # Chemin vers la librairie GDAL (Windows - installée via wheel osgeo si présent)
 _osgeo_path = BASE_DIR / 'venv' / 'Lib' / 'site-packages' / 'osgeo'
 if os.name == 'nt' and _osgeo_path.exists():

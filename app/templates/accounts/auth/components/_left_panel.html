@@ -1,0 +1,57 @@
+{% load static %}
+<div class="auth-left-panel">
+  <!-- Photo drone campus (fond texturé discret) -->
+  <img src="{% static 'images/drone_campus.jpg' %}" alt="GéoFoncier" class="auth-drone-img"
+    onerror="this.style.display='none'">
+  <!-- Overlay gradient sombre & opaque -->
+  <div class="auth-left-overlay"></div>
+
+  <!-- Contenu épuré & minimaliste -->
+  <div class="auth-left-body">
+
+    <!-- En-tête : Nom de l'application -->
+    <div class="auth-left-header">
+      <div class="auth-app-title">Géo<span class="accent">Foncier</span></div>
+    </div>
+
+    <!-- Bottom-right : Animation de texte de grosse taille (mots-clés géomatiques) -->
+    <div class="auth-geo-ticker-container">
+      <div class="auth-geo-tag">
+        <span class="auth-geo-tag-dot"></span>
+        <span>Outil de géomatique</span>
+      </div>
+      <div class="auth-geo-display">
+        <span id="geoTickerWord" class="auth-geo-word">Géomatique</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    const words = [
+      "Géomatique",
+      "Cartographie SIG",
+      "Cadastre & Foncier",
+      "Analyse Spatiale",
+      "Imagerie Drone",
+      "Topographie 3D"
+    ];
+    let index = 0;
+    const el = document.getElementById('geoTickerWord');
+    if (!el) return;
+
+    setInterval(function () {
+      el.classList.remove('word-enter');
+      el.classList.add('word-exit');
+
+      setTimeout(function () {
+        index = (index + 1) % words.length;
+        el.textContent = words[index];
+        el.classList.remove('word-exit');
+        el.classList.add('word-enter');
+      }, 400);
+    }, 3000);
+  })();
+</script>

@@ -121,12 +121,12 @@ tenir à jour** : chaque ajout ou suppression se reporte ici.
 | Valeur | Emplacement(s) | Devient |
 |---|---|---|
 | SRID métrique `32628` | `foncier/models.py` (6×), `drones/models.py`, `commune/models.py` (`UTM_SRID`), `constructions/recommandation.py` (`UTM_SRID`) | `territoire.srid_metrique` |
-| Centre de carte du campus `14.6963, -16.4774` | `static/js/uad_sig.js:68`, `templates/cartographie/map.html`, `foncier/management/commands/export_carte_folium.py` | `territoire.carte.centre` |
+| Centre de carte du campus `14.6963, -16.4774` | `static/js/map.js`, `templates/cartographie/map.html`, `foncier/management/commands/export_carte_folium.py` | `territoire.carte.centre` |
 | `default='Campus UAD Bambey'` | `foncier/models.py` (`Campus.nom`) | `territoire.nom` |
 | `default='Ngogom'`, `'Bambey'`, `'Diourbel'` | `commune/models.py` (`Commune`) | `territoire.toml` |
 | Préfixe `NG-` des signalements | `commune/models.py` (`Signalement.numero`) | `codes.prefixe_signalement` |
 | Préfixes `V-`, `M-` | `commune/models.py` (`_code_suivant`) | `codes.*` |
-| « Université Alioune Diop de Bambey », image `drone_campus.jpg` | `templates/accounts/login.html`, `password_reset*.html`, `password_reset_email.html` | `identite.*` |
+| « Université Alioune Diop de Bambey », image `drone_campus.jpg` | `templates/accounts/auth/login.html`, `templates/accounts/password_reset/*.html` | `identite.*` |
 | Nom d'application `GéoFoncier NGOGOM_UAD` | `config/settings.py` (`DEFAULT_FROM_EMAIL`), templates | `identite.titre_application` |
 | Logos `logo_uad_sig.svg`, `logo_ngogom.jpg` | `static/images/` | `territoires/<slug>/identite/` |
 | Hypothèse « un seul Campus / une seule Commune » | `superficie_campus_totale()` (`Campus.objects.first()`), `Commune` | filtrage par territoire actif |

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Connexion — GéoFoncier NGOGOM_UAD{% endblock %}
+
+{% block auth_content %}
+<div style="display:contents">
+
+  <!-- Panneau gauche unifié (50% largeur, drone, branding, KPIs, tickers) -->
+  {% include 'accounts/auth/components/_left_panel.html' %}
+
+  <!-- Panneau droit (50% largeur, formulaire centré) -->
+  <div class="auth-right-panel">
+
+    <!-- <div class="auth-right-logos">
+      <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom"
+        class="auth-right-logo-ngogom">
+    </div> -->
+
+    <!-- <div class="auth-right-brand">
+      <h2>Géo<span style="color:#1e3a8a; font-weight:900;">Foncier</span> <span
+          style="font-size:14px; color:#94a3b8; font-weight:500;">NGOGOM_UAD</span></h2>
+      <p>Système d'Information Géographique</p>
+    </div> -->
+
+    <div class="auth-card-box">
+
+      <div class="auth-card-header">
+        <!-- <div class="auth-card-icon login-icon">
+          <i class="bi bi-box-arrow-in-right"></i>
+        </div> -->
+        <div class="auth-card-header-text">
+          <h2>Connexion</h2>
+          <p>Accédez à votre espace de gestion foncière</p>
+        </div>
+      </div>
+
+      {% if messages %}
+      {% for msg in messages %}
+      <div class="auth-alert mb-3">
+        <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      {% if user.is_authenticated %}
+      <div class="auth-alert mb-3">
+        <i class="bi bi-person-check-fill flex-shrink-0"></i>
+        <div>
+          Session ouverte : <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ user.get_role_display
+          }}).
+          Ce n'est pas vous ? Connectez-vous ci-dessous avec <strong>votre propre compte</strong>.
+          <a href="{{ next|default:'/dashboard/' }}">Continuer en tant que {{ user.username }}</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <div class="auth-field">
+          <label>Téléphone ou nom d'utilisateur</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-person field-icon"></i>
+            <input type="text" name="username" placeholder="77 123 45 67 ou identifiant"
+              value="{{ form.username.value|default:'' }}" class="{% if form.username.errors %}is-invalid{% endif %}"
+              autofocus required>
+          </div>
+          {% if form.username.errors %}
+          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="auth-field">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="mb-0">Mot de passe</label>
+            <a href="{% url 'accounts:password_reset' %}" class="auth-forgot-link">
+              <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+            </a>
+          </div>
+          <div class="auth-input-wrap">
+            <i class="bi bi-lock field-icon"></i>
+            <input type="password" name="password" id="pwdLogin" placeholder="••••••••"
+              class="{% if form.password.errors %}is-invalid{% endif %}" required>
+            <button type="button" class="toggle-eye" id="toggleLogin">
+              <i class="bi bi-eye" id="eyeLogin"></i>
+            </button>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="auth-alert">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+          Identifiant ou mot de passe incorrect.
+        </div>
+        {% endif %}
+
+        <button type="submit" class="auth-btn btn-login">
+          Se connecter
+        </button>
+      </form>
+
+      <div class="auth-switch-link">
+        Pas encore de compte ?
+        <a href="{% url 'accounts:register' %}">Créer un compte</a>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('toggleLogin').addEventListener('click', function () {
+    const p = document.getElementById('pwdLogin');
+    const i = document.getElementById('eyeLogin');
+    p.type = p.type === 'password' ? 'text' : 'password';
+    i.classList.toggle('bi-eye');
+    i.classList.toggle('bi-eye-slash');
+  });
+</script>
+{% endblock %}

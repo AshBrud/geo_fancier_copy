@@ -89,7 +89,7 @@ La base est vide après l'installation. Dans l'ordre :
 | Routage global | `config/urls.py` |
 | Réglages (BD, GDAL, sessions de 30 min, e-mail console) | `config/settings.py` |
 | Gabarit commun, menu, notifications | `templates/base.html`, `commune/context_processors.py` |
-| Carte Leaflet partagée | `static/js/uad_sig.js`, `templates/cartographie/map.html` |
+| Carte Leaflet partagée | `static/js/geofoncier.js` (`map.js`, `layers.js`), `templates/cartographie/map.html` |
 | Rôles et permissions | `accounts/models.py` (propriétés `can_*`) |
 | API GeoJSON | `foncier/api_urls.py`, `foncier/api_views.py`, `foncier/serializers.py` |
 

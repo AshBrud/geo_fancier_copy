@@ -1,0 +1,147 @@
+/* =====================================================
+   GéoFoncier — Design System : Composants UI
+   Cards, KPI, Tables, Badges, Boutons, Stats, Recherche
+   ===================================================== */
+
+/* =====================================================
+   CARDS
+   ===================================================== */
+.card {
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* KPI Cards */
+.kpi-card {
+  border-radius: var(--radius);
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 100px; height: 100px;
+  background: rgba(255,255,255,.1);
+  border-radius: 50%;
+}
+.kpi-card .kpi-icon {
+  font-size: 32px;
+  opacity: .85;
+  margin-bottom: 8px;
+}
+.kpi-card .kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+.kpi-card .kpi-label {
+  font-size: 12px;
+  opacity: .85;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.kpi-primary   { background: linear-gradient(135deg, var(--primary), var(--primary-light)); }
+.kpi-secondary { background: linear-gradient(135deg, var(--secondary), #22c55e); }
+.kpi-info      { background: linear-gradient(135deg, var(--info), #38bdf8); }
+.kpi-warning   { background: linear-gradient(135deg, var(--warning), #fbbf24); }
+
+/* =====================================================
+   TABLES
+   ===================================================== */
+.table-uad thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+.table-uad tbody td { padding: 12px 16px; vertical-align: middle; }
+.table-uad tbody tr:hover { background: #f8fafc; }
+.table-uad tbody tr { border-bottom: 1px solid #f1f5f9; }
+
+/* =====================================================
+   BADGES
+   ===================================================== */
+.badge-espace {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-libre    { background: #dcfce7; color: #16a34a; }
+.badge-occupe   { background: #fee2e2; color: #dc2626; }
+.badge-reserve  { background: #fef3c7; color: #d97706; }
+.badge-route    { background: #f1f5f9; color: #64748b; }
+.badge-vert     { background: #d1fae5; color: #059669; }
+.badge-sportif  { background: #e0f2fe; color: #0284c7; }
+
+/* =====================================================
+   BUTTONS
+   ===================================================== */
+.btn { border-radius: 8px; font-weight: 500; font-size: 13px; padding: 8px 16px; }
+.btn-primary   { background: var(--primary); border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn-success   { background: var(--secondary); border-color: var(--secondary); }
+.btn-icon { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+
+/* =====================================================
+   PROGRESS & STATS
+   ===================================================== */
+.progress { height: 8px; border-radius: 4px; background: #f1f5f9; }
+.progress-bar { border-radius: 4px; }
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.stat-row:last-child { border-bottom: none; }
+
+/* =====================================================
+   SEARCH
+   ===================================================== */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: background var(--transition);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.search-result-item:hover { background: #f8fafc; }
+.search-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+
+@media (max-width: 576px) {
+  .kpi-card .kpi-value { font-size: 22px; }
+}

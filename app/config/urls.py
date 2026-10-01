@@ -27,6 +27,8 @@ urlpatterns = [
     path('pdu/', include('pdu.urls')),
     path('commune/', include('commune.urls')),
     path('api/', include('foncier.api_urls')),
+    path('login/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
+    path('register/', RedirectView.as_view(url='/accounts/register/', permanent=False)),
     path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

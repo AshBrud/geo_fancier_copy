@@ -78,14 +78,14 @@ dans les templates.
 |---|---|---|---|
 | **Bootstrap** | 5.3.3 | Mise en page, composants, responsive (usage sur téléphone) | `templates/base.html` |
 | **Bootstrap Icons** | 1.11.3 | Icônes (y compris celles des catégories de signalement) | partout |
-| **Leaflet** | 1.9.4 | Carte interactive | `static/js/uad_sig.js`, cartes |
+| **Leaflet** | 1.9.4 | Carte interactive | `static/js/map.js`, `static/js/layers.js`, cartes |
 | **Leaflet.draw** | 1.0.4 | Dessin et modification de polygones dans les formulaires | `templates/foncier/*_form.html`, `templates/commune/form.html` |
 | **Chart.js** | 4.4.3 | Graphiques des tableaux de bord et statistiques | `templates/dashboard/`, `templates/pdu/statistiques.html` |
 | **hls.js** | 1.5.13 | Lecture du flux vidéo HLS dans le navigateur | `templates/drones/perspectives.html` |
-| **Cropper.js** | 1.6.2 | Recadrage de la photo de profil | `templates/accounts/profile.html` |
+| **Cropper.js** | 1.6.2 | Recadrage de la photo de profil | `templates/accounts/profile/profile.html` |
 | **Google Fonts** | Poppins, Roboto | Typographie | `templates/base.html` |
-| JS maison | — | Initialisation commune des cartes, fonds de plan, couches | `static/js/uad_sig.js` |
-| CSS maison | — | Charte graphique | `static/css/uad_sig.css` |
+| JS modulaire | — | Initialisation commune des cartes, fonds de plan, couches, recherche, charts | `static/js/geofoncier.js` et modules (`global.js`, `map.js`, `layers.js`, `search.js`, `charts.js`) |
+| CSS modulaire | — | Charte graphique et design system | `static/css/geofoncier.css` et modules (`global.css`, `components.css`, `forms.css`, `map.css`, `auth.css`, `drones.css`) |
 
 **Fonds de carte**
 

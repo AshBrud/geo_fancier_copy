@@ -1,0 +1,151 @@
+/* =====================================================
+   GéoFoncier — Design System : Cartographie & SIG
+   Conteneur Leaflet, Toolbar, Légendes, Panneau de couches
+   ===================================================== */
+
+/* =====================================================
+   CONTENEUR DE CARTE & BARRE D'OUTILS
+   ===================================================== */
+#map-container { position: relative; }
+#campus-map {
+  height: 520px;
+  border-radius: var(--radius);
+  z-index: 1;
+  box-shadow: var(--shadow);
+}
+.map-toolbar {
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.map-toolbar .btn { box-shadow: var(--shadow-md); }
+
+/* =====================================================
+   LÉGENDES DE CARTE
+   ===================================================== */
+.map-legend {
+  background: rgba(255,255,255,.95);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow);
+  font-size: 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.legend-color {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* =====================================================
+   PANNEAU FLOTTANT DE COUCHES SIG
+   ===================================================== */
+.map-panel {
+  position: absolute; top: 12px; left: 12px; z-index: 900;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.14);
+  width: 248px;
+  max-height: calc(100vh - 90px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+}
+.map-panel-header {
+  padding: 11px 14px;
+  font-weight: 600; font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--primary);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.map-panel-toggle {
+  margin-left: auto;
+  background: none; border: none; padding: 2px 5px;
+  color: #94a3b8; cursor: pointer; border-radius: 5px;
+  line-height: 1; font-size: 15px;
+  transition: background .15s, color .15s;
+}
+.map-panel-toggle:hover { background: #f1f5f9; color: var(--primary); }
+.map-panel-body { overflow-y: auto; flex: 1; }
+.map-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f8fafc;
+}
+.map-section:last-child { border-bottom: none; }
+.map-section-title {
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: #94a3b8; margin-bottom: 8px;
+}
+
+/* Fond de carte : 2 boutons côte à côte */
+.map-base-btns { display: flex; gap: 6px; }
+.map-base-btn {
+  flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 500;
+  border: 1.5px solid #e2e8f0; border-radius: 7px;
+  background: #f8fafc; color: #64748b; cursor: pointer;
+  transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.map-base-btn.active {
+  border-color: var(--primary); background: var(--primary); color: #fff;
+}
+.map-base-btn:hover:not(.active) { border-color: #93c5fd; background: #eff6ff; color: var(--primary); }
+
+/* Items couche (checkbox + slider) */
+.map-layer-item { margin-bottom: 5px; }
+.map-layer-item:last-child { margin-bottom: 0; }
+.map-layer-item .form-check-label { font-size: 12px; font-weight: 500; color: #334155; }
+.map-layer-item .form-check-input { cursor: pointer; }
+.map-opacity-wrap {
+  padding: 4px 0 2px 24px;
+}
+.map-opacity-wrap .form-range {
+  height: 4px; padding: 0; cursor: pointer;
+}
+.map-opacity-label { font-size: 10px; color: #94a3b8; }
+
+/* Message vide orthophotos */
+.map-empty-msg {
+  font-size: 11px; color: #94a3b8; line-height: 1.5;
+  padding: 2px 0;
+}
+
+/* Légende du panneau */
+.map-legend-item {
+  font-size: 11.5px; color: #475569;
+  display: flex; align-items: center; gap: 7px; margin-bottom: 4px;
+}
+.map-legend-color {
+  width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,.08);
+}
+
+/* Étiquette bâtiment (carte) */
+.batiment-label {
+  background: rgba(120, 53, 15, 0.9);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.batiment-label::before { display: none; }
+
+/* Responsive carte */
+@media (max-width: 992px) {
+  #campus-map { height: 380px; }
+}
+@media (max-width: 576px) {
+  #campus-map { height: 300px; }
+}
