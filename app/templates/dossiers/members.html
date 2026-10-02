@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gestion de l'Équipe — {{ dossier.nom }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dossiers.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dossiers-container">
+  <!-- En-tête -->
+  <div class="dossiers-header">
+    <div class="header-left">
+      <a href="{% url 'dossiers:list' %}" class="btn-back">
+        <i class="bi bi-arrow-left"></i> Retour à la Galerie
+      </a>
+      <h1 class="gallery-title">Équipe & Affectations : {{ dossier.nom }}</h1>
+      <p class="gallery-subtitle">
+        Gérez les comptes autorisés à intervenir sur ce territoire et configurez leurs habilitations locales.
+      </p>
+    </div>
+    <div class="header-right">
+      <div class="delegation-status">
+        <span class="delegation-label">Rôle assigneur autorisé :</span>
+        <span class="delegation-role badge bg-secondary">{{ dossier.role_gestionnaire_membres|upper }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages Flash -->
+  {% if messages %}
+  <div class="messages-stack">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="members-layout">
+    <!-- Liste des membres actuels -->
+    <div class="members-card">
+      <div class="members-card-header">
+        <h3><i class="bi bi-people-fill"></i> Membres Actifs ({{ memberships.count }})</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle members-table">
+          <thead>
+            <tr>
+              <th>Utilisateur</th>
+              <th>Rôle Local</th>
+              <th>Assigné Par</th>
+              <th>Date d'affectation</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in memberships %}
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar-circle">
+                    {{ m.user.username|make_list|first|upper }}
+                  </div>
+                  <div>
+                    <strong>{{ m.user.get_full_name|default:m.user.username }}</strong>
+                    <div class="text-muted small">@{{ m.user.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="role-badge role-{{ m.role }}">
+                  {{ m.get_role_display }}
+                </span>
+              </td>
+              <td>
+                {% if m.assigned_by %}
+                  <span class="text-muted small">
+                    <i class="bi bi-person-check"></i> {{ m.assigned_by.username }}
+                  </span>
+                {% else %}
+                  <span class="text-muted small">Système / Racine</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="text-muted small">{{ m.formatted_date_creation }}</span>
+              </td>
+              <td class="text-end">
+                {% if not m.user.is_superuser %}
+                <form action="{% url 'dossiers:revoke_member' slug=dossier.slug user_id=m.user.id %}" method="post" class="d-inline" onsubmit="return confirm('Confirmez-vous le retrait de l\'accès à ce dossier pour cet utilisateur ?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer l'accès">
+                    <i class="bi bi-person-dash"></i>
+                  </button>
+                </form>
+                {% else %}
+                <span class="badge bg-light text-muted">Superuser</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                Aucun membre affecté pour le moment.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Formulaire d'affectation d'un nouveau membre -->
+    <div class="assign-card">
+      <div class="members-card-header">
+        <h3><i class="bi bi-person-plus-fill"></i> Affecter un Compte</h3>
+      </div>
+      <div class="assign-card-body">
+        {% if available_users %}
+        <form action="{% url 'dossiers:assign_member' slug=dossier.slug %}" method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="user_id" class="form-label fw-bold">Sélectionner un collaborateur</label>
+            <select name="user_id" id="user_id" class="form-select" required>
+              <option value="">-- Choisir un utilisateur --</option>
+              {% for u in available_users %}
+              <option value="{{ u.id }}">
+                {{ u.get_full_name|default:u.username }} (@{{ u.username }})
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Seuls les comptes actifs non encore affectés à ce dossier apparaissent.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="role" class="form-label fw-bold">Rôle dans ce dossier</label>
+            <select name="role" id="role" class="form-select" required>
+              <option value="observateur">Observateur (Consultation seule)</option>
+              <option value="operateur">Opérateur (Saisie SIG & Enquêtes)</option>
+              <option value="admin">Administrateur du Dossier</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 mt-2">
+            <i class="bi bi-check2-circle"></i> Affecter au Dossier
+          </button>
+        </form>
+        {% else %}
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Tous les utilisateurs actifs du système sont déjà rattachés à ce dossier.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

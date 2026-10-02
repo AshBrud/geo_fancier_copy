@@ -40,6 +40,7 @@ staticfiles/
 app/staticfiles/
 
 # Logs de développement locaux
+logs/
 *.log
 runserver-*.err
 runserver-*.out

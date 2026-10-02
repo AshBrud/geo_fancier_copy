@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}{{ campus.nom }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'territoire:espaces' %}">Espaces</a></li>
+<li class="breadcrumb-item active">Campus</li>
+{% endblock %}
+
+{% block extra_js_vendor %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.campus-hero {
+  border-radius:14px; padding:24px 28px; margin-bottom:24px;
+  background:linear-gradient(135deg, #1E3A8Add, #1E3A8Aaa); color:#fff;
+  display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.campus-hero-icon {
+  width:56px; height:56px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; background:rgba(255,255,255,.25); flex-shrink:0;
+}
+.campus-hero-nom { font-size:22px; font-weight:800; margin:0; line-height:1.1; }
+.campus-hero-sub { font-size:13px; opacity:.85; margin-top:4px; }
+
+.kpi-tile {
+  background:#fff; border-radius:12px; border:1px solid #e2e8f0;
+  padding:16px 18px; height:100%;
+  display:flex; flex-direction:column; justify-content:center;
+}
+.kpi-tile-lbl { font-size:11.5px; color:#64748b; margin-bottom:4px; }
+.kpi-tile-val { font-size:22px; font-weight:700; color:#1e293b; line-height:1; }
+.kpi-tile-sub { font-size:10.5px; color:#94a3b8; margin-top:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="campus-hero">
+  <div class="campus-hero-icon"><i class="bi bi-bounding-box"></i></div>
+  <div style="flex:1;">
+    <h1 class="campus-hero-nom">{{ campus.nom }}</h1>
+    <p class="campus-hero-sub">
+      Référence cartographique unique du campus · {{ superficie_ha }} ha ({{ campus.superficie|floatformat:0 }} m²)
+      · jamais comptée comme un espace ordinaire
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if user.is_domaine_foncier %}
+    <a href="{% url 'territoire:espace_create' %}" class="btn btn-sm"
+       style="background:rgba(255,255,255,.25); color:#fff; border:1px solid rgba(255,255,255,.4);">
+      <i class="bi bi-plus-lg me-1"></i>Ajouter un sous-espace
+    </a>
+    {% endif %}
+    <a href="{% url 'territoire:espaces' %}" class="btn btn-sm"
+       style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3);">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+
+<!-- ===== KPI SUPERFICIES ===== -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl"><i class="bi bi-rulers me-1" style="color:#1E3A8A;"></i>Superficie du Campus</div>
+      <div class="kpi-tile-val">{{ campus.superficie|floatformat:0 }} m²</div>
+      <div class="kpi-tile-sub">{{ superficie_ha }} ha · référence unique</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl"><i class="bi bi-geo-fill me-1" style="color:#d97706;"></i>Superficie occupée</div>
+      <div class="kpi-tile-val" style="color:#d97706;">{{ superficie_occupee|floatformat:0 }} m²</div>
+      <div class="kpi-tile-sub">Bâtiments + terrains + espaces verts</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl"><i class="bi bi-clock-fill me-1" style="color:#f59e0b;"></i>Superficie réservée</div>
+      <div class="kpi-tile-val" style="color:#f59e0b;">{{ superficie_reservee|floatformat:0 }} m²</div>
+      <div class="kpi-tile-sub">Sous-espaces de type Réservé</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl"><i class="bi bi-check-circle-fill me-1" style="color:#16a34a;"></i>Superficie libre</div>
+      <div class="kpi-tile-val" style="color:#16a34a;">{{ superficie_libre|floatformat:0 }} m²</div>
+      <div class="kpi-tile-sub">{{ superficie_libre_ha }} ha · Campus − occupée − réservée</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CARTE + LISTE DES SOUS-ESPACES ===== -->
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card" style="overflow:hidden; border-radius:10px;">
+      <div style="padding:12px 16px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
+                  display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:#374151;">
+        <i class="bi bi-map-fill text-primary"></i>Limite du campus
+      </div>
+      <div id="campusMap" style="height:380px;"></div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Sous-espaces</span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+          {{ sous_espaces|length }}
+        </span>
+      </div>
+      {% if sous_espaces %}
+      <div class="table-responsive">
+        <table class="table table-uad mb-0">
+          <thead>
+            <tr><th>Nom</th><th>Type</th><th>Superficie</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for esp in sous_espaces %}
+            <tr>
+              <td>{{ esp.nom }}</td>
+              <td><span class="badge-espace badge-{{ esp.type_espace }}">{{ esp.get_type_espace_display }}</span></td>
+              <td>{{ esp.superficie|floatformat:0 }} m²</td>
+              <td class="text-end">
+                <a href="{% url 'territoire:espace_detail' esp.pk %}" class="btn btn-icon btn-outline-info btn-sm">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+        <p class="small mb-0">Aucun sous-espace créé pour le moment.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var geomJson = {{ geom_json|safe }};
+  var map = initCampusMap('campusMap');
+  if (geomJson) {
+    var layer = L.geoJSON(geomJson, {
+      style: { color: '#1E3A8A', fillColor: '#1E3A8A', fillOpacity: 0.08, weight: 3 }
+    }).addTo(map);
+    try { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); }
+    catch(e) {}
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer la demande{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'urbanisme:list' %}">Constructions</a></li>
+<li class="breadcrumb-item active">Supprimer</li>
+{% endblock %}
+
+{% block content %}
+<div class="del-box">
+
+  <div class="del-hdr">
+    <div class="del-icon">
+      <i class="bi bi-building-x"></i>
+    </div>
+    <p class="del-title">Supprimer la demande de construction</p>
+    <p class="del-sub">Cette action est définitive et irréversible</p>
+  </div>
+
+  <div class="del-body">
+    <div class="del-name">
+      <i class="bi bi-hammer text-secondary"></i>
+      {{ construction.nom_projet }}
+    </div>
+    <div class="del-meta">
+      <span><i class="bi bi-tag"></i> {{ construction.type_construction }}</span>
+      <span><i class="bi bi-rulers"></i> {{ construction.superficie_souhaitee|floatformat:0 }} m²</span>
+      <span><i class="bi bi-calendar3"></i> {{ construction.date_demande|date:"d/m/Y" }}</span>
+    </div>
+    <div class="del-warn">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      Supprimer cette demande effacera définitivement toutes les données associées,
+      y compris les documents joints et l'historique. Cette opération ne peut pas être annulée.
+    </div>
+  </div>
+
+  <div class="del-footer">
+    <a href="{% url 'urbanisme:list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Annuler
+    </a>
+    <form method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash3 me-1"></i>Supprimer définitivement
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

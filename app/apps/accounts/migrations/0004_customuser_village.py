@@ -8,13 +8,13 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('accounts', '0003_alter_customuser_role'),
-        ('commune', '0002_orthophotocommune'),
+        ('habitations', '0002_orthophotocommune'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='customuser',
             name='village',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='habitants', to='commune.village', verbose_name='Village'),
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='habitants', to='habitations.village', verbose_name='Village'),
         ),
     ]

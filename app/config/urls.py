@@ -18,18 +18,19 @@ def health_check(request):
 urlpatterns = [
     path('health/', health_check, name='health_check'),
     path('admin/', admin.site.urls),
+    path('dossiers/', include('dossiers.urls')),
     path('accounts/', include('accounts.urls')),
     path('dashboard/', include('dashboard.urls')),
-    path('foncier/', include('foncier.urls')),
+    path('territoire/', include('territoire.urls')),
     path('drones/', include('drones.urls')),
-    path('constructions/', include('constructions.urls')),
+    path('urbanisme/', include('urbanisme.urls')),
     path('navigation/', include('navigation.urls')),
     path('pdu/', include('pdu.urls')),
-    path('commune/', include('commune.urls')),
-    path('api/', include('foncier.api_urls')),
+    path('habitations/', include('habitations.urls')),
+    path('api/', include('territoire.api_urls')),
     path('login/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
-    path('register/', RedirectView.as_view(url='/accounts/register/', permanent=False)),
-    path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
+    path('register/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
+    path('', RedirectView.as_view(url='/dossiers/', permanent=False)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

@@ -7,7 +7,7 @@ class SessionDebugMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith('/foncier/espaces/ajouter') or request.path.startswith('/accounts/login'):
+        if request.path.startswith('/territoire/espaces/ajouter') or request.path.startswith('/accounts/login'):
             cookies = dict(request.COOKIES)
             session_key = request.session.session_key
             exists = request.session.exists(session_key) if session_key else False
@@ -22,6 +22,6 @@ class SessionDebugMiddleware:
                 file=sys.stderr, flush=True,
             )
         response = self.get_response(request)
-        if request.path.startswith('/foncier/espaces/ajouter') or request.path.startswith('/accounts/login'):
+        if request.path.startswith('/territoire/espaces/ajouter') or request.path.startswith('/accounts/login'):
             print(f"[DEBUG]   -> status={response.status_code}", file=sys.stderr, flush=True)
         return response

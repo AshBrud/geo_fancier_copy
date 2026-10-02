@@ -22,6 +22,14 @@ class Mission(models.Model):
         STATUT_INTEGREE: 'success',
     }
 
+    dossier = models.ForeignKey(
+        'dossiers.Dossier',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='missions_drone',
+        verbose_name="Dossier territorial"
+    )
     nom = models.CharField(max_length=200, verbose_name='Nom de la mission')
     date_vol = models.DateField(verbose_name='Date du vol')
     operateur = models.CharField(max_length=200, blank=True, verbose_name='Opérateur')
@@ -113,6 +121,14 @@ class PhotoDrone(models.Model):
 
 
 class Orthophoto(models.Model):
+    dossier = models.ForeignKey(
+        'dossiers.Dossier',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='orthophotos',
+        verbose_name="Dossier territorial"
+    )
     mission = models.ForeignKey(
         Mission, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='orthophotos', verbose_name='Mission associée',

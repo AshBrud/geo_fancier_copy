@@ -31,14 +31,14 @@
     <div class="dash-tagline">Université Alioune Diop de Bambey — Système d'Information Géographique</div>
   </div>
   <div class="dash-banner-right">
-    <a href="{% url 'foncier:cartographie' %}" class="dash-quick-btn">
+    <a href="{% url 'territoire:cartographie' %}" class="dash-quick-btn">
       <i class="bi bi-map-fill"></i> Carte
     </a>
-    <a href="{% url 'foncier:espaces' %}" class="dash-quick-btn">
+    <a href="{% url 'territoire:espaces' %}" class="dash-quick-btn">
       <i class="bi bi-grid-3x3-gap"></i> Espaces
     </a>
     {% if user.is_domaine_foncier %}
-    <a href="{% url 'constructions:nouvelle' %}" class="dash-quick-btn">
+    <a href="{% url 'urbanisme:nouvelle' %}" class="dash-quick-btn">
       <i class="bi bi-building-add"></i> Construction
     </a>
     <a href="{% url 'drones:missions' %}" class="dash-quick-btn">
@@ -492,7 +492,7 @@
         <div class="ch-card-title">
           <i class="bi bi-building-add text-primary"></i>Demandes de construction
         </div>
-        <a href="{% url 'constructions:list' %}" class="btn btn-sm btn-outline-primary">
+        <a href="{% url 'urbanisme:list' %}" class="btn btn-sm btn-outline-primary">
           Tout voir <i class="bi bi-arrow-right ms-1"></i>
         </a>
       </div>

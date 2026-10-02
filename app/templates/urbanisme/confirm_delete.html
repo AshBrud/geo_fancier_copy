@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Confirmer la suppression{% endblock %}
+{% block content %}
+<div class="del-box">
+
+  <div class="del-hdr">
+    <div class="del-icon">
+      <i class="bi bi-trash3-fill"></i>
+    </div>
+    <p class="del-title">Confirmer la suppression</p>
+    <p class="del-sub">Cette action est définitive et irréversible</p>
+  </div>
+
+  <div class="del-body">
+    <div class="del-name">
+      <i class="bi bi-hammer text-secondary"></i>
+      {{ obj }}
+    </div>
+    <div class="del-warn">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      Supprimer cet élément effacera définitivement toutes les données associées.
+      Cette opération ne peut pas être annulée.
+    </div>
+  </div>
+
+  <div class="del-footer">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Annuler
+    </a>
+    <form method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash3 me-1"></i>Supprimer définitivement
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

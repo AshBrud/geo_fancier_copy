@@ -23,3 +23,12 @@
 
 /* 6. Drones et Télédétection : filtres de missions, cartes missions, miniatures orthophotos */
 @import url("drones.css");
+
+/* 7. Workspaces & Dossiers V2 : galeries, cartes de territoire, badges de statut */
+@import url("dossiers.css");
+
+/* 8. Comptes & Gouvernance RBAC : tables de gestion, rôles, avatars, boîte de désactivation */
+@import url("accounts.css");
+
+/* 9. Constructions & Aide à la Décision : stepper, faisabilité, scoring, options géographiques */
+@import url("urbanisme.css");

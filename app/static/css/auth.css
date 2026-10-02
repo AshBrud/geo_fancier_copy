@@ -5,7 +5,7 @@
    Formulaires unifiés (Login, Register, Password Reset)
    ============================================================================== */
 
-/* --- Conteneur global de page auth : Fond clair épuré (100vw x 100vh) --- */
+/* --- Conteneur global de page auth : Motif Dot Pattern (100vw x 100vh) --- */
 .auth-page {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   width: 100vw;
@@ -16,10 +16,18 @@
   overflow: hidden;
   display: flex;
   align-items: center;
-  background: #ffffff;
-  background-image:
-    radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+
+  /* Variables du motif : changer --dot-bg et --dot-color selon le thème */
+  --dot-bg: #ffffff;
+  --dot-color: #eceef1;
+  --dot-size: 2px;
+  --dot-space: 23px;
+
+  background:
+    linear-gradient(90deg, var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+    linear-gradient(var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+    var(--dot-color);
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -354,7 +362,7 @@
   gap: 0.9rem;
   margin-bottom: 1.25rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  /* border-bottom: 1px solid #f1f5f9; */
 }
 
 .auth-card-icon {

@@ -8,16 +8,57 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Rendre toutes les applications métier situées dans app/apps/ directement importables
 sys.path.insert(0, str(BASE_DIR / 'apps'))
 
-# Chemin vers la librairie GDAL (Windows - installée via wheel osgeo si présent)
-_osgeo_path = BASE_DIR / 'venv' / 'Lib' / 'site-packages' / 'osgeo'
-if os.name == 'nt' and _osgeo_path.exists():
-    # Forcer PROJ à utiliser sa propre base de données (évite le conflit avec PostgreSQL)
-    os.environ['PROJ_DATA'] = str(_osgeo_path / 'data' / 'proj')
-    os.environ['PROJ_LIB'] = str(_osgeo_path / 'data' / 'proj')
-    # Mettre osgeo en tête du PATH pour charger les bonnes DLL
-    os.environ['PATH'] = str(_osgeo_path) + os.pathsep + os.environ.get('PATH', '')
-    if str(_osgeo_path) not in sys.path:
-        sys.path.insert(0, str(_osgeo_path))
+# Configuration GDAL / GEOS sous Windows
+if os.name == 'nt':
+    _site_packages_candidates = [
+        BASE_DIR.parent / '.venv' / 'Lib' / 'site-packages',
+        BASE_DIR / 'venv' / 'Lib' / 'site-packages',
+    ]
+    for _sp in _site_packages_candidates:
+        if not _sp.exists():
+            continue
+        _osgeo_path = _sp / 'osgeo'
+        if _osgeo_path.exists():
+            os.environ['PROJ_DATA'] = str(_osgeo_path / 'data' / 'proj')
+            os.environ['PROJ_LIB'] = str(_osgeo_path / 'data' / 'proj')
+            os.environ['PATH'] = str(_osgeo_path) + os.pathsep + os.environ.get('PATH', '')
+            if hasattr(os, 'add_dll_directory'):
+                try:
+                    os.add_dll_directory(str(_osgeo_path))
+                except Exception:
+                    pass
+            if str(_osgeo_path) not in sys.path:
+                sys.path.insert(0, str(_osgeo_path))
+            break
+        _pyogrio_libs = _sp / 'pyogrio.libs'
+        if _pyogrio_libs.exists():
+            _gdal_dlls = list(_pyogrio_libs.glob('gdal*.dll'))
+            _geos_dlls = list(_pyogrio_libs.glob('geos_c*.dll'))
+            if _gdal_dlls:
+                GDAL_LIBRARY_PATH = str(_gdal_dlls[0])
+            if _geos_dlls:
+                GEOS_LIBRARY_PATH = str(_geos_dlls[0])
+            
+            # Données PROJ
+            _proj_data = _sp / 'pyproj' / 'proj_dir' / 'share' / 'proj'
+            if _proj_data.exists():
+                os.environ['PROJ_DATA'] = str(_proj_data)
+                os.environ['PROJ_LIB'] = str(_proj_data)
+
+            # Charger les répertoires de DLLs sous Windows
+            if hasattr(os, 'add_dll_directory'):
+                try:
+                    os.add_dll_directory(str(_pyogrio_libs))
+                except Exception:
+                    pass
+                _shapely_libs = _sp / 'shapely.libs'
+                if _shapely_libs.exists():
+                    try:
+                        os.add_dll_directory(str(_shapely_libs))
+                    except Exception:
+                        pass
+            os.environ['PATH'] = str(_pyogrio_libs) + os.pathsep + os.environ.get('PATH', '')
+            break
 
 env = environ.Env(DEBUG=(bool, True))
 # Lecture du .env local ou racine
@@ -48,14 +89,15 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'django_filters',
     # Project apps
+    'dossiers',
     'accounts',
-    'foncier',
+    'territoire',
     'drones',
-    'constructions',
+    'urbanisme',
     'dashboard',
     'navigation',
     'pdu',
-    'commune',
+    'habitations',
 ]
 
 MIDDLEWARE = [
@@ -83,7 +125,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'commune.context_processors.notifications',
+                'habitations.context_processors.notifications',
+                'dossiers.context_processors.active_dossier_context',
             ],
         },
     },
@@ -91,14 +134,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+DB_HOST = env('DB_HOST', default='localhost')
+DB_PORT = env('DB_PORT', default='5432')
+
+# Résolution automatique transparente : Conteneur Docker vs Machine Hôte (uv/Windows)
+if DB_HOST == 'db':
+    import socket
+    try:
+        socket.gethostbyname('db')
+    except (socket.gaierror, UnicodeError, OSError):
+        DB_HOST = 'localhost'
+        DB_PORT = env('DB_DEV_PORT', default='5433')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': env('DB_NAME', default='uad_sig_db'),
         'USER': env('DB_USER', default='postgres'),
         'PASSWORD': env('DB_PASSWORD', default='123456'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
 }
 
@@ -131,7 +186,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
+LOGIN_REDIRECT_URL = '/dossiers/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 SESSION_COOKIE_NAME = 'geofoncier_sid'
@@ -158,7 +213,4 @@ REST_FRAMEWORK = {
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-if os.name == 'nt' and _osgeo_path.exists():
-    GDAL_LIBRARY_PATH = str(_osgeo_path / 'gdal.dll')
-    GEOS_LIBRARY_PATH = str(_osgeo_path / 'geos_c.dll')
 

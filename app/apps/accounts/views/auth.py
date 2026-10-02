@@ -19,7 +19,7 @@ def _suivant(request):
 
 def _contexte_commune():
     """Identité de la commune et villages affichés dans le défilement des pages d'accès."""
-    from commune.models import Commune, Village
+    from habitations.models import Commune, Village
     return {
         'commune': Commune.objects.first(),
         'villages_defilement': Village.objects.order_by('nom').only('nom', 'code'),
@@ -44,8 +44,8 @@ def login_view(request):
             user=user, action='Connexion',
             ip_address=request.META.get('REMOTE_ADDR')
         )
-        return redirect(_suivant(request) or 'dashboard:index')
-    from foncier.models import Espace, Batiment
+        return redirect(_suivant(request) or 'dossiers:list')
+    from territoire.models import Espace, Batiment
     from drones.models import Orthophoto
     return render(request, 'accounts/auth/login.html', {
         'form': form,
@@ -59,13 +59,12 @@ def login_view(request):
 
 
 def register_view(request):
-    form = RegisterForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        user = form.save()
-        login(request, user)
-        messages.success(request, f'Bienvenue {user.get_full_name() or user.username} !')
-        return redirect('dashboard:index')
-    return render(request, 'accounts/auth/register.html', {'form': form, 'page_auth': True, **_contexte_commune()})
+    """
+    L'inscription publique autonome est formellement fermée dans GéoFoncier.
+    Les comptes sont créés par mandat institutionnel par le Superuser ou un Admin habilité.
+    """
+    messages.info(request, "L'auto-inscription est fermée. Veuillez contacter un administrateur pour l'attribution d'un compte.")
+    return redirect('accounts:login')
 
 
 @login_required

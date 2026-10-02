@@ -213,7 +213,7 @@ strong.count { color:#1e293b; font-weight:700; }
     <h1 class="page-title"><i class="bi bi-search"></i> Recherche & Navigation</h1>
     <p class="page-description">Trouvez rapidement un bâtiment ou un espace foncier et localisez-le sur la carte interactive du campus.</p>
   </div>
-  <a href="{% url 'foncier:cartographie' %}" class="btn btn-outline-primary btn-sm">
+  <a href="{% url 'territoire:cartographie' %}" class="btn btn-outline-primary btn-sm">
     <i class="bi bi-map me-1"></i>Carte complète
   </a>
 </div>
@@ -441,7 +441,7 @@ strong.count { color:#1e293b; font-weight:700; }
           </div>
         </div>
         <div class="srch-actions">
-          <a href="{% url 'foncier:batiment_detail' b.pk %}"
+          <a href="{% url 'territoire:batiment_detail' b.pk %}"
              class="btn btn-icon btn-outline-primary btn-sm"
              data-bs-toggle="tooltip" title="Voir la fiche"
              onclick="event.stopPropagation();">
@@ -486,7 +486,7 @@ strong.count { color:#1e293b; font-weight:700; }
           </div>
         </div>
         <div class="srch-actions">
-          <a href="{% url 'foncier:espace_detail' e.pk %}"
+          <a href="{% url 'territoire:espace_detail' e.pk %}"
              class="btn btn-icon btn-outline-success btn-sm"
              data-bs-toggle="tooltip" title="Voir la fiche"
              onclick="event.stopPropagation();">

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Historique des Constructions{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Historique</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-clock-history"></i> Historique des Constructions</h1>
+    <p class="page-description">Consultez l'historique complet des constructions et travaux réalisés sur le campus.</p>
+  </div>
+  {% if user.can_manage_foncier %}
+  <a href="{% url 'urbanisme:historique_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-2"></i>Enregistrer des travaux
+  </a>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <select name="annee" class="form-select form-select-sm">
+          <option value="">Toutes les années</option>
+          {% for a in annees %}<option value="{{ a.year }}" {% if annee == a.year|stringformat:"s" %}selected{% endif %}>{{ a.year }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="type" class="form-select form-select-sm">
+          <option value="">Tous les types</option>
+          {% for t_key, t_label in types %}
+          <option value="{{ t_key }}" {% if type_travaux == t_key %}selected{% endif %}>{{ t_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+        {% if user.is_domaine_foncier %}
+        <a href="{% url 'urbanisme:historique' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr><th>Bâtiment</th><th>Type de travaux</th><th>Période</th><th>Maître d'ouvrage</th><th>Coût (FCFA)</th>
+        {% if user.can_manage_foncier %}<th>Actions</th>{% endif %}</tr>
+      </thead>
+      <tbody>
+        {% for h in page_obj %}
+        <tr>
+          <td>
+            <a href="{% url 'territoire:batiment_detail' h.batiment.pk %}" class="fw-semibold text-decoration-none text-primary">
+              {{ h.batiment.nom }}
+            </a>
+            <small class="text-muted d-block">{{ h.batiment.code }}</small>
+          </td>
+          <td>
+            <span class="badge {% if h.type_travaux == 'construction' %}bg-primary{% elif h.type_travaux == 'renovation' %}bg-info{% elif h.type_travaux == 'extension' %}bg-success{% else %}bg-danger{% endif %}">
+              {{ h.get_type_travaux_display }}
+            </span>
+          </td>
+          <td class="text-muted small">
+            {{ h.date_debut|date:"Y" }}{% if h.date_fin %} → {{ h.date_fin|date:"Y" }}{% else %} — En cours{% endif %}
+          </td>
+          <td class="text-muted small">{{ h.maitre_ouvrage|default:"—" }}</td>
+          <td class="text-muted small">{{ h.cout|default:"—" }}</td>
+          {% if user.can_manage_foncier %}
+          <td>
+            <a href="{% url 'urbanisme:historique_delete' h.pk %}" class="btn btn-icon btn-outline-danger btn-sm">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-5 text-muted">
+          <i class="bi bi-clock-history fs-2 d-block mb-2"></i>Aucun historique enregistré
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

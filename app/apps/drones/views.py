@@ -375,7 +375,7 @@ def perspectives(request):
     récente du campus. Le flux vidéo live (RTSP/HLS/WebRTC via MediaMTX) reste
     disponible ici — page de démonstration des capacités du SIG."""
     import json
-    from foncier.models import Campus, Batiment, Voirie, Terrain, EspaceVert
+    from territoire.models import Campus, Batiment, Voirie, Terrain, EspaceVert
 
     campus = Campus.objects.first()
 
@@ -399,8 +399,8 @@ def supervision_donnees(request):
     supervision pour rafraîchir KPI, alertes et activité récente sans recharger
     la page. Conçu pour être remplacé/complété par un canal WebSocket et une
     vraie télémétrie drone (DJI) le jour où ces flux seront connectés."""
-    from constructions.models import NouvelleConstruction
-    from foncier.models import Batiment, Voirie, EspaceVert, Espace
+    from urbanisme.models import NouvelleConstruction
+    from territoire.models import Batiment, Voirie, EspaceVert, Espace
 
     derniere_mission = Mission.objects.order_by('-date_creation').first()
 

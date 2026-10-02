@@ -1,18 +1,71 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
-from foncier.models import Espace, Batiment, Campus, Terrain, EspaceVert, Voirie
+from territoire.models import Espace, Batiment, Campus, Terrain, EspaceVert, Voirie
 from drones.models import Orthophoto, Mission
-from constructions.models import NouvelleConstruction, HistoriqueConstruction
+from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
-from commune.views import _json_script
-from commune.models import Commune, Maison, OrthophotoCommune, Piste, Signalement, Village
+from habitations.views import _json_script
+from habitations.models import Commune, Maison, OrthophotoCommune, Piste, Signalement, Village
+from django.contrib import messages
+from dossiers.selectors import get_dossier_by_slug, get_accessible_dossiers_for_user
 import json
 
 
 @login_required
-def index(request):
-    """Accueil : tableau de bord de la commune de Ngogom."""
+def dashboard_router(request):
+    """
+    Routeur intelligent pour /dashboard/ :
+    - Si un dossier actif est en session -> redirige vers /dashboard/<slug>/
+    - Si l'utilisateur n'a accès qu'à 1 seul dossier -> l'active et redirige vers /dashboard/<slug>/
+    - Sinon -> redirige vers la Galerie /dossiers/ pour choisir un espace de travail.
+    """
+    active_slug = request.session.get('active_dossier_slug')
+    accessible = get_accessible_dossiers_for_user(request.user)
+
+    if active_slug and accessible.filter(slug=active_slug).exists():
+        return redirect('dashboard:dossier_dashboard', slug=active_slug)
+
+    if accessible.count() == 1:
+        dossier = accessible.first()
+        request.session['active_dossier_id'] = str(dossier.id)
+        request.session['active_dossier_slug'] = dossier.slug
+        return redirect('dashboard:dossier_dashboard', slug=dossier.slug)
+
+    return redirect('dossiers:list')
+
+
+@login_required
+def dossier_dashboard(request, slug):
+    """
+    Tableau de bord contextuel pour un dossier spécifique : /dashboard/<slug>/
+    Active l'espace de travail en session et rend le dashboard adapté.
+    """
+    dossier = get_dossier_by_slug(slug)
+    if not dossier:
+        messages.error(request, "Dossier introuvable.")
+        return redirect('dossiers:list')
+
+    # Contrôle de sécurité
+    accessible = get_accessible_dossiers_for_user(request.user)
+    if not request.user.is_superuser and not accessible.filter(id=dossier.id).exists():
+        messages.error(request, f"Vous n'êtes pas autorisé à accéder au dossier « {dossier.nom} ».")
+        return redirect('dossiers:list')
+
+    # Activation en session
+    request.session['active_dossier_id'] = str(dossier.id)
+    request.session['active_dossier_slug'] = dossier.slug
+
+    # Rendu adapté au territoire
+    if dossier.type_territoire == 'universite' or dossier.slug == 'campus-uad-bambey':
+        return universite(request)
+
+    return _commune_dashboard(request)
+
+
+@login_required
+def _commune_dashboard(request):
+    """Accueil communal de référence (Ngogom)."""
     user = request.user
     # Le citoyen n'a pas accès aux données foncières : son accueil reste la carte.
     if not user.can_view_commune:

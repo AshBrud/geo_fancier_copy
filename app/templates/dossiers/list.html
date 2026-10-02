@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mes Dossiers Territoriaux{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dossiers.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dossiers-container">
+  <!-- En-tête de la Galerie -->
+  <div class="dossiers-header">
+    <div class="header-left">
+      <div class="badge-header">
+        <i class="bi bi-folder-symlink-fill"></i>
+        <span>Espaces de Travail Territoriaux</span>
+      </div>
+      <h1 class="gallery-title">Mes Territoires & Dossiers Fonciers</h1>
+      <p class="gallery-subtitle">
+        Sélectionnez un périmètre d'autorité pour ouvrir votre tableau de bord contextuel et vos outils cartographiques.
+      </p>
+    </div>
+    <div class="header-right">
+      {% if is_superuser %}
+      <div class="admin-badges">
+        <span class="badge-role-super"><i class="bi bi-shield-check"></i> Superuser : Accès Global</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Messages Flash -->
+  {% if messages %}
+  <div class="messages-stack">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Grille des Dossiers -->
+  {% if dossiers %}
+  <div class="dossiers-grid">
+    {% for dossier in dossiers %}
+    <div class="dossier-card {% if active_dossier.id == dossier.id %}active-border{% endif %}">
+      <!-- Card Header -->
+      <div class="dossier-card-top">
+        <span class="territory-type-badge type-{{ dossier.type_territoire }}">
+          {% if dossier.type_territoire == 'universite' %}
+            <i class="bi bi-mortarboard-fill"></i>
+          {% elif dossier.type_territoire == 'commune' %}
+            <i class="bi bi-geo-alt-fill"></i>
+          {% elif dossier.type_territoire == 'cadastre' %}
+            <i class="bi bi-compass-fill"></i>
+          {% else %}
+            <i class="bi bi-building"></i>
+          {% endif %}
+          {{ dossier.get_type_territoire_display }}
+        </span>
+
+        {% if active_dossier.id == dossier.id %}
+        <span class="active-badge"><i class="bi bi-check-circle-fill"></i> Actif</span>
+        {% endif %}
+      </div>
+
+      <!-- Card Body -->
+      <div class="dossier-card-body">
+        <h2 class="dossier-name">{{ dossier.nom }}</h2>
+        <p class="dossier-desc">{{ dossier.description|default:"Périmètre d'autorité foncière et de gestion territoriale."|truncatechars:120 }}</p>
+
+        <!-- Métriques Rapides -->
+        <div class="dossier-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Superficie</span>
+            <span class="metric-value">{{ dossier.superficie_ha|default:"—" }} ha</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Projection</span>
+            <span class="metric-value">UTM {{ dossier.srid_metrique }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Gestion</span>
+            <span class="metric-value">{{ dossier.role_gestionnaire_membres|upper }}</span>
+          </div>
+        </div>
+
+        <!-- Modules Métier Activés -->
+        <div class="modules-section">
+          <span class="modules-title">Capacités & Modules :</span>
+          <div class="modules-tags">
+            {% if dossier.modules_config.mod_espaces %}
+            <span class="module-tag" title="Cadastre & Espaces"><i class="bi bi-grid-3x3-gap"></i> Espaces</span>
+            {% endif %}
+            {% if dossier.modules_config.mod_habitations %}
+            <span class="module-tag" title="Habitations & Bâti"><i class="bi bi-houses"></i> Bâti</span>
+            {% endif %}
+            {% if dossier.modules_config.mod_signalements %}
+            <span class="module-tag" title="Signalements de dommages"><i class="bi bi-megaphone"></i> Signalements</span>
+            {% endif %}
+            {% if dossier.modules_config.mod_drones %}
+            <span class="module-tag" title="Drones & Orthophotos"><i class="bi bi-airplane"></i> Drones</span>
+            {% endif %}
+            {% if dossier.modules_config.mod_urbanisme %}
+            <span class="module-tag" title="Urbanisme & PDU"><i class="bi bi-rulers"></i> PDU</span>
+            {% endif %}
+            {% if dossier.modules_config.mod_toponymie %}
+            <span class="module-tag" title="Points d'Intérêt"><i class="bi bi-pin-map"></i> POI</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="dossier-card-footer">
+        <a href="{% url 'dossiers:select' slug=dossier.slug %}" class="btn-open-dossier">
+          <span>Ouvrir l'Espace</span>
+          <i class="bi bi-arrow-right-short"></i>
+        </a>
+        {% if is_superuser or dossier.role_gestionnaire_membres == 'admin' %}
+        <a href="{% url 'dossiers:members' slug=dossier.slug %}" class="btn-manage-members" title="Gérer les affectations de membres">
+          <i class="bi bi-people"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-folder-x"></i></div>
+    <h3>Aucun dossier accessible</h3>
+    <p>Vous n'êtes actuellement rattaché à aucun territoire. Veuillez contacter un administrateur pour obtenir une affectation.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

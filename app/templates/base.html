@@ -27,93 +27,169 @@
       <small>NGOGOM_UAD</small>
     </div>
   </div>
+  <!-- ===== SÉLECTEUR RAPIDE DE TERRITOIRE (SIDEBAR) ===== -->
+  <div class="sidebar-dossier-selector px-3 py-2" style="background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+    <div class="dropdown">
+      <button class="btn btn-sm w-100 text-start d-flex align-items-center justify-content-between p-2 rounded" 
+              type="button" data-bs-toggle="dropdown" aria-expanded="false"
+              style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff;">
+        <div class="d-flex align-items-center gap-2 text-truncate me-1">
+          <i class="bi bi-folder2-open" style="color: #34d399; font-size: 1.15rem;"></i>
+          <div class="text-truncate">
+            <div class="fw-bold text-truncate" style="font-size: 0.83rem; line-height: 1.2;">
+              {% if active_dossier %}{{ active_dossier.nom }}{% else %}Sélectionner un Territoire{% endif %}
+            </div>
+            <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.04em;">
+              {% if active_dossier %}{{ active_dossier.get_type_territoire_display }}{% else %}Aucun espace actif{% endif %}
+            </small>
+          </div>
+        </div>
+        <i class="bi bi-chevron-expand text-muted small"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark shadow border-0 w-100 mt-1" style="font-size: 0.85rem; z-index: 1060;">
+        <li><h6 class="dropdown-header text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.05em; color: #94a3b8;">Mes Territoires</h6></li>
+        {% for d in user_accessible_dossiers %}
+        <li>
+          <a class="dropdown-item d-flex justify-content-between align-items-center py-2 {% if active_dossier.id == d.id %}active bg-success text-white{% endif %}" 
+             href="{% url 'dossiers:select' slug=d.slug %}">
+            <span class="text-truncate me-2">{{ d.nom }}</span>
+            {% if active_dossier.id == d.id %}<i class="bi bi-check2"></i>{% endif %}
+          </a>
+        </li>
+        {% empty %}
+        <li><span class="dropdown-item text-muted small">Aucun territoire disponible</span></li>
+        {% endfor %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item small d-flex align-items-center gap-2 py-2" href="{% url 'dossiers:list' %}" style="color: #34d399;">
+            <i class="bi bi-grid-fill"></i> Galerie de tous les dossiers...
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
   <nav class="sidebar-nav">
     {% with cn=request.resolver_match.app_name urln=request.resolver_match.url_name|default:'' %}
-    <div class="nav-section-label">Commune de Ngogom</div>
-    {% if user.can_view_commune %}
-    <a href="{% url 'dashboard:index' %}" class="nav-link {% if cn == 'dashboard' and urln == 'index' %}active{% endif %}">
-      <i class="bi bi-speedometer2"></i><span>Tableau de bord</span>
-    </a>
+    {% if active_dossier %}
+      <!-- Section 1 : Dashboard du territoire actif -->
+      <div class="nav-section-label">Espace de Travail</div>
+      <a href="{% url 'dashboard:dossier_dashboard' slug=active_dossier.slug %}" class="nav-link {% if cn == 'dashboard' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i><span>Tableau de bord</span>
+      </a>
+
+      <!-- Section 2 : Cadastre & Espaces (mod_espaces) -->
+      {% if active_modules.mod_espaces %}
+      <div class="nav-section-label mt-2">Cadastre & Espaces</div>
+      {% if active_dossier.type_territoire == 'universite' or active_dossier.slug == 'campus-uad-bambey' %}
+        <a href="{% url 'territoire:cartographie' %}" class="nav-link {% if 'cartographie' in request.path %}active{% endif %}">
+          <i class="bi bi-map"></i><span>Cartographie SIG</span>
+        </a>
+        <a href="{% url 'territoire:espaces' %}" class="nav-link {% if request.path|slice:':19' == '/territoire/espaces' and 'verts' not in request.path %}active{% endif %}">
+          <i class="bi bi-grid-3x3-gap"></i><span>Espaces & Zones</span>
+        </a>
+        <a href="{% url 'territoire:terrains' %}" class="nav-link {% if 'terrains' in request.path %}active{% endif %}">
+          <i class="bi bi-map-fill"></i><span>Parcelles & Terrains</span>
+        </a>
+        <a href="{% url 'territoire:voiries' %}" class="nav-link {% if 'voiries' in request.path %}active{% endif %}">
+          <i class="bi bi-signpost-split-fill"></i><span>Voiries & Réseaux</span>
+        </a>
+      {% else %}
+        <a href="{% url 'habitations:carte' %}" class="nav-link {% if cn == 'habitations' and urln == 'carte' or cn == 'habitations' and urln == 'commune_edit' %}active{% endif %}">
+          <i class="bi bi-geo-fill"></i><span>Carte du Territoire</span>
+        </a>
+        <a href="{% url 'habitations:villages' %}" class="nav-link {% if cn == 'habitations' and 'village' in urln %}active{% endif %}">
+          <i class="bi bi-houses-fill"></i><span>Secteurs & Localités</span>
+        </a>
+        <a href="{% url 'habitations:pistes' %}" class="nav-link {% if cn == 'habitations' and 'piste' in urln %}active{% endif %}">
+          <i class="bi bi-signpost-split"></i><span>Routes & Pistes</span>
+        </a>
+      {% endif %}
+      {% endif %}
+
+      <!-- Section 3 : Habitations & Bâti (mod_habitations) -->
+      {% if active_modules.mod_habitations %}
+      <div class="nav-section-label mt-2">Habitations & Bâti</div>
+      {% if active_dossier.type_territoire == 'universite' or active_dossier.slug == 'campus-uad-bambey' %}
+        <a href="{% url 'territoire:batiments' %}" class="nav-link {% if 'batiments' in request.path %}active{% endif %}">
+          <i class="bi bi-building"></i><span>Bâtiments & Pavillons</span>
+        </a>
+        <a href="{% url 'territoire:suivi_travaux' %}" class="nav-link {% if 'suivi-travaux' in request.path %}active{% endif %}">
+          <i class="bi bi-clipboard2-check"></i><span>Suivi des travaux</span>
+        </a>
+      {% else %}
+        <a href="{% url 'habitations:maisons' %}" class="nav-link {% if cn == 'habitations' and 'maison' in urln %}active{% endif %}">
+          <i class="bi bi-house-fill"></i><span>Concessions & Maisons</span>
+        </a>
+      {% endif %}
+      {% endif %}
+
+      <!-- Section 4 : Dommages & Incidents (mod_signalements) -->
+      {% if active_modules.mod_signalements %}
+      <div class="nav-section-label mt-2">Signalements Terrain</div>
+      <a href="{% url 'habitations:signalements' %}" class="nav-link {% if cn == 'habitations' and urln == 'signalements' or cn == 'habitations' and urln == 'signalement_detail' %}active{% endif %}">
+        <i class="bi bi-megaphone-fill"></i><span>{% if user.can_manage_signalements %}Signalements{% else %}Mes signalements{% endif %}</span>
+      </a>
+      <a href="{% url 'habitations:signalement_create' %}" class="nav-link {% if cn == 'habitations' and urln == 'signalement_create' %}active{% endif %}" style="color:#fda4af;">
+        <i class="bi bi-exclamation-triangle-fill"></i><span>Signaler un problème</span>
+      </a>
+      {% endif %}
+
+      <!-- Section 5 : Drones & Imagerie (mod_drones) -->
+      {% if active_modules.mod_drones %}
+      <div class="nav-section-label mt-2">Drones & Imagerie</div>
+      <a href="{% url 'drones:missions' %}" class="nav-link {% if cn == 'drones' and 'perspectives' not in request.path %}active{% endif %}">
+        <i class="bi bi-airplane"></i><span>Missions de vol</span>
+      </a>
+      <a href="{% url 'drones:perspectives' %}" class="nav-link {% if 'perspectives' in request.path %}active{% endif %}">
+        <i class="bi bi-display"></i><span>Centre de supervision</span>
+      </a>
+      {% endif %}
+
+      <!-- Section 6 : Urbanisme & PDU (mod_urbanisme) -->
+      {% if active_modules.mod_urbanisme %}
+      <div class="nav-section-label mt-2">Urbanisme & Projections</div>
+      <a href="{% url 'pdu:statistiques' %}" class="nav-link {% if cn == 'pdu' %}active{% endif %}">
+        <i class="bi bi-rulers"></i><span>Plan d'Urbanisme (PDU)</span>
+      </a>
+      <a href="{% url 'urbanisme:nouvelle' %}" class="nav-link {% if 'nouvelle' in request.path %}active{% endif %}">
+        <i class="bi bi-building-add"></i><span>Nouvelle construction</span>
+      </a>
+      <a href="{% url 'urbanisme:historique' %}" class="nav-link {% if 'historique' in request.path %}active{% endif %}">
+        <i class="bi bi-clock-history"></i><span>Historique chantiers</span>
+      </a>
+      {% endif %}
+
+      <!-- Section 7 : Administration du Dossier -->
+      {% if user.is_superuser or active_membership.role == 'admin' %}
+      <div class="nav-section-label mt-2">Gestion Territoriale</div>
+      <a href="{% url 'dossiers:members' slug=active_dossier.slug %}" class="nav-link {% if cn == 'dossiers' and urln == 'members' %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span>Équipe & Affectations</span>
+      </a>
+      {% endif %}
+
+    {% else %}
+      <!-- Aucun dossier sélectionné -->
+      <div class="nav-section-label">Territoire</div>
+      <a href="{% url 'dossiers:list' %}" class="nav-link active">
+        <i class="bi bi-grid-fill"></i><span>Mes Territoires & Dossiers</span>
+      </a>
     {% endif %}
-    <a href="{% url 'commune:carte' %}" class="nav-link {% if cn == 'commune' and urln == 'carte' or cn == 'commune' and urln == 'commune_edit' %}active{% endif %}">
-      <i class="bi bi-geo-fill"></i><span>Carte communale</span>
-    </a>
-    {% if user.can_view_commune %}
-    <a href="{% url 'commune:villages' %}" class="nav-link {% if cn == 'commune' and 'village' in urln %}active{% endif %}">
-      <i class="bi bi-houses-fill"></i><span>Villages</span>
-    </a>
-    <a href="{% url 'commune:maisons' %}" class="nav-link {% if cn == 'commune' and 'maison' in urln %}active{% endif %}">
-      <i class="bi bi-house-fill"></i><span>Maisons</span>
-    </a>
-    <a href="{% url 'commune:pistes' %}" class="nav-link {% if cn == 'commune' and 'piste' in urln %}active{% endif %}">
-      <i class="bi bi-signpost-split"></i><span>Routes et pistes</span>
-    </a>
-    {% endif %}
-    <a href="{% url 'commune:signalements' %}" class="nav-link {% if cn == 'commune' and urln == 'signalements' or cn == 'commune' and urln == 'signalement_detail' %}active{% endif %}">
-      <i class="bi bi-megaphone-fill"></i><span>{% if user.can_manage_signalements %}Signalements{% else %}Mes signalements{% endif %}</span>
-    </a>
-    <a href="{% url 'commune:signalement_create' %}" class="nav-link {% if cn == 'commune' and urln == 'signalement_create' %}active{% endif %}" style="color:#fda4af;">
-      <i class="bi bi-exclamation-triangle-fill"></i><span>Signaler un problème</span>
-    </a>
-    {% endwith %}
 
-    {% if not user.is_role_communal %}
-    <div class="nav-section-label mt-2">Campus UAD</div>
-    <a href="{% url 'dashboard:universite' %}" class="nav-link {% if request.resolver_match.url_name == 'universite' %}active{% endif %}">
-      <i class="bi bi-speedometer2"></i><span>Tableau de bord campus</span>
+    <!-- Section Système & Gouvernance -->
+    {% if user.is_superuser or user.is_admin %}
+    <div class="nav-section-label mt-3">Administration Système</div>
+    <a href="{% url 'dossiers:list' %}" class="nav-link {% if cn == 'dossiers' and urln == 'list' %}active{% endif %}">
+      <i class="bi bi-collection-fill"></i><span>Tous les Dossiers</span>
     </a>
-    <a href="{% url 'foncier:cartographie' %}" class="nav-link {% if 'cartographie' in request.path %}active{% endif %}">
-      <i class="bi bi-map"></i><span>Cartographie</span>
-    </a>
-
-    <div class="nav-section-label mt-2">Gestion Foncière</div>
-    <a href="{% url 'foncier:espaces' %}" class="nav-link {% if request.path|slice:':16' == '/foncier/espaces' and 'verts' not in request.path %}active{% endif %}">
-      <i class="bi bi-grid-3x3-gap"></i><span>Espaces</span>
-    </a>
-    <a href="{% url 'foncier:batiments' %}" class="nav-link {% if 'batiments' in request.path %}active{% endif %}">
-      <i class="bi bi-building"></i><span>Bâtiments</span>
-    </a>
-    <a href="{% url 'foncier:terrains' %}" class="nav-link {% if 'terrains' in request.path %}active{% endif %}">
-      <i class="bi bi-map-fill"></i><span>Terrains</span>
-    </a>
-    <a href="{% url 'foncier:espaces_verts' %}" class="nav-link {% if 'espaces-verts' in request.path %}active{% endif %}">
-      <i class="bi bi-tree-fill"></i><span>Espaces verts</span>
-    </a>
-    <a href="{% url 'foncier:voiries' %}" class="nav-link {% if 'voiries' in request.path %}active{% endif %}">
-      <i class="bi bi-signpost-split-fill"></i><span>Voiries</span>
-    </a>
-    <a href="{% url 'foncier:suivi_travaux' %}" class="nav-link {% if 'suivi-travaux' in request.path %}active{% endif %}">
-      <i class="bi bi-clipboard2-check"></i><span>Suivi des travaux</span>
-    </a>
-
-    {% if user.is_domaine_foncier %}
-    <div class="nav-section-label mt-2">Données & Analyses</div>
-    <a href="{% url 'drones:missions' %}" class="nav-link {% if request.resolver_match.app_name == 'drones' and 'perspectives' not in request.path %}active{% endif %}">
-      <i class="bi bi-airplane"></i><span>Missions Drones</span>
-    </a>
-    <a href="{% url 'drones:perspectives' %}" class="nav-link {% if 'perspectives' in request.path %}active{% endif %}">
-      <i class="bi bi-display"></i><span>Centre de supervision</span>
-    </a>
-    <a href="{% url 'constructions:nouvelle' %}" class="nav-link {% if 'nouvelle' in request.path %}active{% endif %}">
-      <i class="bi bi-building-add"></i><span>Nouvelle construction</span>
-    </a>
-    {% endif %}
-
-    <div class="nav-section-label mt-2">Historique & Suivi</div>
-    <a href="{% url 'constructions:historique' %}" class="nav-link {% if 'historique' in request.path %}active{% endif %}">
-      <i class="bi bi-clock-history"></i><span>Historique</span>
-    </a>
-    {% endif %}
-
-    {% if user.is_admin %}
-    <div class="nav-section-label mt-2">Administration</div>
     <a href="{% url 'accounts:users' %}" class="nav-link {% if 'users' in request.path %}active{% endif %}">
-      <i class="bi bi-people"></i><span>Utilisateurs</span>
+      <i class="bi bi-person-gear"></i><span>Utilisateurs</span>
     </a>
     <a href="{% url 'accounts:activity_log' %}" class="nav-link {% if 'activity' in request.path %}active{% endif %}">
       <i class="bi bi-activity"></i><span>Journal d'activité</span>
     </a>
     {% endif %}
+    {% endwith %}
   </nav>
 </div>
 
@@ -127,7 +203,10 @@
       </button>
       <nav aria-label="breadcrumb" class="d-none d-md-block">
         <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}">Accueil</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Territoires</a></li>
+          {% if active_dossier %}
+          <li class="breadcrumb-item"><a href="{% url 'dashboard:dossier_dashboard' slug=active_dossier.slug %}">{{ active_dossier.nom }}</a></li>
+          {% endif %}
           {% block breadcrumb %}{% endblock %}
         </ol>
       </nav>
@@ -149,14 +228,14 @@
         <div class="dropdown-menu dropdown-menu-end shadow border-0 p-0" style="width:340px;">
           <div class="px-3 py-2 border-bottom fw-semibold small">Notifications{% if notif_non_lues %} · <span class="text-danger">{{ notif_non_lues }} non lue{{ notif_non_lues|pluralize }}</span>{% endif %}</div>
           {% for n in notif_recentes %}
-          <a href="{% url 'commune:notification_ouvrir' n.pk %}" class="dropdown-item py-2 small text-wrap {% if not n.lue %}fw-semibold{% endif %}" style="white-space:normal; {% if not n.lue %}background:#fff1f2;{% endif %}">
+          <a href="{% url 'habitations:notification_ouvrir' n.pk %}" class="dropdown-item py-2 small text-wrap {% if not n.lue %}fw-semibold{% endif %}" style="white-space:normal; {% if not n.lue %}background:#fff1f2;{% endif %}">
             <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ n.message }}
             <div class="text-muted" style="font-size:11px; font-weight:400;">{{ n.created_at|date:"d/m/Y H:i" }}</div>
           </a>
           {% empty %}
           <div class="px-3 py-3 text-muted small">Aucune notification.</div>
           {% endfor %}
-          <a href="{% url 'commune:notifications' %}" class="dropdown-item text-center small text-primary border-top py-2">Voir toutes les notifications</a>
+          <a href="{% url 'habitations:notifications' %}" class="dropdown-item text-center small text-primary border-top py-2">Voir toutes les notifications</a>
         </div>
       </div>
       <div class="dropdown ms-1">

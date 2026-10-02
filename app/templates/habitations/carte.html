@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Carte de la commune de Ngogom{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Carte communale</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+.cc-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.cc-head h1 { font-size: 21px; font-weight: 800; margin: 0; color: #0f172a; }
+.cc-head p { margin: 0; color: #64748b; font-size: 13px; }
+.btn-signaler { background: #E11D48; color: #fff; font-weight: 800; letter-spacing: .02em; border-radius: 12px; padding: 11px 20px; border: none; box-shadow: 0 6px 18px rgba(225,29,72,.35); text-decoration: none; }
+.btn-signaler:hover { background: #BE123C; color: #fff; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+.kpi-val { font-size: 21px; font-weight: 800; color: #0f172a; line-height: 1.15; }
+.kpi-lbl { font-size: 11.5px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.kpi-bar { height: 3px; border-radius: 3px; margin-bottom: 8px; width: 28px; }
+.cc-map-wrap { position: relative; }
+#commune-map { height: calc(100vh - 290px); min-height: 460px; border-radius: 14px; border: 1px solid #e2e8f0; }
+.cc-panel { position: absolute; top: 12px; left: 12px; z-index: 500; width: 290px; max-width: calc(100% - 70px); }
+.cc-card { background: #fff; border-radius: 12px; box-shadow: 0 6px 24px rgba(15,23,42,.18); padding: 12px 14px; margin-bottom: 10px; }
+.cc-village-title { font-size: 12px; text-transform: uppercase; color: #0F766E; font-weight: 800; letter-spacing: .05em; }
+.cc-village-nom { font-size: 17px; font-weight: 800; color: #0f172a; }
+.cc-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed #f1f5f9; }
+.cc-row:last-child { border-bottom: none; }
+.cc-legend { position: absolute; bottom: 24px; left: 12px; z-index: 500; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(15,23,42,.15); padding: 8px 12px; font-size: 11.5px; }
+.cc-legend span.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+@media (max-width: 768px) { .cc-panel { position: static; width: auto; max-width: none; margin-bottom: 10px; } .cc-legend { display: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-head">
+  <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom" style="width:58px;height:60px;object-fit:contain;background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:3px;">
+  <div>
+    <h1>Commune de {{ commune.nom|default:"Ngogom" }}</h1>
+    <p>{% if commune %}Département de {{ commune.departement }} · Région de {{ commune.region }}{% if commune.superficie_km2 %} · {{ commune.superficie_km2 }} km²{% endif %}{% else %}La limite de la commune n'a pas encore été tracée.{% endif %}</p>
+  </div>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    {% if user.can_edit_commune %}
+    <a href="{% url 'habitations:commune_edit' %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Limite</a>
+    <a href="{% url 'habitations:village_create' %}" class="btn btn-outline-primary"><i class="bi bi-plus-lg me-1"></i>Village</a>
+    {% endif %}
+    <a href="{% url 'habitations:signalement_create' %}" class="btn-signaler"><i class="bi bi-exclamation-triangle-fill me-1"></i>SIGNALER UN PROBLÈME</a>
+  </div>
+</div>
+
+{% if stats %}
+<div class="kpis">
+  <div class="kpi"><div class="kpi-bar" style="background:#0F766E"></div><div class="kpi-val">{{ stats.nb_villages }}</div><div class="kpi-lbl">Villages</div></div>
+  <div class="kpi"><div class="kpi-bar" style="background:#1E3A8A"></div><div class="kpi-val">{{ stats.nb_maisons }}</div><div class="kpi-lbl">Maisons recensées</div></div>
+  <div class="kpi"><div class="kpi-bar" style="background:#DC2626"></div><div class="kpi-val">{{ stats.nb_habitees }}</div><div class="kpi-lbl">Maisons habitées</div></div>
+  <div class="kpi"><div class="kpi-bar" style="background:#94A3B8"></div><div class="kpi-val">{{ stats.nb_non_habitees }}</div><div class="kpi-lbl">Non habitées</div></div>
+  <div class="kpi"><div class="kpi-bar" style="background:#CA8A04"></div><div class="kpi-val">{{ stats.superficie_batie|floatformat:"2g" }} m²</div><div class="kpi-lbl">Superficie bâtie</div></div>
+  {% if stats_signalements %}
+  <a href="{% url 'habitations:signalements' %}?statut=nouveau" class="kpi text-decoration-none"><div class="kpi-bar" style="background:#E11D48"></div><div class="kpi-val">{{ stats_signalements.nouveaux }} <small class="text-muted" style="font-size:12px;">/ {{ stats_signalements.total }}</small></div><div class="kpi-lbl">Nouveaux signalements</div></a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="cc-map-wrap">
+  <div class="cc-panel">
+    <div class="cc-card">
+      <label class="form-label small fw-semibold mb-1"><i class="bi bi-search me-1"></i>Rechercher un village</label>
+      <input class="form-control form-control-sm" id="village-search" list="village-list" placeholder="Tapez le nom du village…" autocomplete="off">
+      <datalist id="village-list">{% for v in villages %}<option value="{{ v.nom }}">{% endfor %}</datalist>
+    </div>
+    <div class="cc-card" id="zones-panel" style="display:none;">
+      <div class="small fw-semibold mb-1"><i class="bi bi-airplane me-1"></i>Zones cartographiées par drone</div>
+      <div class="d-flex gap-1 flex-wrap" id="zones-buttons"></div>
+    </div>
+    <div class="cc-card" id="village-panel" style="display:none;">
+      <div class="d-flex align-items-start">
+        <div>
+          <div class="cc-village-title">Village</div>
+          <div class="cc-village-nom" id="vp-nom"></div>
+        </div>
+        <button type="button" class="btn-close ms-auto" id="vp-close" aria-label="Fermer"></button>
+      </div>
+      <div id="vp-stats" class="mt-2"></div>
+    </div>
+  </div>
+
+  <div id="commune-map"></div>
+
+  <div class="cc-legend">
+    <div><span class="sw" style="border:2px dashed #1E3A8A"></span>Limite communale</div>
+    <div><span class="sw" style="background:#14B8A655;border:2px solid #0F766E"></span>Village</div>
+    {% if user.can_view_commune %}
+    <div><span class="sw" style="background:#DC2626"></span>Maison habitée</div>
+    <div><span class="sw" style="background:#94A3B8"></span>Maison non habitée</div>
+    {% endif %}
+    <div><span class="sw" style="background:#E11D48;border-radius:50%"></span>Problème signalé</div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+{% include 'habitations/_couches_js.html' %}
+<script>
+(function () {
+  var DATA = {{ couches_json|safe }};
+  var API_MAISONS = "{% url 'habitations:api_village_maisons' 0 %}";
+  var map = initCampusMap('commune-map', { hideLayerControl: true, base: 'satellite', center: COMMUNE_DEFAULT_VIEW.center, zoom: COMMUNE_DEFAULT_VIEW.zoom });
+
+  var panel = document.getElementById('village-panel');
+  var vpNom = document.getElementById('vp-nom');
+  var vpStats = document.getElementById('vp-stats');
+  var couches;
+
+  function row(label, val) { return '<div class="cc-row"><span class="text-muted">' + label + '</span><strong>' + val + '</strong></div>'; }
+
+  // COMMUNE → clic sur un village → zoom + maisons du village
+  function selectVillage(feature, layer) {
+    var p = feature.properties;
+    map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 18 });
+    vpNom.textContent = p.nom;
+    panel.style.display = '';
+    if (!DATA.peut_voir_maisons) { vpStats.innerHTML = '<div class="small text-muted">Village ' + _esc(p.code) + '</div>'; return; }
+    vpStats.innerHTML = '<div class="small text-muted">Chargement des maisons…</div>';
+    fetch(_urlId(API_MAISONS, p.id), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        couches.showMaisons(d.maisons);
+        var s = d.stats;
+        vpStats.innerHTML = row('Nombre de maisons', s.nb_maisons)
+          + row('Maisons habitées', '<span style="color:#DC2626">' + s.nb_habitees + '</span>')
+          + row('Maisons non habitées', '<span style="color:#64748b">' + s.nb_non_habitees + '</span>')
+          + row('Superficie bâtie totale', _m2(s.superficie_batie))
+          + '<a class="btn btn-sm btn-outline-success w-100 mt-2" href="' + _urlId(URL_VILLAGE, p.id) + '">Ouvrir la fiche du village</a>';
+      })
+      .catch(function () { vpStats.innerHTML = '<div class="small text-danger">Impossible de charger les maisons.</div>'; });
+  }
+
+  couches = drawCommuneLayers(map, DATA, { onVillageClick: selectVillage });
+
+  document.getElementById('vp-close').addEventListener('click', function () {
+    panel.style.display = 'none';
+    couches.showMaisons({ type: 'FeatureCollection', features: [] });
+    if (couches.bounds) map.fitBounds(couches.bounds, { padding: [30, 30] });
+  });
+
+  // Accès direct aux zones couvertes par l'orthophoto
+  var zonesBtns = document.getElementById('zones-buttons');
+  (DATA.orthophotos || []).forEach(function (o) {
+    o.zones.forEach(function (z) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm btn-outline-dark';
+      b.innerHTML = 'Zone ' + z.numero + ' <small class="text-muted">' + z.superficie_ha + ' ha</small>';
+      b.addEventListener('click', function () {
+        map.fitBounds([[z.bbox[1], z.bbox[0]], [z.bbox[3], z.bbox[2]]], { padding: [20, 20] });
+      });
+      zonesBtns.appendChild(b);
+    });
+  });
+  if (zonesBtns.children.length) document.getElementById('zones-panel').style.display = '';
+
+  // Recherche d'un village
+  document.getElementById('village-search').addEventListener('change', function () {
+    var nom = this.value.trim().toLowerCase();
+    couches.groups.villages.eachLayer(function (layer) {
+      if (layer.feature.properties.nom.toLowerCase() === nom) selectVillage(layer.feature, layer);
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -40,11 +40,11 @@
     </div>
   </div>
   <div class="dash-banner-right">
-    <a href="{% url 'commune:carte' %}" class="dash-quick-btn"><i class="bi bi-geo-fill"></i> Carte</a>
-    <a href="{% url 'commune:villages' %}" class="dash-quick-btn"><i class="bi bi-houses-fill"></i> Villages</a>
-    <a href="{% url 'commune:maisons' %}" class="dash-quick-btn"><i class="bi bi-house-fill"></i> Maisons</a>
+    <a href="{% url 'habitations:carte' %}" class="dash-quick-btn"><i class="bi bi-geo-fill"></i> Carte</a>
+    <a href="{% url 'habitations:villages' %}" class="dash-quick-btn"><i class="bi bi-houses-fill"></i> Villages</a>
+    <a href="{% url 'habitations:maisons' %}" class="dash-quick-btn"><i class="bi bi-house-fill"></i> Maisons</a>
     {% if user.can_manage_signalements %}
-    <a href="{% url 'commune:signalements' %}" class="dash-quick-btn"><i class="bi bi-megaphone-fill"></i> Signalements</a>
+    <a href="{% url 'habitations:signalements' %}" class="dash-quick-btn"><i class="bi bi-megaphone-fill"></i> Signalements</a>
     {% endif %}
   </div>
 </div>
@@ -53,7 +53,7 @@
 <div class="alert alert-warning d-flex align-items-center gap-2">
   <i class="bi bi-exclamation-triangle-fill"></i>
   <div>La limite communale n'est pas encore enregistrée.
-    {% if user.can_edit_commune %}<a href="{% url 'commune:commune_edit' %}" class="alert-link">La tracer maintenant</a>.{% endif %}
+    {% if user.can_edit_commune %}<a href="{% url 'habitations:commune_edit' %}" class="alert-link">La tracer maintenant</a>.{% endif %}
   </div>
 </div>
 {% endif %}
@@ -143,10 +143,10 @@
     <div class="ch-card h-100">
       <div class="ch-card-hdr">
         <div class="ch-card-title"><i class="bi bi-houses-fill" style="color:#0F766E;"></i>Villages</div>
-        <a href="{% url 'commune:villages' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
+        <a href="{% url 'habitations:villages' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
       </div>
       {% for v in villages|slice:":8" %}
-      <a href="{% url 'commune:village_detail' v.pk %}" class="vil-row">
+      <a href="{% url 'habitations:village_detail' v.pk %}" class="vil-row">
         <div class="cst-ico" style="background:#f0fdfa;color:#0F766E;"><i class="bi bi-house-door-fill"></i></div>
         <div class="flex-grow-1 min-w-0">
           <div class="vil-name text-truncate">{{ v.nom }} <span class="vil-meta">{{ v.code }}</span></div>
@@ -166,10 +166,10 @@
     <div class="ch-card h-100">
       <div class="ch-card-hdr">
         <div class="ch-card-title"><i class="bi bi-megaphone-fill" style="color:#E11D48;"></i>Signalements récents</div>
-        <a href="{% url 'commune:signalements' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
+        <a href="{% url 'habitations:signalements' %}" class="btn btn-sm btn-outline-primary">Tout voir <i class="bi bi-arrow-right ms-1"></i></a>
       </div>
       {% for s in signalements_recents %}
-      <a href="{% url 'commune:signalement_detail' s.pk %}" class="vil-row">
+      <a href="{% url 'habitations:signalement_detail' s.pk %}" class="vil-row">
         <div class="cst-ico" style="background:{{ s.couleur }}1a;color:{{ s.couleur }};"><i class="bi {{ s.icone }}"></i></div>
         <div class="flex-grow-1 min-w-0">
           <div class="vil-name text-truncate">{{ s.titre }}</div>

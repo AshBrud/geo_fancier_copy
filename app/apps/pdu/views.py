@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count
-from foncier.models import Espace, Batiment, superficie_campus_totale
-from constructions.models import NouvelleConstruction, HistoriqueConstruction
+from territoire.models import Espace, Batiment, superficie_campus_totale
+from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.decorators import foncier_required
 import json
 
@@ -11,7 +11,7 @@ import json
 @foncier_required
 def statistiques(request):
     from django.db.models.functions import ExtractYear
-    from constructions.models import HistoriqueConstruction as HC, NouvelleConstruction as NC
+    from urbanisme.models import HistoriqueConstruction as HC, NouvelleConstruction as NC
 
     total_sup_m2 = superficie_campus_totale()
     total_sup_ha = round(total_sup_m2 / 10000, 2)

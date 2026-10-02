@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 import json
-from foncier.models import Batiment, Espace, FonctionBatiment
+from territoire.models import Batiment, Espace, FonctionBatiment
 
 
 @login_required
@@ -71,7 +71,7 @@ def recherche(request):
                 'properties': {
                     'pk': b.pk, 'nom': b.nom, 'code': b.code,
                     'type': 'batiment',
-                    'detail_url': f'/foncier/batiments/{b.pk}/',
+                    'detail_url': f'/territoire/batiments/{b.pk}/',
                 },
             })
     for e in espaces:
@@ -83,7 +83,7 @@ def recherche(request):
                     'pk': e.pk, 'nom': e.nom, 'code': e.code,
                     'type': 'espace',
                     'couleur': e.couleur,
-                    'detail_url': f'/foncier/espaces/{e.pk}/',
+                    'detail_url': f'/territoire/espaces/{e.pk}/',
                 },
             })
     resultats_geojson = json.dumps({'type': 'FeatureCollection', 'features': features})
@@ -137,7 +137,7 @@ def recherche_ajax(request):
                     'superficie': round(b.superficie) if b.superficie else None,
                     'etages':    b.etages,
                     'est_actif': b.est_actif,
-                    'url':       f'/foncier/batiments/{b.pk}/',
+                    'url':       f'/territoire/batiments/{b.pk}/',
                 })
         espaces = Espace.objects.filter(
             Q(nom__icontains=q) | Q(code__icontains=q)
@@ -155,6 +155,6 @@ def recherche_ajax(request):
                     'type_espace': e.type_espace,
                     'superficie': round(e.superficie) if e.superficie else None,
                     'couleur':    e.couleur,
-                    'url':        f'/foncier/espaces/{e.pk}/',
+                    'url':        f'/territoire/espaces/{e.pk}/',
                 })
     return JsonResponse({'resultats': resultats})

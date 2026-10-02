@@ -27,7 +27,7 @@ services:
     container_name: geofoncier-prod-test-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-uad_sig_db}
+      POSTGRES_DB: ${DB_NAME:-geofoncier_db}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:

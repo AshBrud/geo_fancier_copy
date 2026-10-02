@@ -1,0 +1,393 @@
+/* ==========================================================================
+   MODULE DOSSIERS & WORKSPACES — STYLESHEET (GéoFoncier V2)
+   Design System : Typographie Inter, Palette Slate/Emerald, Micro-animations
+   ========================================================================== */
+
+:root {
+  --dossier-bg: #f8fafc;
+  --dossier-card-bg: #ffffff;
+  --dossier-card-border: #e2e8f0;
+  --dossier-card-hover: #cbd5e1;
+  --dossier-primary: #059669;
+  --dossier-primary-hover: #047857;
+  --dossier-primary-light: #ecfdf5;
+  --dossier-text-main: #0f172a;
+  --dossier-text-muted: #64748b;
+  --dossier-accent: #2563eb;
+  --dossier-radius: 14px;
+}
+
+.dossiers-container {
+  padding: 2rem 2.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* En-tête de Galerie */
+.dossiers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2.2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--dossier-card-border);
+}
+
+.badge-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--dossier-primary-light);
+  color: var(--dossier-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+}
+
+.gallery-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--dossier-text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.4rem;
+}
+
+.gallery-subtitle {
+  font-size: 0.95rem;
+  color: var(--dossier-text-muted);
+  max-width: 650px;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+.badge-role-super {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 20px;
+}
+
+/* Grille des Cartes */
+.dossiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.75rem;
+}
+
+.dossier-card {
+  background: var(--dossier-card-bg);
+  border: 1px solid var(--dossier-card-border);
+  border-radius: var(--dossier-radius);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+.dossier-card:hover {
+  transform: translateY(-4px);
+  border-color: #94a3b8;
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+}
+
+.dossier-card.active-border {
+  border-color: var(--dossier-primary);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+/* Card Header */
+.dossier-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.territory-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  border-radius: 6px;
+}
+
+.territory-type-badge.type-universite {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.territory-type-badge.type-commune {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.territory-type-badge.type-cadastre {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.territory-type-badge.type-autre {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.active-badge {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Card Body */
+.dossier-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--dossier-text-main);
+  margin-bottom: 0.45rem;
+  line-height: 1.3;
+}
+
+.dossier-desc {
+  font-size: 0.88rem;
+  color: var(--dossier-text-muted);
+  line-height: 1.45;
+  min-height: 2.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.dossier-metrics {
+  display: flex;
+  gap: 0.75rem;
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+
+.metric-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dossier-text-muted);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--dossier-text-main);
+}
+
+/* Modules Section */
+.modules-section {
+  margin-bottom: 1.5rem;
+}
+
+.modules-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dossier-text-muted);
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modules-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.module-tag {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.module-tag i {
+  color: #64748b;
+}
+
+/* Card Footer */
+.dossier-card-footer {
+  margin-top: auto;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn-open-dossier {
+  flex: 1;
+  background: var(--dossier-primary);
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-open-dossier:hover {
+  background: var(--dossier-primary-hover);
+  color: #ffffff;
+}
+
+.btn-open-dossier i {
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-open-dossier:hover i {
+  transform: translateX(3px);
+}
+
+.btn-manage-members {
+  background: #f1f5f9;
+  color: #334155;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-manage-members:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Layout Membres */
+.members-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.75rem;
+}
+
+.members-card, .assign-card {
+  background: var(--dossier-card-bg);
+  border: 1px solid var(--dossier-card-border);
+  border-radius: var(--dossier-radius);
+  overflow: hidden;
+}
+
+.members-card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--dossier-card-border);
+  background: #fafbfc;
+}
+
+.members-card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dossier-text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assign-card-body {
+  padding: 1.5rem;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #334155;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.role-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+}
+
+.role-badge.role-admin {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.role-badge.role-operateur {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.role-badge.role-observateur {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--dossier-text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  transition: color 0.15s ease;
+}
+
+.btn-back:hover {
+  color: var(--dossier-text-main);
+}
+
+@media (max-width: 992px) {
+  .members-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,707 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Nouvelle construction{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Nouvelle construction</li>{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-building-add"></i> Nouvelle construction</h1>
+    <p class="page-description">Soumettez une demande de construction, vérifiez la disponibilité de la zone souhaitée et consultez les alternatives.</p>
+  </div>
+  <a href="{% url 'urbanisme:list' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-list-ul me-1"></i>Toutes les demandes
+  </a>
+</div>
+
+<!-- ===== STEPPER ===== -->
+<div class="nc-stepper">
+  <div class="nc-step {% if not resultat %}active{% else %}done{% endif %}">
+    <div class="nc-step-num">{% if resultat %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</div>
+    <div>
+      <span class="nc-step-label">Informations du projet</span>
+      <span class="nc-step-sub">Nom, type, superficie</span>
+    </div>
+  </div>
+  <div class="nc-connector {% if resultat %}done{% endif %}"></div>
+  <div class="nc-step {% if not resultat %}active{% else %}done{% endif %}">
+    <div class="nc-step-num">{% if resultat %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</div>
+    <div>
+      <span class="nc-step-label">Zone souhaitée</span>
+      <span class="nc-step-sub">Sélection ou dessin</span>
+    </div>
+  </div>
+  <div class="nc-connector {% if resultat %}done{% endif %}"></div>
+  <div class="nc-step {% if resultat %}active{% endif %}">
+    <div class="nc-step-num">3</div>
+    <div>
+      <span class="nc-step-label">Résultat de l'analyse</span>
+      <span class="nc-step-sub">Disponibilité & alternatives</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORPS PRINCIPAL ===== -->
+<div class="row g-4">
+
+  <!-- ========== COLONNE FORMULAIRE ========== -->
+  <div class="col-lg-4">
+    <div class="card h-100 d-flex flex-column">
+
+      <div class="card-header d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-clipboard-plus text-primary"></i>
+        <span class="fw-semibold">Formulaire de demande</span>
+      </div>
+
+      <div class="card-body p-0 flex-grow-1 d-flex flex-column">
+        <form method="post" novalidate id="constructionForm" class="d-flex flex-column h-100">
+          {% csrf_token %}
+          <input type="hidden" name="zone_geojson" id="zone_geojson">
+          <input type="hidden" name="espace_id"    id="espace_id">
+
+          <!-- Section 1 : Informations du projet -->
+          <div class="form-section">
+            <div class="form-section-num">01</div>
+            <div class="form-section-title">Informations du projet</div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold small mb-1">Nom du projet <span class="text-danger">*</span></label>
+              {{ form.nom_projet }}
+              {% if form.nom_projet.errors %}<div class="text-danger small mt-1">{{ form.nom_projet.errors }}</div>{% endif %}
+            </div>
+            <div class="row g-2">
+              <div class="col-12">
+                <label class="form-label fw-semibold small mb-1">Type de construction <span class="text-danger">*</span></label>
+                {{ form.type_construction }}
+                {% if form.type_construction.errors %}<div class="text-danger small mt-1">{{ form.type_construction.errors }}</div>{% endif %}
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold small mb-1">Superficie souhaitée (m²) <span class="text-danger">*</span></label>
+                {{ form.superficie_souhaitee }}
+                {% if form.superficie_souhaitee.errors %}<div class="text-danger small mt-1">{{ form.superficie_souhaitee.errors }}</div>{% endif %}
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" id="btnRecommander" disabled>
+              <i class="bi bi-stars me-1"></i>Analyser et recommander un emplacement
+            </button>
+            <div id="recoLoading" class="text-center text-muted small mt-2 d-none">
+              <span class="spinner-border spinner-border-sm me-1"></span>Analyse des sous-espaces libres…
+            </div>
+          </div>
+
+          <!-- Section 2 : Zone souhaitée -->
+          <div class="form-section flex-grow-1">
+            <div class="form-section-num">02</div>
+            <div class="form-section-title">Zone souhaitée</div>
+
+            <!-- Sélection d'un espace existant -->
+            <div class="zone-option-grid">
+              <div class="zone-option-card active">
+                <div class="zone-option-icon"><i class="bi bi-layers-fill"></i></div>
+                <div class="zone-option-title">Espace existant</div>
+                <div class="zone-option-sub">{{ espaces_count }} disponible{{ espaces_count|pluralize }}</div>
+              </div>
+            </div>
+
+            <!-- Panneau sélection espace -->
+            <div id="panelSelect" class="mb-2">
+              <select id="espaceSelect" class="form-select form-select-sm">
+                <option value="">— Choisissez un espace —</option>
+              </select>
+            </div>
+
+            <!-- Indicateur de statut de la zone -->
+            <div id="zoneStatus" class="zone-status-bar mt-2">
+              <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+              <span>Sélectionnez ou dessinez une zone pour activer l'analyse.</span>
+            </div>
+          </div>
+
+          <!-- Bouton analyser -->
+          <div class="p-3 border-top">
+            <button type="submit" class="btn-analyze" id="submitBtn" disabled>
+              <i class="bi bi-search"></i>
+              Analyser la disponibilité
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== COLONNE CARTE ========== -->
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <span class="d-flex align-items-center gap-2 fw-semibold">
+          <i class="bi bi-map text-primary"></i> Carte interactive du campus
+        </span>
+        <div class="map-legend" id="mapLegend">
+          <span><span class="leg-dot" style="background:#16A34A"></span>Libres</span>
+          <span><span class="leg-dot" style="background:#DC2626"></span>Occupés</span>
+          <span><span class="leg-dot" style="background:#F59E0B"></span>Réservés</span>
+          <span><span class="leg-dot" style="background:#6B7280"></span>Routes</span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div id="construction-map"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== RECOMMANDATIONS D'EMPLACEMENT (système d'aide à la décision) ===== -->
+<div id="recoPanel" class="card mt-4 d-none">
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <span class="d-flex align-items-center gap-2 fw-semibold">
+      <i class="bi bi-stars text-primary"></i> Emplacements recommandés
+    </span>
+    <span id="recoSummary" class="badge bg-primary-subtle text-primary border border-primary-subtle"></span>
+  </div>
+  <div class="card-body" id="recoBody">
+    <!-- rempli dynamiquement en JS -->
+  </div>
+</div>
+
+<!-- ===== RÉSULTAT DE L'ANALYSE ===== -->
+{% if resultat %}
+<div class="result-card {% if resultat.disponible %}ok{% else %}nok{% endif %}" id="resultSection">
+
+  <!-- ── EN-TÊTE ── -->
+  <div class="result-header">
+    <div class="result-icon-circle">
+      {% if resultat.disponible %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-x-lg"></i>{% endif %}
+    </div>
+    <div>
+      <div class="result-title-main">{{ resultat.construction.nom_projet }}</div>
+      <div class="result-subtitle">
+        {{ resultat.construction.type_construction }} &nbsp;·&nbsp;
+        {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²
+        ({{ resultat.stats.sup_requise_ha }} ha) &nbsp;·&nbsp;
+        Analysé le {{ resultat.construction.date_demande|date:"d/m/Y à H\hi" }}
+        {% if resultat.stats.espaces %}
+        &nbsp;·&nbsp;
+        {% for e in resultat.stats.espaces %}<strong>{{ e.nom }}</strong> ({{ e.taux }}%){% if not forloop.last %}, {% endif %}{% endfor %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="ms-auto flex-shrink-0">
+      {% if resultat.disponible %}
+        <span class="badge fs-6 bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Zone disponible</span>
+      {% else %}
+        <span class="badge fs-6 bg-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i>Zone insuffisante</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── MÉTRIQUES ── -->
+  <div class="result-metrics border-top">
+
+    <div class="metric-tile metric-brute">
+      <div class="metric-tile-label">Superficie brute</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_brute_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_brute|floatformat:0 }} m²</div>
+    </div>
+
+    <div class="metric-tile metric-construct">
+      <div class="metric-tile-label">Constructible</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_construct_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_construct|floatformat:0 }} m²</div>
+      <span class="metric-tile-badge badge bg-primary-subtle text-primary border border-primary-subtle">{{ resultat.stats.taux_moyen }}% occupable</span>
+    </div>
+
+    <div class="metric-tile metric-engagee">
+      <div class="metric-tile-label">Déjà occupée</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_occupee_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_batie|floatformat:0 }} m² bâti/terrains/espaces verts · {{ resultat.stats.sup_engagee|floatformat:0 }} m² alloué</div>
+      {% if resultat.stats.nb_engagees > 0 %}
+      <span class="metric-tile-badge badge bg-warning-subtle text-warning border border-warning-subtle">{{ resultat.stats.nb_engagees }} construction{{ resultat.stats.nb_engagees|pluralize }}</span>
+      {% else %}
+      <span class="metric-tile-badge badge bg-secondary-subtle text-secondary border border-secondary-subtle">Aucune</span>
+      {% endif %}
+    </div>
+
+    <div class="metric-tile {% if resultat.disponible %}metric-nette-ok{% else %}metric-nette-nok{% endif %}">
+      <div class="metric-tile-label">Disponible nette</div>
+      <div class="metric-tile-val">{{ resultat.stats.sup_nette_ha }} <small style="font-size:13px;font-weight:600;">ha</small></div>
+      <div class="metric-tile-sub">{{ resultat.stats.sup_nette|floatformat:0 }} m²</div>
+      {% if resultat.disponible %}
+      <span class="metric-tile-badge badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check me-1"></i>Suffisant</span>
+      {% else %}
+      <span class="metric-tile-badge badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x me-1"></i>Insuffisant</span>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ── BARRE DE PROGRESSION ── -->
+  <div class="utilization-wrap">
+    <div class="utilization-label">
+      <span><i class="bi bi-bar-chart-fill me-1 text-primary"></i>Utilisation de la superficie constructible</span>
+      <span class="text-muted">{{ resultat.stats.pct_engagee }}% occupée &nbsp;·&nbsp; {{ resultat.stats.pct_nette }}% libre</span>
+    </div>
+    <div class="utilization-bar">
+      <div class="bar-engagee" style="width:{{ resultat.stats.pct_engagee }}%"></div>
+      <div class="bar-nette {% if resultat.disponible %}ok{% else %}nok{% endif %}" style="width:{{ resultat.stats.pct_nette }}%"></div>
+      {% if resultat.stats.pct_requise <= 100 %}
+      <div class="bar-requise-marker" style="left:{{ resultat.stats.pct_requise }}%"></div>
+      {% endif %}
+    </div>
+    <div class="util-legend">
+      <span><span class="util-dot" style="background:#f97316"></span>Déjà occupée ({{ resultat.stats.sup_occupee_ha }} ha)</span>
+      <span><span class="util-dot" style="background:{% if resultat.disponible %}#16A34A{% else %}#DC2626{% endif %}"></span>Disponible nette ({{ resultat.stats.sup_nette_ha }} ha)</span>
+      <span><span class="util-dot" style="background:#f1f5f9;border:1px solid #cbd5e1"></span>Réservée voiries/espaces verts ({{ resultat.stats.sup_reservee_ha }} ha)</span>
+    </div>
+  </div>
+
+  <!-- ── VERDICT ── -->
+  <div class="verdict-row">
+    <div class="verdict-item">
+      <span class="verdict-item-label">Disponible nette</span>
+      <span class="verdict-item-val {% if resultat.disponible %}text-success{% else %}text-danger{% endif %}">
+        {{ resultat.stats.sup_nette_ha }} ha
+      </span>
+    </div>
+    <div class="verdict-sep">
+      {% if resultat.disponible %}
+        <i class="bi bi-arrow-right text-success"></i>
+      {% else %}
+        <i class="bi bi-arrow-right text-danger"></i>
+      {% endif %}
+    </div>
+    <div class="verdict-item">
+      <span class="verdict-item-label">Superficie requise</span>
+      <span class="verdict-item-val text-primary">{{ resultat.stats.sup_requise_ha }} ha</span>
+    </div>
+    <div class="verdict-result ms-auto">
+      {% if resultat.disponible %}
+        <span class="badge bg-success fs-6 px-3 py-2">
+          <i class="bi bi-check-circle-fill me-1"></i>Construction faisable
+        </span>
+      {% else %}
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-center">
+            <div style="font-size:11px;color:#94a3b8;">Manque</div>
+            <div style="font-size:18px;font-weight:800;color:#DC2626;">{{ resultat.stats.manque_ha }} ha</div>
+            <div style="font-size:11px;color:#94a3b8;">{{ resultat.stats.manque|floatformat:0 }} m²</div>
+          </div>
+          <span class="badge bg-danger fs-6 px-3 py-2">
+            <i class="bi bi-x-circle-fill me-1"></i>Construction non faisable
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── AVERTISSEMENT CONCURRENTES EN ATTENTE ── -->
+  {% if resultat.stats.nb_attente > 0 %}
+  <div class="result-section" style="background:#fffbeb;">
+    <div class="result-section-title" style="color:#92400e;">
+      <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+      Demandes concurrentes en attente
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="px-3 py-2 rounded-3" style="background:#fef3c7;border:1px solid #fde68a;">
+        <span style="font-size:22px;font-weight:800;color:#d97706;">{{ resultat.stats.nb_attente }}</span>
+        <span style="font-size:12px;color:#92400e;margin-left:4px;">demande{{ resultat.stats.nb_attente|pluralize }} en attente</span>
+      </div>
+      <div class="px-3 py-2 rounded-3" style="background:#fef3c7;border:1px solid #fde68a;">
+        <span style="font-size:22px;font-weight:800;color:#d97706;">{{ resultat.stats.sup_attente_ha }}</span>
+        <span style="font-size:12px;color:#92400e;margin-left:4px;">ha demandés</span>
+      </div>
+      <p class="mb-0 text-muted small">
+        Si cette demande est approuvée en premier, les demandes concurrentes incompatibles seront
+        <strong>automatiquement rejetées</strong>.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── CONSTRUCTIONS ENGAGÉES ── -->
+  {% if resultat.stats.constructions_engagees %}
+  <div class="result-section">
+    <div class="result-section-title">
+      <i class="bi bi-buildings-fill text-primary"></i>
+      Constructions engagées dans cette zone
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:12.5px;">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Projet</th>
+            <th>Superficie</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in resultat.stats.constructions_engagees %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ c.nom }}</td>
+            <td>{{ c.superficie|floatformat:0 }} m²</td>
+            <td><span class="badge bg-{{ c.badge }}">{{ c.statut }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── ZONES ALTERNATIVES ── -->
+  {% if not resultat.disponible and zones_alternatives %}
+  <div class="result-section">
+    <div class="result-section-title" style="color:#92400e;">
+      <i class="bi bi-lightbulb-fill text-warning"></i>
+      Zones alternatives disponibles (≥ {{ resultat.construction.superficie_souhaitee|floatformat:0 }} m²)
+    </div>
+    <div class="alt-table-wrap">
+      <div class="alt-table-header">
+        <i class="bi bi-geo-alt-fill text-warning"></i>
+        {{ zones_alternatives|length }} zone{{ zones_alternatives|length|pluralize }} alternative{{ zones_alternatives|length|pluralize }} trouvée{{ zones_alternatives|length|pluralize }}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:12.5px;">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Espace</th>
+              <th>Code</th>
+              <th>Taux occupation</th>
+              <th>Superficie brute</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for espace in zones_alternatives %}
+            <tr>
+              <td class="ps-3 fw-semibold">{{ espace.nom }}</td>
+              <td><span class="badge bg-success-subtle text-success border border-success-subtle">{{ espace.code }}</span></td>
+              <td>{{ espace.taux_occupation|floatformat:0 }}%</td>
+              <td class="fw-semibold">{{ espace.superficie|floatformat:0 }} m²</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── ACTIONS ── -->
+  <div class="result-actions">
+    <a href="{% url 'urbanisme:list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-list-ul me-1"></i>Voir toutes les demandes
+    </a>
+    <a href="{% url 'urbanisme:nouvelle' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>Nouvelle analyse
+    </a>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- ===== DEMANDES RÉCENTES ===== -->
+{% if recentes %}
+<div class="card mt-4">
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <span class="d-flex align-items-center gap-2 fw-semibold">
+      <i class="bi bi-clock-history text-primary"></i> Demandes récentes
+    </span>
+    <a href="{% url 'urbanisme:list' %}" class="btn btn-sm btn-outline-primary">
+      Voir tout <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr>
+          <th class="ps-3">Projet</th>
+          <th>Type</th>
+          <th>Superficie</th>
+          <th>Disponibilité</th>
+          <th>Statut</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in recentes %}
+        <tr class="recent-row">
+          <td class="ps-3 recent-projet">{{ c.nom_projet }}</td>
+          <td class="recent-meta">{{ c.type_construction }}</td>
+          <td class="fw-semibold">{{ c.superficie_souhaitee|floatformat:0 }} m²</td>
+          <td>
+            {% if c.disponible is None %}
+              <span class="text-muted small">—</span>
+            {% elif c.disponible %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check me-1"></i>Disponible
+              </span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="bi bi-x me-1"></i>Indisponible
+              </span>
+            {% endif %}
+          </td>
+          <td><span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span></td>
+          <td class="recent-meta">{{ c.date_demande|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  /* ---- Données espaces libres ---- */
+  var ESPACES_DATA = {{ espaces_json|safe }};
+  var espaceMap = {};
+  ESPACES_DATA.forEach(function(e) { espaceMap[e.id] = e; });
+
+  /* ---- Carte ---- */
+  var map = initCampusMap('construction-map', { hideLayerControl: false });
+  loadEspaces(map);
+  loadBatiments(map);
+  loadPriorityOrthophoto(map);
+
+  /* ---- DOM ---- */
+  var zoneInput    = document.getElementById('zone_geojson');
+  var espaceInput  = document.getElementById('espace_id');
+  var submitBtn    = document.getElementById('submitBtn');
+  var zoneStatus   = document.getElementById('zoneStatus');
+  var espaceSelect = document.getElementById('espaceSelect');
+  var highlightLayer = null;
+
+  /* ---- Helpers état ---- */
+  function setZoneOk(msg) {
+    submitBtn.disabled = false;
+    zoneStatus.innerHTML = '<i class="bi bi-check-circle-fill flex-shrink-0"></i><span class="fw-semibold">' + msg + '</span>';
+    zoneStatus.className = 'zone-status-bar ok mt-2';
+  }
+  function clearZone() {
+    zoneInput.value = ''; espaceInput.value = '';
+    submitBtn.disabled = true;
+    zoneStatus.innerHTML = '<i class="bi bi-info-circle-fill flex-shrink-0"></i><span>Sélectionnez un espace pour activer l\'analyse.</span>';
+    zoneStatus.className = 'zone-status-bar mt-2';
+  }
+  function clearHighlight() {
+    if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
+  }
+
+  /* ---- Remplir le select ---- */
+  ESPACES_DATA.forEach(function(e) {
+    var opt = document.createElement('option');
+    opt.value = e.id;
+    var disponibleStr = Math.round(e.sup_disponible).toLocaleString('fr-FR');
+    var pctDispo = e.sup_constructible > 0 ? Math.round(e.sup_disponible / e.sup_constructible * 100) : 0;
+    opt.textContent = e.nom + '  —  ' + disponibleStr + ' m² disponibles (' + pctDispo + '%)  [' + e.code + ']';
+    if (e.sup_disponible <= 0) opt.disabled = true;
+    espaceSelect.appendChild(opt);
+  });
+
+  /* ---- Sélection d'un espace ---- */
+  function selectEspace(id) {
+    clearHighlight();
+    zoneInput.value = ''; espaceInput.value = '';
+    if (!id) { clearZone(); return; }
+    var espace = espaceMap[id];
+    if (!espace || !espace.geojson) return;
+    espaceSelect.value = id;
+    highlightLayer = L.geoJSON(espace.geojson, {
+      style: { color: '#7C3AED', weight: 3, fillColor: '#a78bfa', fillOpacity: 0.35, dashArray: '7,4' }
+    }).addTo(map);
+    map.fitBounds(highlightLayer.getBounds(), { padding: [50, 50] });
+    espaceInput.value = id;
+    setZoneOk('Espace : ' + espace.nom + ' — ' + Math.round(espace.sup_disponible).toLocaleString('fr-FR') + ' m² disponibles (' + Math.round(espace.sup_constructible).toLocaleString('fr-FR') + ' m² constructibles)');
+  }
+
+  espaceSelect.addEventListener('change', function() {
+    selectEspace(parseInt(this.value));
+  });
+
+  /* ---- Clic direct sur un espace affiché sur la carte ----
+     Calque invisible superposé au contour déjà dessiné par loadEspaces()
+     (évite un double contour) : sert uniquement à capter le clic, et centre
+     la vue sur l'espace choisi pour y concentrer l'étude. */
+  L.geoJSON(ESPACES_DATA.map(function (e) { return { type: 'Feature', properties: { id: e.id }, geometry: e.geojson }; }), {
+    style: { weight: 0, opacity: 0, fillOpacity: 0.001 },
+    onEachFeature: function (feature, layer) {
+      layer.on('click', function () {
+        selectEspace(feature.properties.id);
+      });
+    }
+  }).addTo(map);
+
+  // Scroll automatique vers le résultat après analyse
+  var resultSection = document.getElementById('resultSection');
+  if (resultSection) {
+    setTimeout(function() {
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+
+  /* ==================================================================
+     SYSTÈME D'AIDE À LA DÉCISION — recommandation d'emplacements
+     ================================================================== */
+  var btnRecommander = document.getElementById('btnRecommander');
+  var recoLoading     = document.getElementById('recoLoading');
+  var recoPanel       = document.getElementById('recoPanel');
+  var recoBody        = document.getElementById('recoBody');
+  var recoSummary     = document.getElementById('recoSummary');
+  var typeInput       = document.getElementById('id_type_construction');
+  var supInput        = document.getElementById('id_superficie_souhaitee');
+  var recoLayer       = L.layerGroup();
+  var csrfToken       = document.querySelector('#constructionForm [name=csrfmiddlewaretoken]').value;
+
+  var NIVEAU_COLORS = {
+    favorable:    '#16A34A',
+    moyen:        '#F59E0B',
+    defavorable:  '#DC2626',
+    incompatible: '#9CA3AF',
+  };
+  var NIVEAU_LABELS = {
+    favorable:    'Très favorable',
+    moyen:        'Zone moyenne',
+    defavorable:  'Défavorable',
+    incompatible: 'Incompatible',
+  };
+
+  function checkRecoReady() {
+    btnRecommander.disabled = !(typeInput.value.trim() && parseFloat(supInput.value) > 0);
+  }
+  typeInput.addEventListener('input', checkRecoReady);
+  supInput.addEventListener('input', checkRecoReady);
+  checkRecoReady();
+
+  function iconeContrainte(txt) {
+    return '<i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i><span>' + txt + '</span>';
+  }
+  function iconeRaison(txt) {
+    return '<i class="bi bi-check-circle-fill flex-shrink-0"></i><span>' + txt + '</span>';
+  }
+
+  function rendreCarteReco(r, estMeilleur) {
+    var div = document.createElement('div');
+    div.className = 'reco-card ' + r.niveau + (estMeilleur ? ' best' : '');
+    var raisonsHtml = r.raisons.length
+      ? '<ul class="reco-list raisons">' + r.raisons.map(function (t) { return '<li>' + iconeRaison(t) + '</li>'; }).join('') + '</ul>'
+      : '';
+    var contraintesHtml = r.contraintes.length
+      ? '<ul class="reco-list contraintes">' + r.contraintes.map(function (t) { return '<li>' + iconeContrainte(t) + '</li>'; }).join('') + '</ul>'
+      : '';
+    div.innerHTML =
+      '<div class="reco-score ' + r.niveau + '">' + Math.round(r.score) + '<small>/100</small></div>' +
+      '<div class="flex-grow-1">' +
+        '<div class="reco-title">' + r.nom +
+          (estMeilleur ? '<span class="reco-badge-best"><i class="bi bi-trophy-fill me-1"></i>Recommandé</span>' : '') +
+        '</div>' +
+        '<div class="reco-meta">' +
+          '<i class="bi bi-rulers me-1"></i>' + r.superficie_disponible.toLocaleString('fr-FR') + ' m² disponibles' +
+          ' · <span class="badge" style="background:' + NIVEAU_COLORS[r.niveau] + '22;color:' + NIVEAU_COLORS[r.niveau] + ';">' + NIVEAU_LABELS[r.niveau] + '</span>' +
+        '</div>' +
+        raisonsHtml + contraintesHtml +
+        (r.compatible ? '<button type="button" class="btn btn-sm btn-outline-primary mt-2 btn-use-reco" data-id="' + r.espace_id + '"><i class="bi bi-check2-square me-1"></i>Utiliser cet espace</button>' : '') +
+      '</div>';
+    return div;
+  }
+
+  function colorierCarte(resultats) {
+    recoLayer.clearLayers();
+    resultats.forEach(function (r) {
+      var couleur = NIVEAU_COLORS[r.niveau];
+      L.geoJSON(r.geojson, {
+        style: { color: couleur, weight: 2.5, fillColor: couleur, fillOpacity: 0.4 }
+      }).bindTooltip(r.nom + ' — ' + Math.round(r.score) + '/100', { sticky: true }).addTo(recoLayer);
+    });
+    recoLayer.addTo(map);
+  }
+
+  function lancerRecommandation() {
+    var typeVal = typeInput.value.trim();
+    var supVal  = parseFloat(supInput.value);
+    if (!typeVal || !(supVal > 0)) return;
+
+    recoLoading.classList.remove('d-none');
+    recoPanel.classList.add('d-none');
+    btnRecommander.disabled = true;
+
+    var body = new URLSearchParams();
+    body.set('type_construction', typeVal);
+    body.set('superficie_souhaitee', supVal);
+
+    fetch('{% url "urbanisme:recommander" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        recoLoading.classList.add('d-none');
+        btnRecommander.disabled = false;
+
+        if (data.error) {
+          recoBody.innerHTML = '<div class="alert alert-warning mb-0">' + data.error + '</div>';
+          recoPanel.classList.remove('d-none');
+          return;
+        }
+
+        recoBody.innerHTML = '';
+        colorierCarte(data.resultats);
+
+        if (data.meilleur) {
+          recoSummary.textContent = data.nb_compatibles + ' emplacement(s) compatible(s) sur ' + data.nb_analyses + ' analysé(s)';
+          data.resultats.forEach(function (r, idx) {
+            recoBody.appendChild(rendreCarteReco(r, r.espace_id === data.meilleur.espace_id));
+          });
+          // Zoom automatique sur la meilleure zone
+          var meilleurLayer = L.geoJSON(data.meilleur.geojson);
+          try { map.fitBounds(meilleurLayer.getBounds(), { padding: [60, 60] }); } catch (e) {}
+        } else {
+          recoSummary.textContent = '0 emplacement compatible sur ' + data.nb_analyses + ' analysé(s)';
+          var avertissement = document.createElement('div');
+          avertissement.className = 'alert alert-danger';
+          avertissement.innerHTML =
+            '<strong><i class="bi bi-x-octagon-fill me-1"></i>Aucune zone compatible trouvée.</strong> ' +
+            'Voici le détail des contraintes rencontrées sur chaque sous-espace libre analysé ci-dessous. ' +
+            'Vous pouvez réduire la superficie souhaitée ou attendre la libération d\'un espace.';
+          recoBody.appendChild(avertissement);
+          data.resultats.forEach(function (r) {
+            recoBody.appendChild(rendreCarteReco(r, false));
+          });
+        }
+
+        recoBody.querySelectorAll('.btn-use-reco').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            selectEspace(parseInt(this.dataset.id));
+            document.getElementById('espaceSelect').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        });
+
+        recoPanel.classList.remove('d-none');
+        recoPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      })
+      .catch(function () {
+        recoLoading.classList.add('d-none');
+        btnRecommander.disabled = false;
+        recoBody.innerHTML = '<div class="alert alert-danger mb-0">Erreur lors de l\'analyse. Réessayez.</div>';
+        recoPanel.classList.remove('d-none');
+      });
+  }
+
+  btnRecommander.addEventListener('click', lancerRecommandation);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,675 @@
+/* ==============================================================================
+   GéoFoncier — Design System : Module Constructions & Aide à la Décision
+   ==============================================================================
+   Styles centralisés pour l'instruction des projets de construction, le stepper,
+   l'analyse de faisabilité, la sélection cartographique et les scores de pertinence.
+   ============================================================================== */
+
+/* ===== 1. CARTE ET CONTENEUR ===== */
+#construction-map {
+  height: 560px;
+  border-radius: 12px;
+}
+
+.map-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leg-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ===== 2. STEPPER DE SAISIE ===== */
+.nc-stepper {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 1.5rem;
+  gap: 0;
+}
+
+.nc-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.nc-step-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+  transition: all .3s;
+}
+
+.nc-step.active .nc-step-num {
+  background: #1E3A8A;
+  color: #fff;
+  border-color: #1E3A8A;
+}
+
+.nc-step.done .nc-step-num {
+  background: #16A34A;
+  color: #fff;
+  border-color: #16A34A;
+}
+
+.nc-step-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.nc-step.active .nc-step-label { color: #1E3A8A; }
+.nc-step.done .nc-step-label { color: #16A34A; }
+
+.nc-step-sub {
+  font-size: 11px;
+  color: #cbd5e1;
+  display: block;
+}
+
+.nc-step.active .nc-step-sub { color: #93c5fd; }
+.nc-step.done .nc-step-sub { color: #86efac; }
+
+.nc-connector {
+  flex: 0 0 40px;
+  height: 2px;
+  background: linear-gradient(90deg, #e2e8f0, #e2e8f0);
+  margin: 0 4px;
+}
+
+.nc-connector.done {
+  background: linear-gradient(90deg, #16A34A, #86efac);
+}
+
+/* ===== 3. SECTION FORMULAIRE ===== */
+.form-section {
+  position: relative;
+  padding: 1rem 1rem 1rem 3rem;
+  margin-bottom: .5rem;
+}
+
+.form-section + .form-section {
+  border-top: 1px solid #f1f5f9;
+}
+
+.form-section-num {
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1E3A8A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.form-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1E3A8A;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: .75rem;
+}
+
+/* ===== 4. OPTIONS DE SÉLECTION DE ZONE ===== */
+.zone-option-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: .75rem;
+}
+
+.zone-option-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all .2s;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zone-option-card:hover {
+  border-color: #93c5fd;
+  background: #f8faff;
+}
+
+.zone-option-card.active {
+  border-color: #1E3A8A;
+  background: #eff6ff;
+}
+
+.zone-option-icon {
+  font-size: 18px;
+  color: #94a3b8;
+  line-height: 1;
+  transition: color .2s;
+}
+
+.zone-option-card.active .zone-option-icon { color: #1E3A8A; }
+
+.zone-option-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.zone-option-card.active .zone-option-title { color: #1E3A8A; }
+
+.zone-option-sub {
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.zone-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1.5px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e40af;
+  transition: all .25s;
+}
+
+.zone-status-bar.ok {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+/* ===== 5. BOUTON D'ACTION PRINCIPAL ===== */
+.btn-analyze {
+  background: linear-gradient(135deg, #1E3A8A, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity .2s;
+  cursor: pointer;
+}
+
+.btn-analyze:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.btn-analyze:not(:disabled):hover {
+  opacity: .9;
+}
+
+.draw-info {
+  background: #f8faff;
+  border: 1.5px solid #c7d7f4;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 11.5px;
+  color: #3b5bdb;
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+/* ===== 6. RÉSULTAT DE L'ANALYSE DE FAISABILITÉ ===== */
+.result-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid;
+  margin-top: 1.75rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,.07);
+}
+
+.result-card.ok  { border-color: #16A34A; }
+.result-card.nok { border-color: #DC2626; }
+
+.result-header {
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.result-card.ok  .result-header { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+.result-card.nok .result-header { background: linear-gradient(135deg, #fef2f2, #fee2e2); }
+
+.result-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.result-card.ok  .result-icon-circle { background: #16A34A; color: #fff; }
+.result-card.nok .result-icon-circle { background: #DC2626; color: #fff; }
+
+.result-title-main {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 3px;
+}
+
+.result-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Métriques analytiques */
+.result-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.metric-tile {
+  padding: 1.1rem 1.25rem;
+  text-align: center;
+  border-right: 1px solid #f1f5f9;
+  position: relative;
+}
+
+.metric-tile:last-child { border-right: none; }
+
+.metric-tile-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.metric-tile-val {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.metric-tile-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.metric-tile-badge {
+  font-size: 10px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.metric-brute { background: #f8faff; }
+.metric-brute .metric-tile-val { color: #374151; }
+
+.metric-construct { background: #eff6ff; }
+.metric-construct .metric-tile-val { color: #1E3A8A; }
+
+.metric-engagee { background: #fff7ed; }
+.metric-engagee .metric-tile-val { color: #c2410c; }
+
+.metric-nette-ok { background: #f0fdf4; }
+.metric-nette-ok .metric-tile-val { color: #16A34A; }
+
+.metric-nette-nok { background: #fef2f2; }
+.metric-nette-nok .metric-tile-val { color: #DC2626; }
+
+/* Barre de progression volumétrique */
+.utilization-wrap {
+  padding: 1.1rem 1.75rem;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+}
+
+.utilization-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.utilization-bar {
+  height: 20px;
+  border-radius: 99px;
+  background: #f1f5f9;
+  overflow: visible;
+  position: relative;
+  display: flex;
+}
+
+.bar-engagee {
+  border-radius: 99px 0 0 99px;
+  background: #f97316;
+  height: 100%;
+  transition: width .5s;
+}
+
+.bar-nette {
+  height: 100%;
+  transition: width .5s;
+}
+
+.bar-nette.ok  { background: #16A34A; border-radius: 0 99px 99px 0; }
+.bar-nette.nok { background: #DC2626; border-radius: 0 99px 99px 0; }
+
+.bar-requise-marker {
+  position: absolute;
+  top: -4px;
+  height: 28px;
+  width: 3px;
+  background: #1E3A8A;
+  border-radius: 2px;
+  transition: left .5s;
+}
+
+.bar-requise-marker::after {
+  content: 'Requis';
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #1E3A8A;
+  white-space: nowrap;
+}
+
+.util-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.util-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.util-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Verdict & Synthèse */
+.verdict-row {
+  padding: 1rem 1.75rem;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.verdict-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.verdict-item-label {
+  font-size: 10.5px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.verdict-item-val {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.verdict-sep {
+  font-size: 20px;
+  color: #cbd5e1;
+  flex: 1;
+  text-align: center;
+}
+
+.verdict-result { margin-left: auto; }
+
+.result-section {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid #f1f5f9;
+  background: #fff;
+}
+
+.result-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: .75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.result-actions {
+  padding: .875rem 1.75rem;
+  background: #f8faff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 10px;
+}
+
+/* Tableau d'alternatives foncières */
+.alt-table-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #fed7aa;
+}
+
+.alt-table-header {
+  background: #fff7ed;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #fed7aa;
+}
+
+/* Demandes récentes */
+.recent-row td { vertical-align: middle; }
+.recent-projet { font-weight: 600; font-size: 13.5px; color: #111827; }
+.recent-meta   { font-size: 11.5px; color: #94a3b8; }
+
+/* ===== 7. CARTES DE RECOMMANDATION MULTICRITÈRE ===== */
+.reco-card {
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: box-shadow .2s;
+}
+
+.reco-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.reco-card.best { border-color: #16A34A; background: #f6fdf8; }
+.reco-card.favorable   { border-left: 5px solid #16A34A; }
+.reco-card.moyen       { border-left: 5px solid #F59E0B; }
+.reco-card.defavorable { border-left: 5px solid #DC2626; }
+.reco-card.incompatible { border-left: 5px solid #9CA3AF; opacity: .8; }
+
+.reco-score {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reco-score small {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: .85;
+}
+
+.reco-score.favorable    { background: #16A34A; }
+.reco-score.moyen        { background: #F59E0B; }
+.reco-score.defavorable  { background: #DC2626; }
+.reco-score.incompatible { background: #9CA3AF; }
+
+.reco-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #111827;
+}
+
+.reco-badge-best {
+  font-size: 10px;
+  font-weight: 700;
+  background: #16A34A;
+  color: #fff;
+  border-radius: 20px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.reco-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.reco-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.reco-list li {
+  padding: 2px 0;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.reco-list.raisons li { color: #166534; }
+.reco-list.contraintes li { color: #92400e; }
+
+/* ===== 8. CARTES DE FORMULAIRE STANDARD ===== */
+.form-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f1f5f9;
+  margin: -28px -28px 22px;
+  background: #f8fafc;
+  border-radius: 10px 10px 0 0;
+}
+
+.form-card-hdr-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.form-card-hdr-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.form-card-hdr-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ===== 9. BOÎTES DE CONFIRMATION / SUPPRESSION ===== */
+.del-meta {
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.del-meta span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}

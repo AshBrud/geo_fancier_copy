@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block title %}Bâtiments{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="#">Gestion Foncière</a></li>
+<li class="breadcrumb-item active">Bâtiments</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== KPI FONCIER ===== */
+.fon-kpi {
+  background: #fff; border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all .22s; height: 100%;
+}
+.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+.fon-kpi-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.fon-kpi-body { min-width: 0; }
+.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
+.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; white-space: nowrap; }
+.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
+
+/* ===== BARRE TABLE ===== */
+.table-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+}
+.table-card-title {
+  font-size: 14px; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.table-card-title .count-pill {
+  font-size: 11px; background: #f1f5f9; color: #64748b;
+  border-radius: 20px; padding: 2px 8px; font-weight: 600;
+}
+.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+
+/* ===== BÂTIMENT ROW ===== */
+.bat-nom { font-size: 13.5px; font-weight: 600; color: #1e293b; }
+.bat-nom:hover { color: #1E3A8A; }
+.bat-code {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 5px; padding: 2px 8px;
+  font-size: 11.5px; color: #475569; font-family: monospace;
+}
+.etages-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f1f5f9; border-radius: 6px;
+  padding: 2px 8px; font-size: 11.5px; color: #374151; font-weight: 600;
+}
+
+/* ===== STATUT ===== */
+.statut-actif   { background:#dcfce7; color:#16a34a; border-radius:20px; padding:3px 10px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+.statut-inactif { background:#f1f5f9; color:#6b7280; border-radius:20px; padding:3px 10px; font-size:11.5px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { padding: 48px 24px; text-align: center; color: #94a3b8; }
+.empty-state i { font-size: 42px; display: block; margin-bottom: 10px; opacity: .45; }
+.empty-state p { margin: 0; font-size: 13.5px; }
+
+/* ===== PAGINATION ===== */
+.page-link { border-radius: 7px !important; border: 1px solid #e2e8f0; color: #374151; font-size: 12.5px; margin: 0 2px; }
+.page-item.active .page-link { background: #1E3A8A; border-color: #1E3A8A; }
+.page-link:hover { background: #eff6ff; color: #1E3A8A; border-color: #93c5fd; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-buildings"></i> Bâtiments</h1>
+    <p class="page-description">Répertoire complet des bâtiments du campus de l'UAD Bambey : superficies, fonctions et capacités.</p>
+  </div>
+  {% if user.is_domaine_foncier %}
+  <div class="d-flex gap-2">
+    <a href="{% url 'territoire:batiment_import_sig' %}" class="btn btn-outline-primary">
+      <i class="bi bi-cloud-upload me-1"></i> Importer (SIG)
+    </a>
+    <a href="{% url 'territoire:batiment_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Ajouter un bâtiment
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== KPI ===== -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#eff6ff;">
+        <i class="bi bi-buildings-fill" style="color:#1E3A8A;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val">{{ total_batiments }}</div>
+        <div class="fon-kpi-lbl">Total bâtiments</div>
+        <div class="fon-kpi-foot">Sur le campus UAD</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#dcfce7;">
+        <i class="bi bi-check-circle-fill" style="color:#16A34A;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_actifs }}</div>
+        <div class="fon-kpi-lbl">Bâtiments actifs</div>
+        <div class="fon-kpi-foot">{{ total_batiments|add:"-"|add:nb_actifs|default:"—" }} inactif{{ total_batiments|add:"-"|add:nb_actifs|default:0|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#e0f2fe;">
+        <i class="bi bi-rulers" style="color:#0891b2;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val" style="color:#0891b2; font-size:17px;">{{ superficie_totale|floatformat:0 }} m²</div>
+        <div class="fon-kpi-lbl">Superficie bâtie</div>
+        <div class="fon-kpi-foot">Surface totale des bâtiments</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fef3c7;">
+        <i class="bi bi-map-fill" style="color:#D97706;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val" style="color:#D97706; font-size:20px;">{{ superficie_ha }}</div>
+        <div class="fon-kpi-lbl">Superficie en hectares</div>
+        <div class="fon-kpi-foot">1 ha = 10 000 m²</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card">
+
+  <!-- En-tête avec recherche -->
+  <div class="table-card-header">
+    <div class="table-card-title">
+      <i class="bi bi-table text-primary"></i>
+      Liste des bâtiments
+      <span class="count-pill">{{ page_obj.paginator.count }} bâtiment{{ page_obj.paginator.count|pluralize }}</span>
+    </div>
+    <form method="get" class="filter-bar">
+      <div class="input-group input-group-sm" style="width:240px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
+        </span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0"
+               placeholder="Nom ou code du bâtiment…" value="{{ q }}" style="font-size:12.5px;">
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary px-3">Rechercher</button>
+      <a href="{% url 'territoire:batiments' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </form>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-responsive">
+    <table class="table table-uad mb-0">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Bâtiment</th>
+          <th>Fonction</th>
+          <th class="text-center">Étages</th>
+          <th>Superficie</th>
+          <th>Année</th>
+          <th>Statut</th>
+          {% if user.is_domaine_foncier %}<th class="text-center">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for bat in page_obj %}
+        <tr>
+          <td>
+            <span class="bat-code">{{ bat.code }}</span>
+          </td>
+          <td>
+            <a href="{% url 'territoire:batiment_detail' bat.pk %}" class="bat-nom text-decoration-none">
+              {{ bat.nom }}
+            </a>
+            {% if bat.description %}
+            <div class="text-muted" style="font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">
+              {{ bat.description }}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            {% if bat.fonction %}
+            <span style="font-size:12.5px; color:#374151;">{{ bat.fonction }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <span class="etages-badge">
+              <i class="bi bi-layers" style="font-size:10px;"></i>{{ bat.etages }}
+            </span>
+          </td>
+          <td>
+            {% if bat.superficie %}
+            <div style="font-weight:600; color:#1e293b; font-size:13px;">{{ bat.superficie|floatformat:0 }} m²</div>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="text-muted" style="font-size:12.5px;">{{ bat.annee_construction|default:"—" }}</span>
+          </td>
+          <td>
+            {% if bat.est_actif %}
+            <span class="statut-actif"><i class="bi bi-circle-fill" style="font-size:7px;"></i> Actif</span>
+            {% else %}
+            <span class="statut-inactif"><i class="bi bi-circle" style="font-size:7px;"></i> Inactif</span>
+            {% endif %}
+          </td>
+          {% if user.is_domaine_foncier %}
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{% url 'territoire:batiment_detail' bat.pk %}"
+                 class="btn btn-icon btn-outline-info btn-sm"
+                 data-bs-toggle="tooltip" title="Voir le détail">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'territoire:batiment_update' bat.pk %}"
+                 class="btn btn-icon btn-outline-primary btn-sm"
+                 data-bs-toggle="tooltip" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'territoire:batiment_delete' bat.pk %}"
+                 class="btn btn-icon btn-outline-danger btn-sm"
+                 data-bs-toggle="tooltip" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if user.is_domaine_foncier %}8{% else %}7{% endif %}">
+            <div class="empty-state">
+              <i class="bi bi-building-x"></i>
+              <p>Aucun bâtiment trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3 px-4">
+    <small class="text-muted">
+      Page <strong>{{ page_obj.number }}</strong> / {{ page_obj.paginator.num_pages }}
+      &nbsp;·&nbsp; {{ page_obj.paginator.count }} bâtiment{{ page_obj.paginator.count|pluralize }}
+    </small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">
+            <i class="bi bi-chevron-left" style="font-size:10px;"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+          <a class="page-link" href="?page={{ num }}&q={{ q }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">
+            <i class="bi bi-chevron-right" style="font-size:10px;"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
