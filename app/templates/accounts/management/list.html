@@ -8,17 +8,20 @@
 <div class="page-header d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="page-title"><i class="bi bi-people"></i> Gestion des Utilisateurs & Rôles RBAC</h1>
-    <p class="page-description text-muted">Gouvernance institutionnelle des comptes, habilitations décentralisées et délégations territoriales.</p>
+    <p class="page-description text-muted">Gouvernance institutionnelle des comptes, habilitations décentralisées et
+      délégations territoriales.</p>
   </div>
   <div class="d-flex gap-2">
-    {% if is_super %}
-    <a href="{% url 'accounts:user_create' %}?role=admin" class="btn btn-outline-danger btn-sm">
-      <i class="bi bi-shield-plus me-1"></i> Créer un Administrateur
-    </a>
-    {% endif %}
-    <a href="{% url 'accounts:user_create' %}?role=standard" class="btn btn-primary btn-sm">
-      <i class="bi bi-person-plus me-1"></i> Ajouter un utilisateur
-    </a>
+    <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm"
+      data-bs-toggle="modal" data-bs-target="#modalRolesPermissions">
+      <i class="bi bi-shield-lock-fill"></i>
+      <span>Gérer les Rôles</span>
+    </button>
+    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal"
+      data-bs-target="#modalCreateUser">
+      <i class="bi bi-person-plus-fill"></i>
+      <span>Nouvel Utilisateur</span>
+    </button>
   </div>
 </div>
 
@@ -46,7 +49,8 @@
       <div>
         <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_actifs }}</div>
         <div class="fon-kpi-lbl">Comptes actifs</div>
-        <div class="fon-kpi-foot">{{ total_users|add:"-"|add:nb_actifs }} inactif{{ total_users|add:"-"|add:nb_actifs|pluralize }}</div>
+        <div class="fon-kpi-foot">{{ total_users|add:"-"|add:nb_actifs }} inactif{{
+          total_users|add:"-"|add:nb_actifs|pluralize }}</div>
       </div>
     </div>
   </div>
@@ -94,8 +98,8 @@
         <span class="input-group-text bg-white border-end-0">
           <i class="bi bi-search text-muted" style="font-size:11px;"></i>
         </span>
-        <input type="text" name="q" class="form-control border-start-0 ps-0"
-               placeholder="Nom, prénom, email…" value="{{ q }}" style="font-size:12.5px;">
+        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Nom, prénom, email…"
+          value="{{ q }}" style="font-size:12.5px;">
       </div>
       <select name="role" class="form-select form-select-sm" style="width:170px; font-size:12.5px;">
         <option value="">Tous les rôles</option>
@@ -105,7 +109,7 @@
       </select>
       <select name="statut" class="form-select form-select-sm" style="width:120px; font-size:12.5px;">
         <option value="">Statut</option>
-        <option value="actif"   {% if statut_filter == 'actif'   %}selected{% endif %}>Actif</option>
+        <option value="actif" {% if statut_filter == 'actif' %}selected{% endif %}>Actif</option>
         <option value="inactif" {% if statut_filter == 'inactif' %}selected{% endif %}>Inactif</option>
       </select>
       <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
@@ -117,30 +121,30 @@
 
   <!-- Tableau -->
   <div class="table-responsive">
-    <table class="table table-uad mb-0">
+    <table class="table table-uad mb-0" id="table-users">
       <thead>
         <tr>
           <th>Utilisateur</th>
           <th>Email</th>
           <th>Rôle</th>
+          <th>Territoires</th>
           <th>Statut</th>
           <th>Inscription</th>
           <th>Dernière connexion</th>
-          <th class="text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for u in page_obj %}
-        <tr>
+        <tr class="table-row-clickable" data-user-id="{{ u.pk }}">
 
           <!-- Avatar + Nom -->
           <td>
             <div class="d-flex align-items-center gap-3">
               <div class="u-av u-av-{{ u.role }}">
                 {% if u.photo %}
-                  <img src="{{ u.photo.url }}" alt="{{ u.username }}">
+                <img src="{{ u.photo.url }}" alt="{{ u.username }}">
                 {% else %}
-                  {{ u.get_full_name|default:u.username|first|upper }}
+                {{ u.get_full_name|default:u.username|first|upper }}
                 {% endif %}
               </div>
               <div>
@@ -153,13 +157,51 @@
                 <div class="text-muted" style="font-size:11.5px;">@{{ u.username }}</div>
               </div>
             </div>
+
+            <!-- Métadonnées complètes pour le SlideOver et la Modale d'Édition -->
+            <script type="application/json" id="userData_{{ u.pk }}">
+              {
+                "id": {{ u.pk }},
+                "username": "{{ u.username|escapejs }}",
+                "first_name": "{{ u.first_name|escapejs }}",
+                "last_name": "{{ u.last_name|escapejs }}",
+                "full_name": "{{ u.get_full_name|default:u.username|escapejs }}",
+                "email": "{{ u.email|escapejs }}",
+                "telephone": "{{ u.telephone|default:''|escapejs }}",
+                "role": "{{ u.role }}",
+                "role_display": "{{ u.get_role_display|escapejs }}",
+                "is_active": {{ u.is_active|yesno:"true,false" }},
+                "is_superuser": {{ u.is_superuser|yesno:"true,false" }},
+                "acces_tous_territoires": {{ u.acces_tous_territoires|yesno:"true,false" }},
+                "must_change_password": {{ u.must_change_password|yesno:"true,false" }},
+                "date_joined": "{{ u.date_joined|date:'d/m/Y' }}",
+                "last_login": "{{ u.last_login|date:'d/m/Y H:i'|default:'Jamais connecté' }}",
+                "created_by": "{% if u.created_by %}{{ u.created_by.get_full_name|default:u.created_by.username|escapejs }}{% else %}Système Racine{% endif %}",
+                "photo_url": "{% if u.photo %}{{ u.photo.url }}{% endif %}",
+                "can_edit": {% if u.is_superuser or u.role == 'superuser' %}false{% elif is_super or u.role == 'standard' %}true{% else %}false{% endif %},
+                "can_delete": {% if u.is_superuser or u.role == 'superuser' or u.pk == request.user.pk %}false{% elif u.role == 'admin' and not is_super %}false{% else %}true{% endif %},
+                "update_url": "{% url 'accounts:user_update' u.pk %}",
+                "delete_url": "{% url 'accounts:user_delete' u.pk %}",
+                "activate_url": "{% url 'accounts:user_activate' u.pk %}",
+                "memberships": [
+                  {% for m in u.dossier_memberships.all %}
+                  {
+                    "dossier_id": "{{ m.dossier.id }}",
+                    "dossier_nom": "{{ m.dossier.nom|escapejs }}",
+                    "type_display": "{{ m.dossier.get_type_territoire_display|escapejs }}",
+                    "role": "{{ m.role }}",
+                    "role_display": "{{ m.get_role_display|escapejs }}"
+                  }{% if not forloop.last %},{% endif %}
+                  {% endfor %}
+                ]
+              }
+            </script>
           </td>
 
           <!-- Email -->
           <td>
             {% if u.email %}
-            <a href="mailto:{{ u.email }}" class="text-muted text-decoration-none"
-               style="font-size:12.5px;">{{ u.email }}</a>
+            <a href="mailto:{{ u.email }}" class="text-muted text-decoration-none" style="font-size:12.5px;">{{ u.email }}</a>
             {% else %}
             <span class="text-muted" style="font-size:12.5px;">—</span>
             {% endif %}
@@ -169,20 +211,41 @@
           <td>
             <span class="role-pill role-{{ u.role }}">
               {% if u.role == 'superuser' %}
-                <i class="bi bi-shield-lock-fill" style="font-size:9px;"></i>
+              <i class="bi bi-shield-lock-fill" style="font-size:9px;"></i>
               {% elif u.role == 'admin' %}
-                <i class="bi bi-shield-fill" style="font-size:9px;"></i>
-              {% elif u.role == 'standard' %}
-                <i class="bi bi-person-fill" style="font-size:10px;"></i>
-              {% elif u.role == 'domaine_foncier' %}
-                <i class="bi bi-geo-alt-fill" style="font-size:9px;"></i>
-              {% elif u.role == 'administration' %}
-                <i class="bi bi-building-fill" style="font-size:9px;"></i>
+              <i class="bi bi-shield-fill" style="font-size:9px;"></i>
               {% else %}
-                <i class="bi bi-eye-fill" style="font-size:9px;"></i>
+              <i class="bi bi-person-fill" style="font-size:10px;"></i>
               {% endif %}
               {{ u.get_role_display }}
             </span>
+          </td>
+
+          <!-- Territoires affectés -->
+          <td>
+            {% if u.is_superuser or u.acces_tous_territoires %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle"
+              title="Accès universel à l'ensemble des dossiers">
+              <i class="bi bi-globe2 me-1"></i>Tous (Universel)
+            </span>
+            {% else %}
+            {% with memberships=u.dossier_memberships.all %}
+            {% if not memberships %}
+            <span class="text-muted" style="font-size:12px; font-style:italic;">Aucun dossier</span>
+            {% elif memberships|length == 1 %}
+            {% with m=memberships.0 %}
+            <span class="badge bg-light text-dark border" title="{{ m.dossier.nom }} ({{ m.get_role_display }})">
+              <i class="bi bi-folder2-open text-primary me-1"></i>{{ m.dossier.nom|truncatechars:18 }}
+            </span>
+            {% endwith %}
+            {% else %}
+            <span class="badge bg-light text-dark border"
+              title="{% for m in memberships %}{{ m.dossier.nom }} ({{ m.get_role_display }}){% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+              <i class="bi bi-folder-fill text-primary me-1"></i>{{ memberships|length }} territoires
+            </span>
+            {% endif %}
+            {% endwith %}
+            {% endif %}
           </td>
 
           <!-- Statut -->
@@ -206,47 +269,15 @@
           <!-- Dernière connexion -->
           <td>
             {% if u.last_login %}
-              {% now "Y-m-d" as today %}
-              <span class="{% if u.last_login|timesince|slice:':5' == '0 min' or u.last_login|date:'Y-m-d' == today %}last-login-recent{% else %}last-login-old{% endif %}"
-                    style="font-size:12px;" title="{{ u.last_login|date:'d/m/Y H:i' }}">
-                {{ u.last_login|date:"d/m/Y" }}
-              </span>
+            {% now "Y-m-d" as today %}
+            <span
+              class="{% if u.last_login|timesince|slice:':5' == '0 min' or u.last_login|date:'Y-m-d' == today %}last-login-recent{% else %}last-login-old{% endif %}"
+              style="font-size:12px;" title="{{ u.last_login|date:'d/m/Y H:i' }}">
+              {{ u.last_login|date:"d/m/Y" }}
+            </span>
             {% else %}
             <span class="text-muted" style="font-size:12px; font-style:italic;">Jamais connecté</span>
             {% endif %}
-          </td>
-
-          <!-- Actions -->
-          <td class="text-center">
-            <div class="d-flex gap-1 justify-content-center">
-              <a href="{% url 'accounts:user_update' u.pk %}"
-                 class="btn btn-icon btn-outline-primary btn-sm"
-                 data-bs-toggle="tooltip" title="Modifier ce compte">
-                <i class="bi bi-pencil"></i>
-              </a>
-              {% if u.is_superuser or u.role == 'superuser' %}
-              <span class="btn btn-icon btn-sm" style="opacity:.25; cursor:not-allowed;"
-                    data-bs-toggle="tooltip" title="Le Super Administrateur ne peut être désactivé">
-                <i class="bi bi-slash-circle"></i>
-              </span>
-              {% elif u.pk == request.user.pk %}
-              <span class="btn btn-icon btn-sm" style="opacity:.25; cursor:not-allowed;"
-                    data-bs-toggle="tooltip" title="Impossible de vous désactiver vous-même">
-                <i class="bi bi-trash"></i>
-              </span>
-              {% elif u.role == 'admin' and not is_super %}
-              <span class="btn btn-icon btn-sm" style="opacity:.25; cursor:not-allowed;"
-                    data-bs-toggle="tooltip" title="Seul le Superuser peut désactiver un Administrateur">
-                <i class="bi bi-lock"></i>
-              </span>
-              {% else %}
-              <a href="{% url 'accounts:user_delete' u.pk %}"
-                 class="btn btn-icon btn-outline-danger btn-sm"
-                 data-bs-toggle="tooltip" title="Désactiver ce compte (Soft-Delete)">
-                <i class="bi bi-trash"></i>
-              </a>
-              {% endif %}
-            </div>
           </td>
 
         </tr>
@@ -256,7 +287,8 @@
             <div class="empty-state">
               <i class="bi bi-person-slash"></i>
               <h6>Aucun utilisateur trouvé</h6>
-              <p>{% if q %}Aucun résultat pour « {{ q }} »{% elif role_filter %}Aucun utilisateur avec ce rôle{% else %}Aucun utilisateur enregistré{% endif %}.</p>
+              <p>{% if q %}Aucun résultat pour « {{ q }} »{% elif role_filter %}Aucun utilisateur avec ce rôle{% else
+                %}Aucun utilisateur enregistré{% endif %}.</p>
             </div>
           </td>
         </tr>
@@ -276,7 +308,8 @@
       <ul class="pagination pagination-sm mb-0">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&role={{ role_filter }}&statut={{ statut_filter }}">
+          <a class="page-link"
+            href="?page={{ page_obj.previous_page_number }}&q={{ q }}&role={{ role_filter }}&statut={{ statut_filter }}">
             <i class="bi bi-chevron-left" style="font-size:10px;"></i>
           </a>
         </li>
@@ -288,7 +321,8 @@
         {% endfor %}
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&role={{ role_filter }}&statut={{ statut_filter }}">
+          <a class="page-link"
+            href="?page={{ page_obj.next_page_number }}&q={{ q }}&role={{ role_filter }}&statut={{ statut_filter }}">
             <i class="bi bi-chevron-right" style="font-size:10px;"></i>
           </a>
         </li>
@@ -299,4 +333,283 @@
   {% endif %}
 
 </div>
+
+{% include 'accounts/management/partials/modal_user_create.html' %}
+{% include 'accounts/management/partials/modal_user_edit.html' %}
+{% include 'accounts/management/partials/modal_roles_permissions.html' %}
+
+<!-- Formulaire caché pour CSRF dans les actions du SlideOver -->
+<form id="csrfTokenHolder" style="display:none;">{% csrf_token %}</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const csrfToken = document.querySelector('#csrfTokenHolder [name=csrfmiddlewaretoken]')?.value || '';
+    const isSuperOperator = {{ is_super|yesno:"true,false" }};
+
+    // Liaison de l'inspection SlideOver sur le tableau des utilisateurs
+    SlideOver.bindTable('#table-users', function (row) {
+      const userId = row.dataset.userId;
+      const scriptEl = document.getElementById('userData_' + userId);
+      if (!scriptEl) return null;
+
+      let u;
+      try {
+        u = JSON.parse(scriptEl.textContent);
+      } catch (e) {
+        console.error("Erreur de parsing des données utilisateur :", e);
+        return null;
+      }
+
+      // 1. Badge d'en-tête (Statut + Rôle)
+      let badgeHtml = `
+      <span class="role-pill role-${u.role} me-1">${u.role_display}</span>
+      <span class="${u.is_active ? 'statut-actif' : 'statut-inactif'}">
+        <i class="bi bi-circle${u.is_active ? '-fill' : ''}" style="font-size:7px;"></i> ${u.is_active ? 'Actif' : 'Inactif'}
+      </span>
+    `;
+
+      // Indication réservée EXCLUSIVEMENT au Superuser si le mot de passe n'a pas encore été modifié
+      if (isSuperOperator && u.must_change_password) {
+        badgeHtml += `
+        <span class="badge bg-warning text-dark py-1 px-2 border ms-1" style="font-size:10.5px;" title="Mot de passe temporaire : renouvellement personnel obligatoire en attente">
+          <i class="bi bi-key-fill me-1"></i>Mot de passe non changé
+        </span>
+      `;
+      }
+
+      // 2. Corps du SlideOver
+      let bodyHtml = `
+      <!-- Identité & Avatar -->
+      <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+        <div class="u-av u-av-${u.role}" style="width:48px; height:48px; font-size:18px;">
+          ${u.photo_url ? `<img src="${u.photo_url}" alt="${u.username}">` : (u.first_name ? u.first_name[0].toUpperCase() : u.username[0].toUpperCase())}
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold text-dark">${u.full_name}</h5>
+          <div class="text-muted small">@${u.username} ${u.is_superuser ? '<span class="badge bg-danger ms-1">Super Administrateur</span>' : ''}</div>
+        </div>
+      </div>
+    `;
+
+      // Avertissement contextuel de sécurité visible EXCLUSIVEMENT par le Superuser
+      if (isSuperOperator && u.must_change_password) {
+        bodyHtml += `
+        <div class="alert alert-warning border d-flex align-items-center gap-2 py-2 px-3 rounded-3 mb-3" style="background:#fffbeb; border-color:#fde68a !important; color:#92400e; font-size:12px;">
+          <i class="bi bi-shield-exclamation fs-5 flex-shrink-0 text-warning"></i>
+          <div>
+            <strong>Gouvernance Superuser :</strong> Ce compte possède un mot de passe temporaire initial ou réinitialisé. L'utilisateur devra obligatoirement définir son mot de passe secret lors de sa prochaine connexion.
+          </div>
+        </div>
+      `;
+      }
+
+      bodyHtml += `
+      <!-- Coordonnées -->
+      <div class="mb-4">
+        <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+          <i class="bi bi-envelope-at me-1"></i>Coordonnées
+        </h6>
+        <div class="p-3 rounded-3 border bg-white">
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted small">Email professionnel :</span>
+            <span class="small fw-semibold text-dark"><a href="mailto:${u.email}" class="text-decoration-none text-dark">${u.email}</a></span>
+          </div>
+          <div class="d-flex justify-content-between py-1 pt-2">
+            <span class="text-muted small">Téléphone :</span>
+            <span class="small fw-semibold text-dark">${u.telephone || '<span class="text-muted fst-italic">Non renseigné</span>'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Traçabilité & Gouvernance -->
+      <div class="mb-4">
+        <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+          <i class="bi bi-clock-history me-1"></i>Traçabilité & Mandat
+        </h6>
+        <div class="p-3 rounded-3 border bg-white">
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted small">Créé par :</span>
+            <span class="small fw-semibold text-dark">${u.created_by}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted small">Date d'inscription :</span>
+            <span class="small fw-semibold text-dark">${u.date_joined}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 pt-2">
+            <span class="text-muted small">Dernière connexion :</span>
+            <span class="small fw-semibold text-dark">${u.last_login}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Territoires d'affectation -->
+      <div class="mb-3">
+        <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+          <i class="bi bi-folder-symlink me-1"></i>Périmètre Territorial
+        </h6>
+    `;
+
+      if (u.acces_tous_territoires || u.is_superuser) {
+        bodyHtml += `
+        <div class="alert alert-success border d-flex align-items-center gap-3 py-2 px-3 rounded-3 mb-0">
+          <i class="bi bi-globe2 fs-4 text-success"></i>
+          <div>
+            <strong class="small text-dark">Accès Universel Actif</strong>
+            <div class="text-muted" style="font-size:11.5px;">Cet utilisateur a accès à la totalité des dossiers territoriaux (actuels et futurs).</div>
+          </div>
+        </div>
+      `;
+      } else if (u.memberships && u.memberships.length > 0) {
+        bodyHtml += `<div class="d-flex flex-column gap-2">`;
+        u.memberships.forEach(m => {
+          bodyHtml += `
+          <div class="p-2 px-3 rounded-3 border bg-white d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fw-semibold small text-dark"><i class="bi bi-folder2-open text-primary me-1"></i>${m.dossier_nom}</div>
+              <span class="badge bg-light text-secondary border" style="font-size:10px;">${m.type_display}</span>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">${m.role_display}</span>
+          </div>
+        `;
+        });
+        bodyHtml += `</div>`;
+      } else {
+        bodyHtml += `
+        <div class="p-3 rounded-3 border bg-light text-muted small text-center">
+          <i class="bi bi-folder-x fs-4 d-block mb-1 text-secondary"></i>
+          Aucun territoire affecté pour le moment (compte sans espace de travail).
+        </div>
+      `;
+      }
+
+      bodyHtml += `</div>`;
+
+      // 3. Pied de page (Actions contextuelles)
+      let footerHtml = `
+      <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="SlideOver.close()">Fermer</button>
+      <div class="d-flex gap-2">
+    `;
+
+      if (u.can_delete) {
+        if (u.is_active) {
+          footerHtml += `
+          <form action="${u.delete_url}" method="POST" style="display:inline;" onsubmit="return confirm('Désactiver le compte de ${u.full_name} (@${u.username}) ?');">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-person-x me-1"></i>Désactiver
+            </button>
+          </form>
+        `;
+        } else {
+          footerHtml += `
+          <form action="${u.activate_url}" method="POST" style="display:inline;" onsubmit="return confirm('Réactiver le compte de ${u.full_name} (@${u.username}) ?');">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+            <button type="submit" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-person-check me-1"></i>Réactiver
+            </button>
+          </form>
+        `;
+        }
+      }
+
+      if (u.can_edit) {
+        footerHtml += `
+        <button type="button" class="btn btn-primary btn-sm px-3" onclick="openEditUserModal(${u.id})">
+          <i class="bi bi-pencil-square me-1"></i>Modifier
+        </button>
+      `;
+      } else if (!u.can_delete) {
+        footerHtml += `
+        <span class="badge bg-secondary-subtle text-secondary py-2 px-3 border border-secondary-subtle d-inline-flex align-items-center gap-1" style="font-size:11px;">
+          <i class="bi bi-shield-lock-fill text-warning"></i>Compte Super Administrateur Immuable
+        </span>
+      `;
+      }
+
+      footerHtml += `</div>`;
+
+      return {
+        title: u.full_name,
+        badgeHtml: badgeHtml,
+        bodyHtml: bodyHtml,
+        footerHtml: footerHtml
+      };
+    });
+  });
+
+  // Ouverture et préremplissage dynamique de la Modale d'Édition
+  function openEditUserModal(userId) {
+    SlideOver.close();
+
+    const scriptEl = document.getElementById('userData_' + userId);
+    if (!scriptEl) return;
+
+    const u = JSON.parse(scriptEl.textContent);
+    if (u.is_superuser || u.role === 'superuser') {
+      return;
+    }
+
+    const form = document.getElementById('formEditUser');
+    if (!form) return;
+
+    form.action = u.update_url;
+
+    // 1. Remplissage des champs d'identité
+    document.getElementById('edit_first_name').value = u.first_name;
+    document.getElementById('edit_last_name').value = u.last_name;
+    document.getElementById('edit_email').value = u.email;
+    document.getElementById('edit_telephone').value = u.telephone || '';
+    document.getElementById('edit_is_active').checked = u.is_active;
+
+    // 2. Type de compte
+    setEditAccountType(u.role);
+    const radioStd = document.getElementById('edit_account_type_standard');
+    const radioAdm = document.getElementById('edit_account_type_admin');
+    if (radioStd && radioAdm) {
+      if (u.role === 'admin') {
+        radioAdm.checked = true;
+      } else {
+        radioStd.checked = true;
+      }
+    }
+
+    // 3. Affectation territoriale
+    const isAll = u.acces_tous_territoires || u.is_superuser;
+    setEditAffMode(isAll ? 'all' : 'selection');
+    const affAllRadio = document.getElementById('edit_affectation_all');
+    const affSelRadio = document.getElementById('edit_affectation_selection');
+    if (affAllRadio && affSelRadio) {
+      affAllRadio.checked = isAll;
+      affSelRadio.checked = !isAll;
+    }
+
+    // Cocher les dossiers assignés
+    const assignedDossierIds = (u.memberships || []).map(m => m.dossier_id);
+    document.querySelectorAll('.edit-territory-cb').forEach(cb => {
+      cb.checked = assignedDossierIds.includes(cb.value);
+      handleEditTerritoryCheck(cb);
+    });
+
+    // Rôle local
+    const currentRole = (u.memberships && u.memberships.length > 0) ? u.memberships[0].role : (u.role === 'admin' ? 'admin' : 'operateur');
+    setEditDossierRole(currentRole);
+    const roleOpRadio = document.getElementById('edit_role_op');
+    const roleObsRadio = document.getElementById('edit_role_obs');
+    if (roleOpRadio && roleObsRadio) {
+      roleOpRadio.checked = (currentRole === 'operateur');
+      roleObsRadio.checked = (currentRole === 'observateur');
+    }
+
+    // Vider les champs mot de passe
+    document.getElementById('edit_password').value = '';
+    document.getElementById('edit_confirm_password').value = '';
+
+    // Ouvrir la modale Bootstrap
+    const modalEl = document.getElementById('modalEditUser');
+    if (modalEl) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+  }
+</script>
 {% endblock %}

@@ -21,11 +21,17 @@
         Sélectionnez un périmètre d'autorité pour ouvrir votre tableau de bord contextuel et vos outils cartographiques.
       </p>
     </div>
-    <div class="header-right">
+    <div class="header-right d-flex align-items-center gap-3">
       {% if is_superuser %}
       <div class="admin-badges">
         <span class="badge-role-super"><i class="bi bi-shield-check"></i> Superuser : Accès Global</span>
       </div>
+      {% endif %}
+      {% if is_superuser or user.role == 'admin' %}
+      <button type="button" class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalCreateDossier">
+        <i class="bi bi-folder-plus"></i>
+        <span>Nouveau Territoire</span>
+      </button>
       {% endif %}
     </div>
   </div>
@@ -46,9 +52,44 @@
   {% if dossiers %}
   <div class="dossiers-grid">
     {% for dossier in dossiers %}
-    <div class="dossier-card {% if active_dossier.id == dossier.id %}active-border{% endif %}">
-      <!-- Card Header -->
-      <div class="dossier-card-top">
+    <div class="dossier-card dossier-card-clickable {% if active_dossier.id == dossier.id %}active-border{% endif %}"
+         data-dossier-id="{{ dossier.id }}"
+         role="button"
+         tabindex="0"
+         title="Cliquez pour inspecter ce territoire">
+
+      <!-- Données JSON embarquées pour l'inspection SlideOver -->
+      <script type="application/json" id="dossierData_{{ dossier.id }}">
+        {
+          "id": "{{ dossier.id }}",
+          "nom": "{{ dossier.nom|escapejs }}",
+          "slug": "{{ dossier.slug|escapejs }}",
+          "description": "{{ dossier.description|default:"Périmètre d'autorité foncière et de gestion territoriale."|escapejs }}",
+          "type_territoire": "{{ dossier.type_territoire }}",
+          "type_display": "{{ dossier.get_type_territoire_display|escapejs }}",
+          "superficie_ha": "{{ dossier.superficie_ha|default:"—" }}",
+          "srid_metrique": "{{ dossier.srid_metrique }}",
+          "is_active_session": {% if active_dossier.id == dossier.id %}true{% else %}false{% endif %},
+          "created_at": "{{ dossier.created_at|date:'d/m/Y' }}",
+          "role_gestionnaire": "{{ dossier.role_gestionnaire_membres|upper }}",
+          "can_manage_members": {% if is_superuser or dossier.role_gestionnaire_membres == 'admin' %}true{% else %}false{% endif %},
+          "select_url": "{% url 'dossiers:select' slug=dossier.slug %}",
+          "members_url": "/{{ dossier.slug }}/membres/",
+          "settings_url": "/{{ dossier.slug }}/parametres/",
+          "dashboard_url": "/{{ dossier.slug }}/dashboard/",
+          "modules": {
+            "espaces": {{ dossier.modules_config.mod_espaces|yesno:"true,false" }},
+            "habitations": {{ dossier.modules_config.mod_habitations|yesno:"true,false" }},
+            "signalements": {{ dossier.modules_config.mod_signalements|yesno:"true,false" }},
+            "drones": {{ dossier.modules_config.mod_drones|yesno:"true,false" }},
+            "urbanisme": {{ dossier.modules_config.mod_urbanisme|yesno:"true,false" }},
+            "toponymie": {{ dossier.modules_config.mod_toponymie|yesno:"true,false" }}
+          }
+        }
+      </script>
+
+      <!-- Card Top -->
+      <div class="dossier-card-top mb-2">
         <span class="territory-type-badge type-{{ dossier.type_territoire }}">
           {% if dossier.type_territoire == 'universite' %}
             <i class="bi bi-mortarboard-fill"></i>
@@ -67,64 +108,28 @@
         {% endif %}
       </div>
 
-      <!-- Card Body -->
-      <div class="dossier-card-body">
-        <h2 class="dossier-name">{{ dossier.nom }}</h2>
-        <p class="dossier-desc">{{ dossier.description|default:"Périmètre d'autorité foncière et de gestion territoriale."|truncatechars:120 }}</p>
+      <!-- Card Body épuré -->
+      <div class="dossier-card-body p-0">
+        <h2 class="dossier-name mb-1" style="font-size: 1.15rem;">{{ dossier.nom }}</h2>
+        <p class="dossier-desc text-muted mb-2 small" style="min-height: auto; line-height: 1.4;">
+          {{ dossier.description|default:"Périmètre d'autorité foncière et de gestion territoriale."|truncatechars:85 }}
+        </p>
 
-        <!-- Métriques Rapides -->
-        <div class="dossier-metrics">
-          <div class="metric-item">
-            <span class="metric-label">Superficie</span>
-            <span class="metric-value">{{ dossier.superficie_ha|default:"—" }} ha</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Projection</span>
-            <span class="metric-value">UTM {{ dossier.srid_metrique }}</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Gestion</span>
-            <span class="metric-value">{{ dossier.role_gestionnaire_membres|upper }}</span>
-          </div>
-        </div>
-
-        <!-- Modules Métier Activés -->
-        <div class="modules-section">
-          <span class="modules-title">Capacités & Modules :</span>
-          <div class="modules-tags">
-            {% if dossier.modules_config.mod_espaces %}
-            <span class="module-tag" title="Cadastre & Espaces"><i class="bi bi-grid-3x3-gap"></i> Espaces</span>
-            {% endif %}
-            {% if dossier.modules_config.mod_habitations %}
-            <span class="module-tag" title="Habitations & Bâti"><i class="bi bi-houses"></i> Bâti</span>
-            {% endif %}
-            {% if dossier.modules_config.mod_signalements %}
-            <span class="module-tag" title="Signalements de dommages"><i class="bi bi-megaphone"></i> Signalements</span>
-            {% endif %}
-            {% if dossier.modules_config.mod_drones %}
-            <span class="module-tag" title="Drones & Orthophotos"><i class="bi bi-airplane"></i> Drones</span>
-            {% endif %}
-            {% if dossier.modules_config.mod_urbanisme %}
-            <span class="module-tag" title="Urbanisme & PDU"><i class="bi bi-rulers"></i> PDU</span>
-            {% endif %}
-            {% if dossier.modules_config.mod_toponymie %}
-            <span class="module-tag" title="Points d'Intérêt"><i class="bi bi-pin-map"></i> POI</span>
-            {% endif %}
-          </div>
+        <!-- Métriques compactes inline -->
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-light text-secondary border fw-normal" style="font-size: 11px;">
+            <i class="bi bi-rulers me-1 text-muted"></i>{{ dossier.superficie_ha|default:"—" }} ha
+          </span>
+          <span class="badge bg-light text-secondary border fw-normal" style="font-size: 11px;">
+            <i class="bi bi-compass me-1 text-muted"></i>UTM {{ dossier.srid_metrique }}
+          </span>
         </div>
       </div>
 
-      <!-- Card Footer -->
-      <div class="dossier-card-footer">
-        <a href="{% url 'dossiers:select' slug=dossier.slug %}" class="btn-open-dossier">
-          <span>Ouvrir l'Espace</span>
-          <i class="bi bi-arrow-right-short"></i>
-        </a>
-        {% if is_superuser or dossier.role_gestionnaire_membres == 'admin' %}
-        <a href="{% url 'dossiers:members' slug=dossier.slug %}" class="btn-manage-members" title="Gérer les affectations de membres">
-          <i class="bi bi-people"></i>
-        </a>
-        {% endif %}
+      <!-- Hint de clic (sans aucun bouton) -->
+      <div class="dossier-card-hint">
+        <span><i class="bi bi-layout-sidebar-inset-reverse me-1"></i>Inspecter l'espace</span>
+        <i class="bi bi-chevron-right small"></i>
       </div>
     </div>
     {% endfor %}
@@ -137,4 +142,490 @@
   </div>
   {% endif %}
 </div>
+
+<!-- ==========================================================================
+     MODAL WIZARD — CRÉATION D'UN NOUVEAU DOSSIER TERRITORIAL (3 ÉTAPES)
+     ========================================================================== -->
+<div class="modal fade" id="modalCreateDossier" tabindex="-1" aria-labelledby="modalCreateDossierLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <form action="{% url 'dossiers:create' %}" method="POST" id="wizardDossierForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom px-4 pt-4 pb-3">
+          <div>
+            <h5 class="modal-title fw-bold text-dark" id="modalCreateDossierLabel">
+              <i class="bi bi-folder-plus text-success me-2"></i>Créer un Espace Territorial
+            </h5>
+            <p class="text-muted small mb-0">Assistant de configuration modulaire en 3 étapes.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <!-- Stepper Indicator -->
+          <div class="wizard-steps">
+            <div class="wizard-step active" id="stepIndicator1">
+              <div class="step-circle">1</div>
+              <span class="step-label">Identité & Type</span>
+            </div>
+            <div class="step-divider" id="stepDivider1"></div>
+            <div class="wizard-step" id="stepIndicator2">
+              <div class="step-circle">2</div>
+              <span class="step-label">Modules & Presets</span>
+            </div>
+            <div class="step-divider" id="stepDivider2"></div>
+            <div class="wizard-step" id="stepIndicator3">
+              <div class="step-circle">3</div>
+              <span class="step-label">Géométrie & SRID</span>
+            </div>
+          </div>
+
+          <!-- ÉTAPE 1 : Identité & Typologie -->
+          <div class="wizard-pane active" id="wizardStep1">
+            <div class="row g-3">
+              <div class="col-md-7">
+                <label for="wizard_nom" class="form-label fw-semibold">Nom du territoire / dossier <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="wizard_nom" name="nom" required placeholder="Ex: Commune de Ngogom ou Campus Bambey">
+              </div>
+              <div class="col-md-5">
+                <label for="wizard_type_territoire" class="form-label fw-semibold">Type d'espace</label>
+                <select class="form-select" id="wizard_type_territoire" name="type_territoire">
+                  <option value="commune" selected>Collectivité / Commune</option>
+                  <option value="universite">Campus Universitaire</option>
+                  <option value="cadastre">Direction Cadastre / Foncier</option>
+                  <option value="ministere">Périmètre Étatique</option>
+                  <option value="autre">Autre Espace de Gestion</option>
+                </select>
+              </div>
+              <div class="col-md-12">
+                <label for="wizard_slug" class="form-label fw-semibold">Identifiant d'accès URL (Slug)</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted font-monospace small">/</span>
+                  <input type="text" class="form-control" id="wizard_slug" name="slug" placeholder="campus-uad-bambey (généré automatiquement si vide)">
+                  <span class="input-group-text bg-light text-muted font-monospace small">/dashboard/</span>
+                </div>
+                <div class="form-text">Point d'entrée universel pour toutes les sous-options de l'espace de travail.</div>
+              </div>
+              <div class="col-md-12">
+                <label for="wizard_description" class="form-label fw-semibold">Description & Contexte administratif</label>
+                <textarea class="form-control" id="wizard_description" name="description" rows="3" placeholder="Mission territoriale, arrêtés municipaux, décrets domaniaux..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- ÉTAPE 2 : Modules Métier & Presets -->
+          <div class="wizard-pane d-none" id="wizardStep2">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Presets rapides d'activation</label>
+              <div class="presets-grid">
+                <div class="preset-card active" onclick="applyPreset('commune', this)">
+                  <div class="preset-icon"><i class="bi bi-houses"></i></div>
+                  <div class="preset-title">Collectivité Rurale</div>
+                  <div class="preset-desc">Espaces, Habitations, Bâti, Pistes et Signalements terrain.</div>
+                </div>
+                <div class="preset-card" onclick="applyPreset('universite', this)">
+                  <div class="preset-icon"><i class="bi bi-mortarboard"></i></div>
+                  <div class="preset-title">Campus / Institution</div>
+                  <div class="preset-desc">Cadastre, Pavillons, Urbanisme de chantier et Drones.</div>
+                </div>
+                <div class="preset-card" onclick="applyPreset('foncier', this)">
+                  <div class="preset-icon"><i class="bi bi-bounding-box"></i></div>
+                  <div class="preset-title">Cadastre & Foncier</div>
+                  <div class="preset-desc">Zones, parcelles, voiries, autorisations d'extension.</div>
+                </div>
+              </div>
+            </div>
+
+            <label class="form-label fw-semibold mb-2">Interrupteurs individuels des modules</label>
+            <div class="modules-selector-grid">
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>Cadastre & Espaces</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_espaces" id="mod_espaces" checked>
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Parcelles, zones, voiries et emprises foncières de référence.
+                </div>
+              </div>
+
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-house-door"></i>
+                    <span>Habitations & Bâti</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_habitations" id="mod_habitations" checked>
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Concessions, unités d'habitation, chefs de ménage et recensement.
+                </div>
+              </div>
+
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-building-gear"></i>
+                    <span>Urbanisme & Projets</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_urbanisme" id="mod_urbanisme">
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Instruction de nouvelles constructions, extensions et études PDU.
+                </div>
+              </div>
+
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-airplane"></i>
+                    <span>Drones & Imagerie</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_drones" id="mod_drones" checked>
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Missions de vol aériennes, rasters orthophotos et modèles MNT 3D.
+                </div>
+              </div>
+
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Signalements Terrain</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_signalements" id="mod_signalements" checked>
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Litiges fonciers, anomalies d'occupation et constats de dégradation.
+                </div>
+              </div>
+
+              <div class="module-card-item">
+                <div class="module-card-header-row">
+                  <div class="module-card-title">
+                    <i class="bi bi-geo"></i>
+                    <span>Toponymie & POI</span>
+                  </div>
+                  <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" name="mod_toponymie" id="mod_toponymie" checked>
+                  </div>
+                </div>
+                <div class="module-card-desc">
+                  Repères géographiques, toponymes locaux et points d'intérêt territoriaux.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ÉTAPE 3 : Géomatique & Projection Spatiale -->
+          <div class="wizard-pane d-none" id="wizardStep3">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="wizard_srid" class="form-label fw-semibold">Projection métrique UTM (SRID)</label>
+                <select class="form-select" id="wizard_srid" name="srid_metrique">
+                  <option value="32628" selected>EPSG:32628 (UTM 28N — Sénégal Ouest / Centre)</option>
+                  <option value="32629">EPSG:32629 (UTM 29N — Sénégal Est)</option>
+                  <option value="4326">EPSG:4326 (WGS 84 Degrés décimaux)</option>
+                </select>
+                <div class="form-text">Utilisé pour les calculs de surfaces et périmètres en hectares.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="wizard_zoom" class="form-label fw-semibold">Zoom initial Leaflet</label>
+                <input type="number" class="form-control" id="wizard_zoom" name="zoom_defaut" value="14" min="8" max="20">
+                <div class="form-text">Niveau de cadrage par défaut à l'ouverture de la carte.</div>
+              </div>
+              <div class="col-12 mt-4">
+                <div class="p-3 bg-light rounded-3 border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span class="fw-semibold">Délimitation géographique</span>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    L'emprise spatiale du polygone territorial pourra être importée ou tracée directement depuis l'outil de cartographie une fois le dossier initialisé.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top px-4 py-3 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" id="btnWizardPrev" style="display:none;" onclick="prevWizardStep()">
+            <i class="bi bi-arrow-left me-1"></i> Précédent
+          </button>
+          <div class="ms-auto d-flex gap-2">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+            <button type="button" class="btn btn-primary" id="btnWizardNext" onclick="nextWizardStep()">
+              Suivant <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button type="submit" class="btn btn-success" id="btnWizardSubmit" style="display:none;">
+              <i class="bi bi-check-circle me-1"></i> Créer le Territoire
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentStep = 1;
+
+function updateWizardUI() {
+  // Update step indicators
+  for (let i = 1; i <= 3; i++) {
+    const ind = document.getElementById('stepIndicator' + i);
+    const pane = document.getElementById('wizardStep' + i);
+    if (!ind || !pane) continue;
+
+    if (i === currentStep) {
+      ind.className = 'wizard-step active';
+      pane.classList.remove('d-none');
+    } else if (i < currentStep) {
+      ind.className = 'wizard-step completed';
+      pane.classList.add('d-none');
+    } else {
+      ind.className = 'wizard-step';
+      pane.classList.add('d-none');
+    }
+  }
+
+  // Update step dividers
+  const div1 = document.getElementById('stepDivider1');
+  const div2 = document.getElementById('stepDivider2');
+  if (div1) div1.className = currentStep > 1 ? 'step-divider active' : 'step-divider';
+  if (div2) div2.className = currentStep > 2 ? 'step-divider active' : 'step-divider';
+
+  // Buttons visibility
+  const prevBtn = document.getElementById('btnWizardPrev');
+  const nextBtn = document.getElementById('btnWizardNext');
+  const submitBtn = document.getElementById('btnWizardSubmit');
+
+  if (prevBtn) prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
+  if (nextBtn) nextBtn.style.display = currentStep < 3 ? 'inline-flex' : 'none';
+  if (submitBtn) submitBtn.style.display = currentStep === 3 ? 'inline-flex' : 'none';
+}
+
+function nextWizardStep() {
+  if (currentStep === 1) {
+    const nom = document.getElementById('wizard_nom');
+    if (!nom || !nom.value.trim()) {
+      alert("Veuillez renseigner le nom du territoire.");
+      nom && nom.focus();
+      return;
+    }
+  }
+  if (currentStep < 3) {
+    currentStep++;
+    updateWizardUI();
+  }
+}
+
+function prevWizardStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    updateWizardUI();
+  }
+}
+
+function applyPreset(preset, cardEl) {
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+  if (cardEl) cardEl.classList.add('active');
+
+  const setMod = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = val;
+  };
+
+  if (preset === 'commune') {
+    setMod('mod_espaces', true);
+    setMod('mod_habitations', true);
+    setMod('mod_urbanisme', false);
+    setMod('mod_drones', true);
+    setMod('mod_signalements', true);
+    setMod('mod_toponymie', true);
+  } else if (preset === 'universite') {
+    setMod('mod_espaces', true);
+    setMod('mod_habitations', false);
+    setMod('mod_urbanisme', true);
+    setMod('mod_drones', true);
+    setMod('mod_signalements', false);
+    setMod('mod_toponymie', true);
+  } else if (preset === 'foncier') {
+    setMod('mod_espaces', true);
+    setMod('mod_habitations', false);
+    setMod('mod_urbanisme', true);
+    setMod('mod_drones', true);
+    setMod('mod_signalements', true);
+    setMod('mod_toponymie', true);
+  }
+}
+
+// Auto-preset on type change & SlideOver inspection
+document.addEventListener('DOMContentLoaded', function() {
+  const typeSelect = document.getElementById('wizard_type_territoire');
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function() {
+      if (this.value === 'universite') {
+        applyPreset('universite');
+      } else if (this.value === 'commune') {
+        applyPreset('commune');
+      } else if (this.value === 'cadastre') {
+        applyPreset('foncier');
+      }
+    });
+  }
+
+  // Liaison de l'inspection SlideOver au clic sur une carte de dossier
+  document.querySelectorAll('.dossier-card-clickable').forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('button, a, input, select')) return;
+
+      const dossierId = this.dataset.dossierId;
+      const scriptEl = document.getElementById('dossierData_' + dossierId);
+      if (!scriptEl) return;
+
+      let d;
+      try {
+        d = JSON.parse(scriptEl.textContent);
+      } catch (err) {
+        console.error("Erreur de parsing des données du territoire :", err);
+        return;
+      }
+
+      // 1. Badge d'en-tête (Type + Actif)
+      let badgeHtml = `
+        <span class="territory-type-badge type-${d.type_territoire} me-1">${d.type_display}</span>
+      `;
+      if (d.is_active_session) {
+        badgeHtml += `
+          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:10.5px;">
+            <i class="bi bi-check-circle-fill me-1"></i>Espace en cours
+          </span>
+        `;
+      }
+
+      // 2. Corps du SlideOver
+      let bodyHtml = `
+        <!-- Identité & Périmètre -->
+        <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+          <div class="d-flex align-items-center justify-content-center rounded-3 text-white flex-shrink-0"
+               style="width:48px; height:48px; font-size:22px; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
+            <i class="bi bi-folder2-open"></i>
+          </div>
+          <div class="text-truncate">
+            <h5 class="mb-0 fw-bold text-dark text-truncate">${d.nom}</h5>
+            <div class="text-muted small">Identifiant URL : <code>${d.slug}</code></div>
+          </div>
+        </div>
+
+        <!-- Présentation & Contexte -->
+        <div class="mb-4">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-card-text me-1"></i>Présentation & Vocation
+          </h6>
+          <div class="p-3 rounded-3 border bg-white small text-secondary" style="line-height:1.5;">
+            ${d.description}
+          </div>
+        </div>
+
+        <!-- Spécifications Géographiques & SIG -->
+        <div class="mb-4">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-geo-alt me-1"></i>Spécifications Géographiques & Projection
+          </h6>
+          <div class="p-3 rounded-3 border bg-white">
+            <div class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted small">Superficie couverte :</span>
+              <span class="small fw-semibold text-dark">${d.superficie_ha} hectares</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted small">Système métrique UTM :</span>
+              <span class="small fw-semibold text-dark">EPSG:${d.srid_metrique}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 pt-2">
+              <span class="text-muted small">Date de création :</span>
+              <span class="small fw-semibold text-dark">${d.created_at}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modules Métier Déployés -->
+        <div class="mb-3">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-grid-3x3-gap me-1"></i>Capacités Métier & Outils Actifs
+          </h6>
+          <div class="d-flex flex-column gap-2">
+            <div class="p-2 px-3 rounded-2 border ${d.modules.espaces ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-grid-3x3-gap ${d.modules.espaces ? 'text-success' : 'text-secondary'} me-2"></i>Cadastre & Espaces Fonciers</div>
+              <span class="badge ${d.modules.espaces ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.espaces ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <div class="p-2 px-3 rounded-2 border ${d.modules.habitations ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-houses ${d.modules.habitations ? 'text-primary' : 'text-secondary'} me-2"></i>Habitations & Bâti</div>
+              <span class="badge ${d.modules.habitations ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.habitations ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <div class="p-2 px-3 rounded-2 border ${d.modules.signalements ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-megaphone ${d.modules.signalements ? 'text-warning' : 'text-secondary'} me-2"></i>Signalements de Terrain</div>
+              <span class="badge ${d.modules.signalements ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.signalements ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <div class="p-2 px-3 rounded-2 border ${d.modules.drones ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-airplane ${d.modules.drones ? 'text-info' : 'text-secondary'} me-2"></i>Drones & Orthophotographies</div>
+              <span class="badge ${d.modules.drones ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.drones ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <div class="p-2 px-3 rounded-2 border ${d.modules.urbanisme ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-rulers ${d.modules.urbanisme ? 'text-danger' : 'text-secondary'} me-2"></i>Urbanisme & Aménagement (PDU)</div>
+              <span class="badge ${d.modules.urbanisme ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.urbanisme ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <div class="p-2 px-3 rounded-2 border ${d.modules.toponymie ? 'bg-white' : 'bg-light text-muted opacity-75'} d-flex align-items-center justify-content-between">
+              <div class="small fw-semibold"><i class="bi bi-pin-map ${d.modules.toponymie ? 'text-dark' : 'text-secondary'} me-2"></i>Toponymie & Points d'Intérêt</div>
+              <span class="badge ${d.modules.toponymie ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}" style="font-size:10px;">${d.modules.toponymie ? 'Activé' : 'Désactivé'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 3. Pied de page (Actions contextuelles)
+      let footerHtml = `
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="SlideOver.close()">Fermer</button>
+        <div class="d-flex gap-2">
+      `;
+
+      if (d.can_manage_members) {
+        footerHtml += `
+          <a href="${d.members_url}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-people me-1"></i>Équipe & Membres
+          </a>
+        `;
+      }
+
+      footerHtml += `
+          <a href="${d.select_url}" class="btn btn-success btn-sm px-3 fw-semibold">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Ouvrir l'Espace
+          </a>
+        </div>
+      `;
+
+      SlideOver.open({
+        title: d.nom,
+        badgeHtml: badgeHtml,
+        bodyHtml: bodyHtml,
+        footerHtml: footerHtml
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

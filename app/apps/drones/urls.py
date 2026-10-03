@@ -6,6 +6,7 @@ app_name = 'drones'
 urlpatterns = [
     # Hub
     path('', views.mission_list, name='missions'),
+    path('missions/', views.mission_list, name='missions_list'),
 
     # Missions CRUD
     path('missions/nouvelle/', views.mission_create, name='mission_create'),
@@ -26,6 +27,7 @@ urlpatterns = [
 
     # Centre de supervision (flux live drone + monitoring temps réel du campus)
     path('perspectives/', views.perspectives, name='perspectives'),
+    path('supervision/', views.perspectives, name='supervision'),
     path('perspectives/donnees/', views.supervision_donnees, name='supervision_donnees'),
     path('flux/start/', views.flux_start, name='flux_start'),
     path('flux/stop/', views.flux_stop, name='flux_stop'),

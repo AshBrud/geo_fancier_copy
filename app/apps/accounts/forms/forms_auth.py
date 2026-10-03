@@ -8,14 +8,13 @@ from accounts.models import CustomUser
 class LoginForm(AuthenticationForm):
     """
     Formulaire d'authentification institutionnel épuré.
-    Prend en charge la connexion par nom d'utilisateur ou par téléphone.
+    Prend en charge la connexion par nom d'utilisateur ou par email.
     """
     def clean_username(self):
         identifiant = self.cleaned_data.get('username', '').strip()
         user = (
             CustomUser.objects.filter(username=identifiant).first()
             or CustomUser.objects.filter(email__iexact=identifiant).first()
-            or CustomUser.objects.filter(telephone=identifiant).first()
         )
         if user:
             return user.username

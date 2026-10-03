@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuration — {{ dossier.nom }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Dossiers</a></li>
+<li class="breadcrumb-item"><a href="/{{ dossier.slug }}/dashboard/">{{ dossier.nom }}</a></li>
+<li class="breadcrumb-item active">Paramètres</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+        <i class="bi bi-folder2-open me-1"></i>{{ dossier.nom }}
+      </span>
+      <span class="badge bg-light text-secondary border" style="font-size: 11px;">
+        {{ dossier.get_type_territoire_display }}
+      </span>
+    </div>
+    <h1 class="page-title mb-1"><i class="bi bi-sliders text-primary me-2"></i>Configuration & Modules du Territoire</h1>
+    <p class="page-description text-muted mb-0">
+      Personnalisez les fonctionnalités métier activées, le type d'espace, les projections UTM et la souveraineté de ce territoire.
+    </p>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="/{{ dossier.slug }}/dashboard/" class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-arrow-left"></i>
+      <span>Tableau de bord</span>
+    </a>
+    <button type="submit" form="dossierSettingsForm" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-check2-circle"></i>
+      <span>Enregistrer les modifications</span>
+    </button>
+  </div>
+</div>
+
+<!-- Formulaire Principal de Configuration -->
+<form id="dossierSettingsForm" method="POST" action="/{{ dossier.slug }}/parametres/">
+  {% csrf_token %}
+
+  <div class="row g-4">
+    <!-- COLONNE GAUCHE : Identité, Type d'Espace & Géodésie -->
+    <div class="col-lg-6">
+      
+      <!-- Card Identité & Territoire -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-geo-alt-fill text-primary"></i>
+            Identité Administrative & Type d'Espace
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="mb-3">
+            <label for="nom" class="form-label fw-bold small text-dark">Nom officiel du territoire / dossier</label>
+            <input type="text" class="form-control" id="nom" name="nom" value="{{ dossier.nom }}" required placeholder="Ex: Campus UAD Bambey, Commune de Thiès...">
+            <div class="form-text" style="font-size: 11.5px;">Le nom affiché dans la barre supérieure, les sélecteurs et les rapports officiels.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="type_territoire" class="form-label fw-bold small text-dark">Type d'espace</label>
+            <select class="form-select" id="type_territoire" name="type_territoire">
+              <option value="commune" {% if dossier.type_territoire == 'commune' %}selected{% endif %}>Collectivité Locale / Commune</option>
+              <option value="universite" {% if dossier.type_territoire == 'universite' %}selected{% endif %}>Campus Universitaire / Académique</option>
+              <option value="cadastre" {% if dossier.type_territoire == 'cadastre' %}selected{% endif %}>Direction du Cadastre / Conservation</option>
+              <option value="ministere" {% if dossier.type_territoire == 'ministere' %}selected{% endif %}>Périmètre Étatique / Ministériel</option>
+              <option value="autre" {% if dossier.type_territoire == 'autre' %}selected{% endif %}>Autre Espace de Gestion Foncier / ZES</option>
+            </select>
+          </div>
+
+          <div class="mb-0">
+            <label for="description" class="form-label fw-bold small text-dark">Description & Contexte territorial</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Présentation administrative, périmètre juridique ou contexte de la mission...">{{ dossier.description }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Système Cartographique & Géodésie -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+          <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-compass-fill text-info"></i>
+            Projections & Géodésie Cartographique
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label for="srid_metrique" class="form-label fw-bold small text-dark">Projection Métrique Locale (UTM)</label>
+              <select class="form-select" id="srid_metrique" name="srid_metrique">
+                <option value="32628" {% if dossier.srid_metrique == 32628 %}selected{% endif %}>EPSG:32628 (WGS 84 / UTM Zone 28N — Sénégal Ouest)</option>
+                <option value="32629" {% if dossier.srid_metrique == 32629 %}selected{% endif %}>EPSG:32629 (WGS 84 / UTM Zone 29N — Sénégal Est)</option>
+                <option value="4326" {% if dossier.srid_metrique == 4326 %}selected{% endif %}>EPSG:4326 (WGS 84 géographique / degrés)</option>
+              </select>
+              <div class="form-text" style="font-size: 11.5px;">Utilisé pour les calculs précis de superficies et de périmètres en mètres carrés.</div>
+            </div>
+
+            <div class="col-md-5">
+              <label for="zoom_defaut" class="form-label fw-bold small text-dark">Zoom Initial SIG</label>
+              <input type="number" class="form-control" id="zoom_defaut" name="zoom_defaut" value="{{ dossier.zoom_defaut }}" min="8" max="21">
+              <div class="form-text" style="font-size: 11.5px;">Niveau de cadrage par défaut (8 à 21).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Gouvernance & Souveraineté (Réservée au Superuser) -->
+      {% if can_delegate %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4" style="background:#fffcfb; border-left: 4px solid #ef4444 !important;">
+        <div class="card-header bg-transparent border-bottom py-3 px-4">
+          <h5 class="fw-bold mb-0 text-danger d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock-fill"></i>
+            Gouvernance Institutionnelle & Délégation
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <label for="role_gestionnaire_membres" class="form-label fw-bold small text-dark">
+            Rôle habilité à gérer l'équipe et les affectations
+          </label>
+          <select class="form-select" id="role_gestionnaire_membres" name="role_gestionnaire_membres">
+            <option value="admin" {% if dossier.role_gestionnaire_membres == 'admin' %}selected{% endif %}>
+              Administrateur Territorial Délégué (Recommandé - Décentralisé)
+            </option>
+            <option value="superuser" {% if dossier.role_gestionnaire_membres == 'superuser' %}selected{% endif %}>
+              Super Administrateur Uniquement (Souveraineté Stricte)
+            </option>
+          </select>
+          <div class="form-text" style="font-size: 11.5px;">
+            Définit si les administrateurs locaux de ce dossier peuvent inviter, modifier et révoquer d'autres membres sur ce territoire.
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- COLONNE DROITE : Modules Métier Activés -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-grid-fill text-success"></i>
+            Modules Métier Activés
+          </h5>
+          <span class="badge bg-light text-muted border" style="font-size: 11px;">Visibilité Sidebar & Espace</span>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-muted small mb-4">
+            Désactiver un module masque instantanément ses écrans, couches cartographiques et menus associés dans la barre latérale pour tous les utilisateurs de ce territoire.
+          </p>
+
+          <div class="d-flex flex-column gap-3">
+
+            <!-- Module Cadastre & Espaces -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#2563eb; font-size:20px;">
+                  <i class="bi bi-grid-3x3-gap-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Cadastre & Espaces Fonciers (mod_espaces)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Parcelles, limites domaniales, voiries et affectations de parcelles.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_espaces" id="mod_espaces" style="width:2.5em; height:1.3em;" {% if modules.mod_espaces %}checked{% endif %}>
+              </div>
+            </div>
+
+            <!-- Module Habitations & Bâti -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#16a34a; font-size:20px;">
+                  <i class="bi bi-house-door-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Habitations & Bâti (mod_habitations)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Concessions, unités de logement, recensement des occupants et ménages.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_habitations" id="mod_habitations" style="width:2.5em; height:1.3em;" {% if modules.mod_habitations %}checked{% endif %}>
+              </div>
+            </div>
+
+            <!-- Module Urbanisme & Projets -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#d97706; font-size:20px;">
+                  <i class="bi bi-building-gear"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Urbanisme & Aménagement (mod_urbanisme)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Instruction de permis, plans d'urbanisme (PDU), chantiers et équipements.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_urbanisme" id="mod_urbanisme" style="width:2.5em; height:1.3em;" {% if modules.mod_urbanisme %}checked{% endif %}>
+              </div>
+            </div>
+
+            <!-- Module Drones & Imagerie -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#0284c7; font-size:20px;">
+                  <i class="bi bi-airplane-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Drones & Orthophotographies (mod_drones)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Missions aériennes de télédétection, supervision orthophotos et nuages de points.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_drones" id="mod_drones" style="width:2.5em; height:1.3em;" {% if modules.mod_drones %}checked{% endif %}>
+              </div>
+            </div>
+
+            <!-- Module Signalements Terrain -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#dc2626; font-size:20px;">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Signalements & Litiges (mod_signalements)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Remontées anomalies terrain, empiètements, contentieux domaniaux.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_signalements" id="mod_signalements" style="width:2.5em; height:1.3em;" {% if modules.mod_signalements %}checked{% endif %}>
+              </div>
+            </div>
+
+            <!-- Module Toponymie & POI -->
+            <div class="p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-3 bg-white border shadow-sm" style="width:44px; height:44px; color:#475569; font-size:20px;">
+                  <i class="bi bi-pin-map-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">Toponymie & POI (mod_toponymie)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Points d'intérêt locaux, adresses, édifices publics et repères spatiaux.</div>
+                </div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="mod_toponymie" id="mod_toponymie" style="width:2.5em; height:1.3em;" {% if modules.mod_toponymie %}checked{% endif %}>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</form>
+
+{% endblock %}

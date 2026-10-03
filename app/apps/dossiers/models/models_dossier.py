@@ -179,7 +179,7 @@ class Dossier(TimeStampedModel):
         """
         if not user or not user.is_authenticated:
             return False
-        if user.is_superuser:
+        if user.is_superuser or getattr(user, 'role', None) in ['superuser', 'ROLE_SUPERUSER']:
             return True
 
         # Vérifier l'adhésion au dossier
@@ -270,10 +270,12 @@ class DossierMembership(TimeStampedModel):
         """
         Vérifie si le membre dispose d'une permission spécifique sur ce dossier.
         Prend en compte :
-        1. Le rôle local (ex: admin a accès étendu).
-        2. Les surcharges explicites (permissions_override).
+        1. Le statut superuser (souveraineté absolue).
+        2. Les surcharges explicites du membre (permissions_override).
+        3. Les permissions dynamiques configurées pour ce rôle (table Role).
+        4. Le repli par défaut selon rôle si le catalogue n'est pas encore initialisé.
         """
-        if self.is_admin:
+        if self.user.is_superuser or getattr(self.user, 'role', None) in ['superuser', 'ROLE_SUPERUSER']:
             return True
 
         # Vérification des surcharges explicites : {"cadastre:manage_parcelles": true}
@@ -281,7 +283,19 @@ class DossierMembership(TimeStampedModel):
             if permission_code in self.permissions_override:
                 return bool(self.permissions_override[permission_code])
 
-        # Habilitations par défaut selon le rôle
+        # Rôle local dynamique depuis le catalogue RBAC
+        from accounts.models import Role
+        role_obj = Role.objects.filter(code=self.role).first()
+        if role_obj and role_obj.permissions.exists():
+            return role_obj.permissions.filter(code=permission_code).exists()
+
+        if self.is_admin:
+            admin_role = Role.objects.filter(code='admin').first()
+            if admin_role and admin_role.permissions.exists():
+                return admin_role.permissions.filter(code=permission_code).exists()
+            return not (permission_code.startswith('dossier:delegate_role') or permission_code == 'dossier:delete')
+
+        # Habilitations par défaut de repli (si catalogue non initialisé)
         if self.is_operateur:
             # Un opérateur a les droits de lecture et de saisie opérationnelle
             return not (permission_code.endswith(':delete') or 'dossier:' in permission_code)

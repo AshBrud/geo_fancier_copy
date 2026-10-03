@@ -75,6 +75,8 @@ class Role(TimeStampedModel):
     ROLE_SUPERUSER = 'superuser'
     ROLE_ADMIN = 'admin'
     ROLE_STANDARD = 'standard'
+    ROLE_OPERATEUR = 'operateur'
+    ROLE_OBSERVATEUR = 'observateur'
 
     CANONICAL_ROLES = (ROLE_SUPERUSER, ROLE_ADMIN, ROLE_STANDARD)
 

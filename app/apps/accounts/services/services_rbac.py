@@ -49,12 +49,16 @@ def can_manage_target_user(operator, target_user) -> Tuple[bool, str]:
     if target_user.is_superuser or target_user.role == Role.ROLE_SUPERUSER:
         return False, "Le compte Super Administrateur est protégé et immuable."
 
-    if operator.is_superuser or operator.role == Role.ROLE_SUPERUSER:
+    is_target_admin = (target_user.role in [Role.ROLE_ADMIN, 'admin']) or getattr(target_user, 'is_admin', False)
+    is_operator_super = operator.is_superuser or operator.role in [Role.ROLE_SUPERUSER, 'superuser']
+
+    if is_target_admin and not is_operator_super:
+        return False, "Action interdite : Seul le Super Administrateur est habilité à administrer ou désactiver un compte Administrateur Territorial."
+
+    if is_operator_super:
         return True, ""
 
-    if operator.role == Role.ROLE_ADMIN:
-        if target_user.role == Role.ROLE_ADMIN:
-            return False, "Un Administrateur ne peut pas administrer un pair Administrateur."
+    if operator.role == Role.ROLE_ADMIN or getattr(operator, 'is_admin', False):
         return True, ""
 
     return False, "Vos prérogatives ne vous permettent pas d'administrer des utilisateurs."
@@ -107,6 +111,7 @@ def create_managed_user(
         created_by=operator,
         telephone=telephone,
         is_active=True,
+        must_change_password=True,
     )
 
     # 6. Enregistrement des éventuelles surcharges de permissions
@@ -147,3 +152,27 @@ def soft_delete_user(operator, target_user, ip_address: Optional[str] = None) ->
         detail=f"Désactivation logique du compte '{target_user.username}' ({target_user.get_role_display()}).",
         ip_address=ip_address,
     )
+
+
+@transaction.atomic
+def activate_user(operator, target_user, ip_address: Optional[str] = None) -> None:
+    """
+    Réactivation logique d'un compte utilisateur précédemment désactivé.
+    """
+    allowed, message = can_manage_target_user(operator, target_user)
+    if not allowed:
+        raise PermissionDenied(message)
+
+    if not (operator.is_superuser or operator.has_perm_code('users:update')):
+        raise PermissionDenied("Permission 'users:update' requise pour réactiver ce compte.")
+
+    target_user.is_active = True
+    target_user.save(update_fields=['is_active'])
+
+    ActivityLog.objects.create(
+        user=operator,
+        action="REACTIVATION_UTILISATEUR",
+        detail=f"Réactivation du compte '{target_user.username}' ({target_user.get_role_display()}).",
+        ip_address=ip_address,
+    )
+

@@ -340,3 +340,372 @@
   margin: 0 auto;
 }
 
+/* =====================================================
+   7. MODALE DE CRÉATION UNIFIÉE D'UTILISATEUR
+   ===================================================== */
+.role-option-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff;
+  height: 100%;
+}
+
+.role-option-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.role-option-card.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.role-option-card input[type="radio"] {
+  margin-top: 3px;
+}
+
+.role-option-info {
+  flex: 1;
+}
+
+.role-option-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.role-option-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.territory-assignment-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 14px;
+}
+
+.territory-assignment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Grille de sélection des territoires ciblés */
+.territory-checkbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.territory-checkbox-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.territory-checkbox-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.territory-checkbox-card.selected {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.territory-checkbox-card input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.territory-card-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.territory-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.territory-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+/* Cartes de mode d'affectation */
+.affectation-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.affectation-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.affectation-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.affectation-card.active {
+  border-color: #10b981;
+  background: #f0fdf4;
+  box-shadow: 0 0 0 1px #10b981;
+}
+
+.affectation-card input[type="radio"] {
+  margin-top: 3px;
+}
+
+.affectation-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.affectation-card-desc {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* =====================================================
+   7. MATRICE DES RÔLES & PERMISSIONS RBAC
+   ===================================================== */
+.role-matrix-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.role-matrix-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.role-matrix-card:hover:not(.disabled) {
+  border-color: #3b82f6;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.role-matrix-card.active {
+  border-color: #1e3a8a;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #1e3a8a;
+}
+
+.role-matrix-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+
+.role-matrix-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-matrix-desc {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.role-matrix-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* Panels de domaine */
+.perm-domain-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.perm-domain-header {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.perm-domain-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.perm-card {
+  border: 1px solid #f1f5f9;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fff;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.perm-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.perm-card.is-active-perm {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.perm-card.is-locked {
+  opacity: 0.55;
+  background: #f8fafc;
+  border-style: dashed;
+  border-color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.perm-card.is-locked .form-check-input {
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.perm-lock-notice {
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-top: 3px;
+}
+
+.perm-info {
+  flex: 1;
+}
+
+.perm-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.perm-code-badge {
+  font-size: 10px;
+  font-family: var(--bs-font-monospace, monospace);
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.perm-desc {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+/* =====================================================
+   8. FIX DÉFILEMENT & FOOTER STICKY MODALE ROLES RBAC
+   ===================================================== */
+#modalRolesPermissions .modal-dialog-scrollable {
+  max-height: calc(100vh - 2.5rem);
+}
+
+#modalRolesPermissions .modal-content {
+  max-height: calc(100vh - 2.5rem);
+  display: flex;
+  flex-direction: column;
+}
+
+#modalRolesPermissions .modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  max-height: calc(100vh - 200px);
+}
+
+#modalRolesPermissions .modal-footer {
+  flex-shrink: 0;
+  background: #f8fafc;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+
+

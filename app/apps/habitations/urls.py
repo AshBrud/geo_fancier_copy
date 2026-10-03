@@ -7,16 +7,19 @@ app_name = 'habitations'
 urlpatterns = [
     # Carte — cœur du système
     path('', views.carte, name='carte'),
+    path('carte/', views.carte, name='carte_alias'),
     path('limite/', views.commune_edit, name='commune_edit'),
     path('api/villages/<int:pk>/maisons/', views.api_village_maisons, name='api_village_maisons'),
 
     path('villages/', views.villages_list, name='villages'),
+    path('secteurs/', views.villages_list, name='secteurs'),
     path('villages/ajouter/', views.village_create, name='village_create'),
     path('villages/<int:pk>/', views.village_detail, name='village_detail'),
     path('villages/<int:pk>/modifier/', views.village_update, name='village_update'),
     path('villages/<int:pk>/supprimer/', views.village_delete, name='village_delete'),
 
     path('maisons/', views.maisons_list, name='maisons'),
+    path('concessions/', views.maisons_list, name='concessions'),
     path('maisons/ajouter/', views.maison_create, name='maison_create'),
     path('maisons/<int:pk>/modifier/', views.maison_update, name='maison_update'),
     path('maisons/<int:pk>/supprimer/', views.maison_delete, name='maison_delete'),

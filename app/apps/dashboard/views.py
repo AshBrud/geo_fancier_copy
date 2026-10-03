@@ -36,12 +36,19 @@ def dashboard_router(request):
 
 
 @login_required
-def dossier_dashboard(request, slug):
+def dossier_dashboard(request, slug=None, dossier_slug=None):
     """
-    Tableau de bord contextuel pour un dossier spécifique : /dashboard/<slug>/
+    Tableau de bord contextuel pour un dossier spécifique :
+    - Route V2 Dossier-First : /{slug}/dashboard/
+    - Route legacy : /dashboard/<slug>/
     Active l'espace de travail en session et rend le dashboard adapté.
     """
-    dossier = get_dossier_by_slug(slug)
+    dossier = getattr(request, 'active_dossier', None)
+    if not dossier:
+        target_slug = slug or dossier_slug or request.session.get('active_dossier_slug')
+        if target_slug:
+            dossier = get_dossier_by_slug(target_slug)
+
     if not dossier:
         messages.error(request, "Dossier introuvable.")
         return redirect('dossiers:list')
@@ -52,26 +59,26 @@ def dossier_dashboard(request, slug):
         messages.error(request, f"Vous n'êtes pas autorisé à accéder au dossier « {dossier.nom} ».")
         return redirect('dossiers:list')
 
-    # Activation en session
+    # Activation en session & requête
     request.session['active_dossier_id'] = str(dossier.id)
     request.session['active_dossier_slug'] = dossier.slug
+    request.active_dossier = dossier
 
-    # Rendu adapté au territoire
-    if dossier.type_territoire == 'universite' or dossier.slug == 'campus-uad-bambey':
-        return universite(request)
+    # Rendu adapté au type d'entité territoriale du dossier
+    if dossier.type_territoire == 'universite' or 'campus' in dossier.slug:
+        return _render_dashboard_campus(request, dossier)
 
-    return _commune_dashboard(request)
+    return _render_dashboard_collectivite(request, dossier)
 
 
 @login_required
-def _commune_dashboard(request):
-    """Accueil communal de référence (Ngogom)."""
+def _render_dashboard_collectivite(request, dossier=None):
+    """
+    Tableau de bord décisionnel pour une Collectivité Territoriale ou Commune (V2).
+    Affiche les indicateurs de recensement, parcelles, voiries et signalements.
+    """
     user = request.user
-    # Le citoyen n'a pas accès aux données foncières : son accueil reste la carte.
-    if not user.can_view_commune:
-        if user.is_role_communal:
-            return redirect('commune:carte')
-        return redirect('dashboard:universite')
+    dossier = dossier or getattr(request, 'active_dossier', None)
 
     commune = Commune.objects.first()
     stats = commune.stats_bati() if commune else {
@@ -90,6 +97,7 @@ def _commune_dashboard(request):
     pistes = Piste.objects.aggregate(nb=Count('id'), longueur=Sum('longueur'))
 
     context = {
+        'dossier': dossier,
         'commune': commune,
         'stats': stats,
         'taux_habitation': taux_habitation,
@@ -128,10 +136,12 @@ def _commune_dashboard(request):
 
 
 @login_required
-def universite(request):
-    """Tableau de bord du campus de l'UAD."""
-    if request.user.is_role_communal:
-        return redirect('dashboard:index')
+def _render_dashboard_campus(request, dossier=None):
+    """
+    Tableau de bord pour un Campus ou Espace Universitaire (V2).
+    Affiche les KPIs fonciers, l'occupation et la capacité constructible.
+    """
+    dossier = dossier or getattr(request, 'active_dossier', None)
     # KPIs fonciers — le Campus est la seule référence de superficie totale,
     # il n'est jamais compté comme un espace ordinaire.
     campus = Campus.objects.first()
@@ -235,6 +245,7 @@ def universite(request):
         'demandeur').order_by('-date_demande')[:5]
 
     context = {
+        'dossier': dossier,
         'superficie_totale': round(superficie_totale / 10000, 2),
         'superficie_occupee': round(superficie_prise / 10000, 2),
         'superficie_libre': round(superficie_libre / 10000, 2),
@@ -279,6 +290,10 @@ def universite(request):
         'nb_engagees':   nb_engagees,
     }
     return render(request, 'dashboard/index.html', context)
+
+
+# Alias de rétrocompatibilité V1
+universite = _render_dashboard_campus
 
 
 def home(request):

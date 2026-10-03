@@ -5,19 +5,28 @@
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-activity"></i> Journal d'activité</h1>
-    <p class="page-description">Suivi de toutes les actions effectuées par les utilisateurs de la plateforme GéoFoncier NGOGOM_UAD.</p>
+    <p class="page-description">Suivi de toutes les actions effectuées par les utilisateurs de la plateforme GéoFoncier.
+    </p>
   </div>
 </div>
 <div class="card">
   <div class="card-body p-0">
     <table class="table table-uad mb-0">
-      <thead><tr><th>Utilisateur</th><th>Action</th><th>Adresse IP</th><th>Date & Heure</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Utilisateur</th>
+          <th>Action</th>
+          <th>Adresse IP</th>
+          <th>Date & Heure</th>
+        </tr>
+      </thead>
       <tbody>
         {% for log in logs %}
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="user-avatar-sm" style="width:28px;height:28px;font-size:12px;">{% if log.user %}{{ log.user.username|first|upper }}{% else %}?{% endif %}</div>
+              <div class="user-avatar-sm" style="width:28px;height:28px;font-size:12px;">{% if log.user %}{{
+                log.user.username|first|upper }}{% else %}?{% endif %}</div>
               <span class="fw-semibold small">{% if log.user %}{{ log.user.username }}{% else %}—{% endif %}</span>
             </div>
           </td>
@@ -26,7 +35,9 @@
           <td class="text-muted small">{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" class="text-center py-5 text-muted">Aucune activité enregistrée</td></tr>
+        <tr>
+          <td colspan="4" class="text-center py-5 text-muted">Aucune activité enregistrée</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

@@ -125,8 +125,32 @@ def nouvelle_construction(request):
 @login_required
 @foncier_required
 def constructions_list(request):
-    """Liste paginée et filtrable des projets de construction."""
+    """
+    Liste paginée et interactive des projets de construction (V2).
+    - Table épurée avec lignes cliquables connectées au SlideOver
+    - Modale d'ajout direct sans rechargement de page
+    """
     dossier = getattr(request, 'active_dossier', None)
+    if not dossier:
+        from dossiers.selectors import get_accessible_dossiers_for_user
+        dossier = get_accessible_dossiers_for_user(request.user).first()
+
+    # Formulaire de création pour la modale
+    creation_form = NouvelleConstructionForm(request.POST or None, dossier=dossier)
+    if request.method == 'POST' and 'submit_projet' in request.POST:
+        if creation_form.is_valid():
+            projet = creation_form.save(commit=False)
+            projet.dossier = dossier
+            if not projet.demandeur:
+                projet.demandeur = request.user
+            projet.save()
+            try:
+                analyser_disponibilite_projet(projet)
+            except Exception:
+                pass
+            messages.success(request, f"Projet « {projet.nom_projet} » enregistré avec succès.")
+            return redirect(request.path)
+
     q = request.GET.get('q', '').strip()
     statut = request.GET.get('statut', '').strip()
 
@@ -140,6 +164,8 @@ def constructions_list(request):
         'q': q,
         'statut': statut,
         'statuts': NouvelleConstruction.STATUTS,
+        'creation_form': creation_form,
+        'active_dossier': dossier,
     })
 
 
@@ -161,7 +187,7 @@ def construction_update_statut(request, pk):
                     f'{len(auto_rejetees)} demande(s) automatiquement rejetée(s) '
                     f'faute de superficie suffisante dans la zone : {liste}.'
                 )
-    return redirect('urbanisme:list')
+    return redirect(request.META.get('HTTP_REFERER') or 'urbanisme:list')
 
 
 @login_required
@@ -212,7 +238,7 @@ def construction_delete(request, pk):
         nom = construction.nom_projet
         construction.delete()
         messages.success(request, f'Demande « {nom} » supprimée.')
-        return redirect('urbanisme:list')
+        return redirect(request.META.get('HTTP_REFERER') or 'urbanisme:list')
     return render(request, 'urbanisme/construction_confirm_delete.html', {
         'construction': construction
     })

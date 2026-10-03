@@ -1,0 +1,287 @@
+<!-- ===== MODALE DE MODIFICATION D'UTILISATEUR ===== -->
+<div class="modal fade" id="modalEditUser" tabindex="-1" aria-labelledby="modalEditUserLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <form action="" method="POST" id="formEditUser">
+        {% csrf_token %}
+        <div class="modal-header border-bottom px-4 pt-4 pb-3">
+          <div>
+            <h5 class="modal-title fw-bold text-dark" id="modalEditUserLabel">
+              <i class="bi bi-pencil-square text-primary me-2"></i>Modifier l'Utilisateur
+            </h5>
+            <p class="text-muted small mb-0">Mise à jour des coordonnées, du rang institutionnel et des territoires.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+
+        <div class="modal-body p-4">
+
+          <!-- 1. Identité & Statut -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold text-dark mb-0" style="font-size: 13.5px;">
+                <i class="bi bi-person-lines-fill text-primary me-1"></i>Identité & Statut du Compte
+              </h6>
+              <!-- Switch Actif / Inactif -->
+              <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active" checked>
+                <label class="form-check-label small fw-semibold text-dark" for="edit_is_active" id="label_edit_is_active">
+                  Compte Actif
+                </label>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="edit_first_name" class="form-label small fw-semibold">Prénom <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="edit_first_name" name="first_name" required>
+              </div>
+              <div class="col-md-6">
+                <label for="edit_last_name" class="form-label small fw-semibold">Nom <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="edit_last_name" name="last_name" required>
+              </div>
+              <div class="col-md-6">
+                <label for="edit_email" class="form-label small fw-semibold">Email professionnel <span class="text-danger">*</span></label>
+                <input type="email" class="form-control form-control-sm" id="edit_email" name="email" required>
+              </div>
+              <div class="col-md-6">
+                <label for="edit_telephone" class="form-label small fw-semibold">Téléphone</label>
+                <input type="text" class="form-control form-control-sm" id="edit_telephone" name="telephone">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Type de Compte Institutionnel -->
+          <div class="mb-4 pb-3 border-bottom">
+            <h6 class="fw-bold text-dark mb-2" style="font-size: 13.5px;">
+              <i class="bi bi-shield-lock text-secondary me-1"></i>Type de Compte
+            </h6>
+            {% if is_super %}
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="role-option-card" id="editCardAccountStandard" for="edit_account_type_standard">
+                  <input type="radio" name="role" id="edit_account_type_standard" value="standard" onchange="setEditAccountType('standard')">
+                  <div class="role-option-info">
+                    <div class="role-option-title small"><i class="bi bi-person-badge text-primary me-1"></i>Opérateur Standard</div>
+                    <div class="role-option-desc">Collaborateur de terrain, SIG ou observateur.</div>
+                  </div>
+                </label>
+              </div>
+              <div class="col-md-6">
+                <label class="role-option-card" id="editCardAccountAdmin" for="edit_account_type_admin">
+                  <input type="radio" name="role" id="edit_account_type_admin" value="admin" onchange="setEditAccountType('admin')">
+                  <div class="role-option-info">
+                    <div class="role-option-title small"><i class="bi bi-shield-fill-check text-danger me-1"></i>Administrateur Territorial</div>
+                    <div class="role-option-desc">Responsable territorial avec prérogatives de gestion.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            {% else %}
+            <input type="hidden" name="role" id="edit_role_hidden" value="standard">
+            <div class="p-2 px-3 rounded-2 bg-light border small text-muted">
+              <i class="bi bi-lock-fill me-1"></i>Type de compte : <strong id="edit_role_display" class="text-dark">Opérateur Standard</strong> (seul le Superuser peut modifier le rang institutionnel).
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- 3. Rôle Local & Périmètre Territorial -->
+          <div class="mb-4 pb-3 border-bottom">
+            <h6 class="fw-bold text-dark mb-2" style="font-size: 13.5px;">
+              <i class="bi bi-folder-symlink-fill text-success me-1"></i>Rôle & Affectation Territoriale
+            </h6>
+
+            <!-- Rôle au sein des territoires -->
+            <div class="mb-3">
+              <div id="editRoleBoxAdmin" style="display: none;">
+                <input type="hidden" name="dossier_role" id="edit_input_dossier_role_admin" value="admin" disabled>
+                <div class="p-2 px-3 rounded-2 bg-light border small text-dark d-flex align-items-center gap-2">
+                  <i class="bi bi-shield-fill text-danger"></i>
+                  <span>Rôle territorial : <strong>Administrateur du Dossier</strong> (attribué de plein droit aux comptes Administrateurs).</span>
+                </div>
+              </div>
+              <div id="editRoleBoxStandard">
+                <label class="form-label small fw-semibold text-muted mb-1">Rôle sur les territoires rattachés :</label>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="role-option-card" id="editCardRoleOp" for="edit_role_op">
+                      <input type="radio" name="dossier_role" id="edit_role_op" value="operateur" onchange="setEditDossierRole('operateur')">
+                      <div class="role-option-info">
+                        <div class="role-option-title small">Opérateur SIG / Technicien</div>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="role-option-card" id="editCardRoleObs" for="edit_role_obs">
+                      <input type="radio" name="dossier_role" id="edit_role_obs" value="observateur" onchange="setEditDossierRole('observateur')">
+                      <div class="role-option-info">
+                        <div class="role-option-title small">Observateur (Consultation)</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode d'affectation -->
+            <div class="affectation-mode-grid mb-3">
+              <label class="affectation-card" id="editCardAffAll" for="edit_affectation_all" onclick="setEditAffMode('all')">
+                <input type="radio" name="affectation_mode" id="edit_affectation_all" value="all" onchange="setEditAffMode('all')">
+                <div>
+                  <div class="affectation-card-title small"><i class="bi bi-globe2 text-success me-1"></i>Tout affecter</div>
+                  <div class="affectation-card-desc">Tous les dossiers actuels et futurs.</div>
+                </div>
+              </label>
+              <label class="affectation-card" id="editCardAffSel" for="edit_affectation_selection" onclick="setEditAffMode('selection')">
+                <input type="radio" name="affectation_mode" id="edit_affectation_selection" value="selection" onchange="setEditAffMode('selection')">
+                <div>
+                  <div class="affectation-card-title small"><i class="bi bi-check2-square text-primary me-1"></i>Certains dossiers</div>
+                  <div class="affectation-card-desc">Sélection ciblée par cases à cocher.</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Liste ciblée -->
+            <div id="editContainerDossiersSelection" style="display: none;" class="p-3 rounded-3 border bg-light">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-bold text-dark">Territoires rattachés :</span>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary py-0" style="font-size: 11px;" onclick="toggleAllEditDossiers(true)">Tout cocher</button>
+                  <button type="button" class="btn btn-outline-secondary py-0" style="font-size: 11px;" onclick="toggleAllEditDossiers(false)">Tout décocher</button>
+                </div>
+              </div>
+
+              <div class="territory-checkbox-grid">
+                {% for d in available_dossiers %}
+                <label class="territory-checkbox-card" id="editTerritoryCard_{{ d.id }}" for="edit_dossier_{{ d.id }}">
+                  <input class="form-check-input edit-territory-cb" type="checkbox" name="dossier_ids" value="{{ d.id }}" id="edit_dossier_{{ d.id }}" onchange="handleEditTerritoryCheck(this)">
+                  <div class="territory-card-content">
+                    <div class="territory-card-title">
+                      <i class="bi bi-folder2-open text-primary me-1"></i>{{ d.nom }}
+                    </div>
+                    <div class="territory-card-meta">
+                      <span class="badge bg-white text-secondary border">{{ d.get_type_territoire_display }}</span>
+                    </div>
+                  </div>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Réinitialisation du Mot de passe (Optionnel) -->
+          <div>
+            <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;">
+              <i class="bi bi-key-fill text-warning me-1"></i>Modifier le mot de passe (Optionnel)
+            </h6>
+            <p class="text-muted small mb-2">Laissez ces champs vides si vous ne souhaitez pas modifier le mot de passe actuel.</p>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label for="edit_password" class="form-label small fw-semibold">Nouveau mot de passe</label>
+                <input type="password" class="form-control form-control-sm" id="edit_password" name="password" placeholder="Laisser vide si inchangé">
+              </div>
+              <div class="col-md-6">
+                <label for="edit_confirm_password" class="form-label small fw-semibold">Confirmer le mot de passe</label>
+                <input type="password" class="form-control form-control-sm" id="edit_confirm_password" name="confirm_password" placeholder="Répéter le mot de passe">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary btn-sm px-4">
+            <i class="bi bi-check-circle-fill me-1"></i>Enregistrer les modifications
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function setEditAccountType(type) {
+  const cardStd = document.getElementById('editCardAccountStandard');
+  const cardAdm = document.getElementById('editCardAccountAdmin');
+  if (cardStd && cardAdm) {
+    if (type === 'admin') {
+      cardStd.classList.remove('active');
+      cardAdm.classList.add('active');
+    } else {
+      cardAdm.classList.remove('active');
+      cardStd.classList.add('active');
+    }
+  }
+
+  const roleBoxAdmin = document.getElementById('editRoleBoxAdmin');
+  const roleBoxStandard = document.getElementById('editRoleBoxStandard');
+  const opInput = document.getElementById('edit_role_op');
+  const obsInput = document.getElementById('edit_role_obs');
+  const admInput = document.getElementById('edit_input_dossier_role_admin');
+
+  if (type === 'admin') {
+    if (roleBoxAdmin) roleBoxAdmin.style.display = 'block';
+    if (roleBoxStandard) roleBoxStandard.style.display = 'none';
+    if (opInput) opInput.disabled = true;
+    if (obsInput) obsInput.disabled = true;
+    if (admInput) admInput.disabled = false;
+  } else {
+    if (roleBoxAdmin) roleBoxAdmin.style.display = 'none';
+    if (roleBoxStandard) roleBoxStandard.style.display = 'block';
+    if (opInput) opInput.disabled = false;
+    if (obsInput) obsInput.disabled = false;
+    if (admInput) admInput.disabled = true;
+  }
+}
+
+function setEditDossierRole(role) {
+  const cardOp = document.getElementById('editCardRoleOp');
+  const cardObs = document.getElementById('editCardRoleObs');
+  if (cardOp && cardObs) {
+    if (role === 'observateur') {
+      cardOp.classList.remove('active');
+      cardObs.classList.add('active');
+    } else {
+      cardObs.classList.remove('active');
+      cardOp.classList.add('active');
+    }
+  }
+}
+
+function setEditAffMode(mode) {
+  const cardAll = document.getElementById('editCardAffAll');
+  const cardSel = document.getElementById('editCardAffSel');
+  const containerSel = document.getElementById('editContainerDossiersSelection');
+  const affAllRadio = document.getElementById('edit_affectation_all');
+  const affSelRadio = document.getElementById('edit_affectation_selection');
+
+  if (mode === 'all') {
+    if (affAllRadio) affAllRadio.checked = true;
+    if (affSelRadio) affSelRadio.checked = false;
+    if (cardAll) cardAll.classList.add('active');
+    if (cardSel) cardSel.classList.remove('active');
+    if (containerSel) containerSel.style.display = 'none';
+  } else {
+    if (affAllRadio) affAllRadio.checked = false;
+    if (affSelRadio) affSelRadio.checked = true;
+    if (cardAll) cardAll.classList.remove('active');
+    if (cardSel) cardSel.classList.add('active');
+    if (containerSel) containerSel.style.display = 'block';
+  }
+}
+
+function handleEditTerritoryCheck(cb) {
+  const card = document.getElementById('editTerritoryCard_' + cb.value);
+  if (card) {
+    card.classList.toggle('selected', cb.checked);
+  }
+}
+
+function toggleAllEditDossiers(checkAll) {
+  document.querySelectorAll('.edit-territory-cb').forEach(cb => {
+    cb.checked = checkAll;
+    handleEditTerritoryCheck(cb);
+  });
+}
+</script>

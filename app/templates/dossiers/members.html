@@ -1,160 +1,493 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Gestion de l'Équipe — {{ dossier.nom }}{% endblock %}
+{% block title %}Équipe & Membres — {{ dossier.nom }}{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dossiers.css' %}">
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Dossiers</a></li>
+<li class="breadcrumb-item"><a href="/{{ dossier.slug }}/dashboard/">{{ dossier.nom }}</a></li>
+<li class="breadcrumb-item active">Membres</li>
 {% endblock %}
 
 {% block content %}
-<div class="dossiers-container">
-  <!-- En-tête -->
-  <div class="dossiers-header">
-    <div class="header-left">
-      <a href="{% url 'dossiers:list' %}" class="btn-back">
-        <i class="bi bi-arrow-left"></i> Retour à la Galerie
-      </a>
-      <h1 class="gallery-title">Équipe & Affectations : {{ dossier.nom }}</h1>
-      <p class="gallery-subtitle">
-        Gérez les comptes autorisés à intervenir sur ce territoire et configurez leurs habilitations locales.
-      </p>
+
+<!-- ===== EN-TÊTE ===== -->
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+        <i class="bi bi-folder2-open me-1"></i>{{ dossier.nom }}
+      </span>
+      <span class="badge bg-light text-secondary border" style="font-size: 11px;">
+        {{ dossier.get_type_territoire_display }}
+      </span>
     </div>
-    <div class="header-right">
-      <div class="delegation-status">
-        <span class="delegation-label">Rôle assigneur autorisé :</span>
-        <span class="delegation-role badge bg-secondary">{{ dossier.role_gestionnaire_membres|upper }}</span>
+    <h1 class="page-title mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Équipe & Membres du Territoire</h1>
+    <p class="page-description text-muted mb-0">
+      Gouvernance des accès territoriaux, habilitations locales et gestion des intervenants sur cet espace.
+    </p>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="/{{ dossier.slug }}/dashboard/" class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-speedometer2"></i>
+      <span>Tableau de bord</span>
+    </a>
+    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAssignMember">
+      <i class="bi bi-person-plus-fill"></i>
+      <span>Affecter un Membre</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== KPI ROW ===== -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#eff6ff;">
+        <i class="bi bi-people-fill" style="color:#1E3A8A;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val">{{ total_members }}</div>
+        <div class="fon-kpi-lbl">Membres affectés</div>
+        <div class="fon-kpi-foot">Total sur ce dossier</div>
       </div>
     </div>
   </div>
 
-  <!-- Messages Flash -->
-  {% if messages %}
-  <div class="messages-stack">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fee2e2;">
+        <i class="bi bi-shield-fill" style="color:#DC2626;"></i>
+      </div>
+      <div>
+        <div class="fon-kpi-val" style="color:#DC2626;">{{ nb_admins }}</div>
+        <div class="fon-kpi-lbl">Administrateurs</div>
+        <div class="fon-kpi-foot">Gestion complète du territoire</div>
+      </div>
     </div>
-    {% endfor %}
   </div>
-  {% endif %}
 
-  <div class="members-layout">
-    <!-- Liste des membres actuels -->
-    <div class="members-card">
-      <div class="members-card-header">
-        <h3><i class="bi bi-people-fill"></i> Membres Actifs ({{ memberships.count }})</h3>
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#dcfce7;">
+        <i class="bi bi-geo-alt-fill" style="color:#16A34A;"></i>
       </div>
-      <div class="table-responsive">
-        <table class="table align-middle members-table">
-          <thead>
-            <tr>
-              <th>Utilisateur</th>
-              <th>Rôle Local</th>
-              <th>Assigné Par</th>
-              <th>Date d'affectation</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for m in memberships %}
-            <tr>
-              <td>
-                <div class="user-cell">
-                  <div class="user-avatar-circle">
-                    {{ m.user.username|make_list|first|upper }}
-                  </div>
-                  <div>
-                    <strong>{{ m.user.get_full_name|default:m.user.username }}</strong>
-                    <div class="text-muted small">@{{ m.user.username }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="role-badge role-{{ m.role }}">
-                  {{ m.get_role_display }}
-                </span>
-              </td>
-              <td>
-                {% if m.assigned_by %}
-                  <span class="text-muted small">
-                    <i class="bi bi-person-check"></i> {{ m.assigned_by.username }}
-                  </span>
-                {% else %}
-                  <span class="text-muted small">Système / Racine</span>
-                {% endif %}
-              </td>
-              <td>
-                <span class="text-muted small">{{ m.formatted_date_creation }}</span>
-              </td>
-              <td class="text-end">
-                {% if not m.user.is_superuser %}
-                <form action="{% url 'dossiers:revoke_member' slug=dossier.slug user_id=m.user.id %}" method="post" class="d-inline" onsubmit="return confirm('Confirmez-vous le retrait de l\'accès à ce dossier pour cet utilisateur ?');">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer l'accès">
-                    <i class="bi bi-person-dash"></i>
-                  </button>
-                </form>
-                {% else %}
-                <span class="badge bg-light text-muted">Superuser</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="5" class="text-center py-4 text-muted">
-                Aucun membre affecté pour le moment.
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div>
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_operateurs }}</div>
+        <div class="fon-kpi-lbl">Opérateurs SIG</div>
+        <div class="fon-kpi-foot">Saisie & enquêtes foncières</div>
       </div>
     </div>
+  </div>
 
-    <!-- Formulaire d'affectation d'un nouveau membre -->
-    <div class="assign-card">
-      <div class="members-card-header">
-        <h3><i class="bi bi-person-plus-fill"></i> Affecter un Compte</h3>
+  <div class="col-6 col-md-3">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fef3c7;">
+        <i class="bi bi-eye-fill" style="color:#D97706;"></i>
       </div>
-      <div class="assign-card-body">
-        {% if available_users %}
-        <form action="{% url 'dossiers:assign_member' slug=dossier.slug %}" method="post">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label for="user_id" class="form-label fw-bold">Sélectionner un collaborateur</label>
-            <select name="user_id" id="user_id" class="form-select" required>
-              <option value="">-- Choisir un utilisateur --</option>
-              {% for u in available_users %}
-              <option value="{{ u.id }}">
-                {{ u.get_full_name|default:u.username }} (@{{ u.username }})
-              </option>
-              {% endfor %}
-            </select>
-            <div class="form-text">Seuls les comptes actifs non encore affectés à ce dossier apparaissent.</div>
-          </div>
-
-          <div class="mb-3">
-            <label for="role" class="form-label fw-bold">Rôle dans ce dossier</label>
-            <select name="role" id="role" class="form-select" required>
-              <option value="observateur">Observateur (Consultation seule)</option>
-              <option value="operateur">Opérateur (Saisie SIG & Enquêtes)</option>
-              <option value="admin">Administrateur du Dossier</option>
-            </select>
-          </div>
-
-          <button type="submit" class="btn btn-primary w-100 mt-2">
-            <i class="bi bi-check2-circle"></i> Affecter au Dossier
-          </button>
-        </form>
-        {% else %}
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> Tous les utilisateurs actifs du système sont déjà rattachés à ce dossier.
-        </div>
-        {% endif %}
+      <div>
+        <div class="fon-kpi-val" style="color:#D97706;">{{ nb_observateurs }}</div>
+        <div class="fon-kpi-lbl">Observateurs</div>
+        <div class="fon-kpi-foot">Consultation & lecture seule</div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card">
+  <!-- En-tête avec filtres -->
+  <div class="table-card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="table-card-title">
+      <i class="bi bi-person-lines-fill text-primary"></i>
+      Membres du Dossier
+      <span class="count-pill">{{ memberships.count }} membre{{ memberships.count|pluralize }}</span>
+    </div>
+
+    <form method="get" class="filter-bar d-flex align-items-center gap-2">
+      <div class="input-group input-group-sm" style="width:220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
+        </span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Nom, email, identifiant…"
+          value="{{ q }}" style="font-size:12.5px;">
+      </div>
+
+      <select name="role" class="form-select form-select-sm" style="width:170px; font-size:12.5px;">
+        <option value="">Tous les rôles</option>
+        {% for key, label in roles %}
+        <option value="{{ key }}" {% if role_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
+      {% if q or role_filter %}
+      <a href="/{{ dossier.slug }}/membres/" class="btn btn-sm btn-outline-secondary" title="Réinitialiser les filtres">
+        <i class="bi bi-x-lg"></i>
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-responsive">
+    <table class="table table-uad mb-0" id="table-members">
+      <thead>
+        <tr>
+          <th>Membre</th>
+          <th>Email</th>
+          <th>Rôle Territorial</th>
+          <th>Affecté par</th>
+          <th>Date d'affectation</th>
+          <th>Statut Compte</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in memberships %}
+        <tr class="table-row-clickable" data-membership-id="{{ m.pk }}">
+          <!-- Avatar + Nom -->
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              <div class="u-av u-av-{{ m.role }}">
+                {% if m.user.photo %}
+                <img src="{{ m.user.photo.url }}" alt="{{ m.user.username }}">
+                {% else %}
+                {{ m.user.get_full_name|default:m.user.username|first|upper }}
+                {% endif %}
+              </div>
+              <div>
+                <div class="fw-semibold" style="font-size:13.5px; color:#1e293b;">
+                  {{ m.user.get_full_name|default:m.user.username }}
+                  {% if m.user.pk == request.user.pk %}
+                  <span class="you-badge">VOUS</span>
+                  {% endif %}
+                </div>
+                <div class="text-muted" style="font-size:11.5px;">@{{ m.user.username }}</div>
+              </div>
+            </div>
+
+            <!-- Payload JSON pour le SlideOver -->
+            <script id="memberData_{{ m.pk }}" type="application/json">
+            {
+              "membership_id": "{{ m.pk }}",
+              "user_id": {{ m.user.pk }},
+              "username": "{{ m.user.username|escapejs }}",
+              "full_name": "{{ m.user.get_full_name|default:m.user.username|escapejs }}",
+              "email": "{{ m.user.email|default:''|escapejs }}",
+              "telephone": "{{ m.user.telephone|default:''|escapejs }}",
+              "photo_url": "{% if m.user.photo %}{{ m.user.photo.url }}{% endif %}",
+              "role": "{{ m.role }}",
+              "role_display": "{{ m.get_role_display|escapejs }}",
+              "assigned_by": "{{ m.assigned_by.get_full_name|default:m.assigned_by.username|default:'Système / Racine'|escapejs }}",
+              "date_creation": "{{ m.date_creation|date:'d/m/Y H:i'|default:m.formatted_date_creation }}",
+              "is_active": {{ m.user.is_active|yesno:"true,false" }},
+              "is_superuser": {{ m.user.is_superuser|yesno:"true,false" }},
+              "is_current_user": {% if m.user.pk == request.user.pk %}true{% else %}false{% endif %}
+            }
+            </script>
+          </td>
+
+          <!-- Email -->
+          <td>
+            {% if m.user.email %}
+            <span style="font-size:13px; color:#475569;">{{ m.user.email }}</span>
+            {% else %}
+            <span class="text-muted fst-italic" style="font-size:12px;">Non renseigné</span>
+            {% endif %}
+          </td>
+
+          <!-- Rôle Local -->
+          <td>
+            <span class="role-pill role-{{ m.role }}">
+              {% if m.role == 'admin' %}
+              <i class="bi bi-shield-fill" style="font-size:9px;"></i>
+              {% elif m.role == 'operateur' %}
+              <i class="bi bi-geo-alt-fill" style="font-size:9px;"></i>
+              {% else %}
+              <i class="bi bi-eye-fill" style="font-size:9px;"></i>
+              {% endif %}
+              {{ m.get_role_display }}
+            </span>
+          </td>
+
+          <!-- Affecté par -->
+          <td>
+            <span class="text-muted small">
+              {% if m.assigned_by %}
+              <i class="bi bi-person-check me-1 text-primary"></i>{{ m.assigned_by.get_full_name|default:m.assigned_by.username }}
+              {% else %}
+              <i class="bi bi-gear me-1"></i>Système
+              {% endif %}
+            </span>
+          </td>
+
+          <!-- Date affectation -->
+          <td>
+            <span style="font-size:12.5px; color:#374151;">{{ m.date_creation|date:"d/m/Y" }}</span>
+          </td>
+
+          <!-- Statut compte -->
+          <td>
+            {% if m.user.is_active %}
+            <span class="statut-actif">
+              <i class="bi bi-circle-fill" style="font-size:7px;"></i> Actif
+            </span>
+            {% else %}
+            <span class="statut-inactif">
+              <i class="bi bi-circle" style="font-size:7px;"></i> Inactif
+            </span>
+            {% endif %}
+          </td>
+
+          <!-- Actions -->
+          <td class="text-end" onclick="event.stopPropagation();">
+            {% if not m.user.is_superuser %}
+            <form action="/{{ dossier.slug }}/membres/{{ m.user.pk }}/revoke/" method="post" class="d-inline" onsubmit="return confirm('Confirmez-vous le retrait de l\'accès à ce dossier pour {{ m.user.username }} ?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer l'accès au territoire">
+                <i class="bi bi-person-dash"></i>
+              </button>
+            </form>
+            {% else %}
+            <span class="badge bg-light text-muted border" style="font-size:10px;">Superuser</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state py-5 text-center">
+              <i class="bi bi-people fs-1 text-secondary opacity-50 d-block mb-2"></i>
+              <h6 class="fw-bold text-dark">Aucun membre trouvé</h6>
+              <p class="text-muted small mb-3">
+                {% if q or role_filter %}
+                Aucun membre ne correspond à vos critères de filtrage.
+                {% else %}
+                Aucun collaborateur n'est encore affecté à ce dossier territorial.
+                {% endif %}
+              </p>
+              <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalAssignMember">
+                <i class="bi bi-person-plus-fill me-1"></i>Affecter un premier membre
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== MODALE D'AFFECTATION D'UN MEMBRE ===== -->
+<div class="modal fade" id="modalAssignMember" tabindex="-1" aria-labelledby="modalAssignMemberLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow border-0 rounded-4">
+      <div class="modal-header border-bottom py-3 px-4">
+        <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="modalAssignMemberLabel">
+          <i class="bi bi-person-plus-fill text-primary"></i>
+          Affecter un Membre au Dossier
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      {% if available_users %}
+      <form action="/{{ dossier.slug }}/membres/assign/" method="post">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label for="user_id" class="form-label fw-bold small text-dark">Sélectionner un collaborateur</label>
+            <select name="user_id" id="user_id" class="form-select" required>
+              <option value="">-- Choisir un utilisateur --</option>
+              {% for u in available_users %}
+              <option value="{{ u.id }}">
+                {{ u.get_full_name|default:u.username }} (@{{ u.username }}) — {{ u.email|default:"Sans email" }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text" style="font-size: 11.5px;">
+              Seuls les comptes actifs non encore rattachés à « {{ dossier.nom }} » sont affichés.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-dark">Rôle et compétences dans ce territoire</label>
+            <div class="d-flex flex-column gap-2">
+              <div class="form-check p-3 rounded-3 border bg-light">
+                <input class="form-check-input" type="radio" name="role" id="role_observateur" value="observateur" checked>
+                <label class="form-check-label ms-2" for="role_observateur">
+                  <div class="fw-bold small text-dark"><i class="bi bi-eye text-warning me-1"></i>Observateur (Consultation seule)</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Peut visualiser la cartographie, les parcelles et les statistiques sans pouvoir modifier les données.</div>
+                </label>
+              </div>
+
+              <div class="form-check p-3 rounded-3 border bg-light">
+                <input class="form-check-input" type="radio" name="role" id="role_operateur" value="operateur">
+                <label class="form-check-label ms-2" for="role_operateur">
+                  <div class="fw-bold small text-dark"><i class="bi bi-geo-alt text-success me-1"></i>Opérateur SIG / Enquêteur</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Peut créer et éditer des parcelles, des habitations, des signalements et réaliser des enquêtes terrain.</div>
+                </label>
+              </div>
+
+              <div class="form-check p-3 rounded-3 border bg-light">
+                <input class="form-check-input" type="radio" name="role" id="role_admin" value="admin">
+                <label class="form-check-label ms-2" for="role_admin">
+                  <div class="fw-bold small text-dark"><i class="bi bi-shield-fill text-danger me-1"></i>Administrateur du Dossier</div>
+                  <div class="text-muted" style="font-size: 11.5px;">Accès complet : configuration des modules, gestion de l'équipe et suppression de données sur ce territoire.</div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top py-3 px-4">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary px-4 fw-semibold">
+            <i class="bi bi-check2-circle me-1"></i>Affecter au Dossier
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <div class="modal-body p-4 text-center">
+        <i class="bi bi-check-circle fs-1 text-success d-block mb-2"></i>
+        <h6 class="fw-bold text-dark">Tous les utilisateurs sont déjà membres</h6>
+        <p class="text-muted small mb-0">
+          Tous les comptes actifs de la plateforme sont actuellement affectés à cet espace de travail.
+        </p>
+      </div>
+      <div class="modal-footer border-top py-3 px-4">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof SlideOver === 'undefined') return;
+
+    SlideOver.bindTable('#table-members', function (row) {
+      const membershipId = row.dataset.membershipId;
+      const scriptEl = document.getElementById('memberData_' + membershipId);
+      if (!scriptEl) return null;
+
+      let m;
+      try {
+        m = JSON.parse(scriptEl.textContent);
+      } catch (e) {
+        console.error("Erreur de lecture des données du membre :", e);
+        return null;
+      }
+
+      // 1. Badge d'en-tête (Statut + Rôle)
+      let badgeHtml = `
+        <span class="role-pill role-${m.role} me-1">${m.role_display}</span>
+        <span class="${m.is_active ? 'statut-actif' : 'statut-inactif'}">
+          <i class="bi bi-circle${m.is_active ? '-fill' : ''}" style="font-size:7px;"></i> ${m.is_active ? 'Actif' : 'Inactif'}
+        </span>
+      `;
+
+      // 2. Corps du SlideOver
+      let bodyHtml = `
+        <!-- Identité & Avatar -->
+        <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+          <div class="u-av u-av-${m.role}" style="width:48px; height:48px; font-size:18px;">
+            ${m.photo_url ? `<img src="${m.photo_url}" alt="${m.username}">` : (m.full_name ? m.full_name[0].toUpperCase() : m.username[0].toUpperCase())}
+          </div>
+          <div>
+            <h5 class="mb-0 fw-bold text-dark">${m.full_name}</h5>
+            <div class="text-muted small">@${m.username} ${m.is_superuser ? '<span class="badge bg-danger ms-1">Super Administrateur</span>' : ''}</div>
+          </div>
+        </div>
+
+        <!-- Coordonnées -->
+        <div class="mb-4">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-envelope-at me-1"></i>Coordonnées
+          </h6>
+          <div class="p-3 rounded-3 border bg-white">
+            <div class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted small">Email professionnel :</span>
+              <span class="small fw-semibold text-dark">${m.email ? `<a href="mailto:${m.email}" class="text-decoration-none text-dark">${m.email}</a>` : '<span class="text-muted fst-italic">Non renseigné</span>'}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 pt-2">
+              <span class="text-muted small">Téléphone :</span>
+              <span class="small fw-semibold text-dark">${m.telephone || '<span class="text-muted fst-italic">Non renseigné</span>'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Traçabilité & Mandat -->
+        <div class="mb-4">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-clock-history me-1"></i>Traçabilité de l'Affectation
+          </h6>
+          <div class="p-3 rounded-3 border bg-white">
+            <div class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted small">Territoire :</span>
+              <span class="small fw-semibold text-dark">{{ dossier.nom|escapejs }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 border-bottom">
+              <span class="text-muted small">Affecté par :</span>
+              <span class="small fw-semibold text-dark">${m.assigned_by}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 pt-2">
+              <span class="text-muted small">Date d'affectation :</span>
+              <span class="small fw-semibold text-dark">${m.date_creation}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ajustement rapide du rôle territorial -->
+        <div class="mb-3">
+          <h6 class="text-uppercase text-muted fw-bold" style="font-size:11px; letter-spacing:0.05em; margin-bottom:10px;">
+            <i class="bi bi-sliders me-1"></i>Ajuster le Rôle sur ce Territoire
+          </h6>
+          <form action="/{{ dossier.slug }}/membres/assign/" method="post" class="p-3 rounded-3 border bg-light">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="${m.user_id}">
+            <div class="mb-3">
+              <select name="role" class="form-select form-select-sm" required>
+                <option value="observateur" ${m.role === 'observateur' ? 'selected' : ''}>Observateur (Consultation seule)</option>
+                <option value="operateur" ${m.role === 'operateur' ? 'selected' : ''}>Opérateur SIG / Enquêteur</option>
+                <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>Administrateur du Dossier</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary w-100">
+              <i class="bi bi-arrow-repeat me-1"></i>Mettre à jour le rôle
+            </button>
+          </form>
+        </div>
+      `;
+
+      // 3. Pied de page (Actions contextuelles)
+      let footerHtml = `
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="SlideOver.close()">Fermer</button>
+      `;
+
+      if (!m.is_superuser) {
+        footerHtml += `
+          <form action="/{{ dossier.slug }}/membres/${m.user_id}/revoke/" method="post" class="m-0" onsubmit="return confirm('Confirmez-vous le retrait de l\'accès à ce dossier pour cet utilisateur ?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-person-dash me-1"></i>Révoquer l'accès
+            </button>
+          </form>
+        `;
+      }
+
+      return {
+        title: m.full_name,
+        badgeHtml: badgeHtml,
+        bodyHtml: bodyHtml,
+        footerHtml: footerHtml
+      };
+    });
+  });
+</script>
 {% endblock %}

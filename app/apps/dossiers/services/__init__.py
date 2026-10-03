@@ -5,6 +5,12 @@ from .services_dossier import (
     configure_dossier_modules,
     delegate_dossier_role,
 )
+from .service_navigation import get_workspace_navigation
+from .services_terminology import (
+    get_term,
+    get_dossier_lexicon,
+    resolve_space_type,
+)
 
 __all__ = [
     'create_dossier',
@@ -12,4 +18,8 @@ __all__ = [
     'revoke_user_from_dossier',
     'configure_dossier_modules',
     'delegate_dossier_role',
+    'get_workspace_navigation',
+    'get_term',
+    'get_dossier_lexicon',
+    'resolve_space_type',
 ]

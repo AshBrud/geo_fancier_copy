@@ -350,22 +350,49 @@ class Command(BaseCommand):
                 },
                 {
                     'code': Role.ROLE_STANDARD,
-                    'nom': 'Opérateur Standard',
-                    'description': 'Opérateur opérationnel de terrain ou instructeur. Accès strictement limité aux modules autorisés.',
+                    'nom': 'Plafond Type Standard',
+                    'description': 'Enveloppe maximale des prérogatives accordées aux comptes de type Standard.',
                     'is_canonical': True,
-                    # Habilitations de base en consultation
+                    'permissions': [
+                        p for code, p in perm_objects.items()
+                        if not (
+                            code.startswith('users:') or
+                            code.startswith('audit:') or
+                            code in {
+                                'dossier:delete', 'dossier:delegate_role', 'dossier:supervision',
+                                'dossier:create', 'dossier:configure_modules',
+                                'dossier:assign_members', 'dossier:revoke_members', 'dossier:update',
+                            }
+                        )
+                    ],
+                },
+                {
+                    'code': Role.ROLE_OPERATEUR,
+                    'nom': 'Opérateur SIG / Technicien',
+                    'description': 'Agent de terrain habilité à la consultation et à la saisie opérationnelle de données foncières.',
+                    'is_canonical': False,
                     'permissions': [
                         p for code, p in perm_objects.items()
                         if code in {
                             'dossier:view',
-                            'cadastre:view',
-                            'habitations:view',
-                            'signalements:view',
-                            'signalements:create',
-                            'drones:view',
-                            'urbanisme:view',
-                            'toponymie:view',
+                            'cadastre:view', 'cadastre:manage_parcelles', 'cadastre:manage_voiries',
+                            'cadastre:manage_zones', 'cadastre:manage_espaces_verts',
+                            'habitations:view', 'habitations:create', 'habitations:update',
+                            'signalements:view', 'signalements:create', 'signalements:manage',
+                            'drones:view', 'drones:upload_photos',
+                            'urbanisme:view', 'urbanisme:create_projet',
+                            'toponymie:view', 'toponymie:manage',
                         }
+                    ],
+                },
+                {
+                    'code': Role.ROLE_OBSERVATEUR,
+                    'nom': 'Observateur (Consultation)',
+                    'description': 'Profil en consultation seule des données et cartographies territoriales.',
+                    'is_canonical': False,
+                    'permissions': [
+                        p for code, p in perm_objects.items()
+                        if code.endswith(':view') and not (code.startswith('users:') or code.startswith('audit:'))
                     ],
                 },
             ]

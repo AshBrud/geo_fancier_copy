@@ -4,7 +4,9 @@ from . import views
 app_name = 'territoire'
 
 urlpatterns = [
+    path('', views.cartographie, name='index'),
     path('cartographie/', views.cartographie, name='cartographie'),
+    path('carte/', views.cartographie, name='carte'),
     path('espaces/', views.espaces_list, name='espaces'),
     path('espaces/campus/', views.campus_detail, name='campus_detail'),
     path('espaces/ajouter/', views.espace_create, name='espace_create'),
@@ -21,6 +23,7 @@ urlpatterns = [
     path('suivi-travaux/<int:pk>/modifier/', views.suivi_travaux_update, name='suivi_travaux_update'),
 
     path('terrains/', views.terrains_list, name='terrains'),
+    path('parcelles/', views.terrains_list, name='parcelles'),
     path('terrains/ajouter/', views.terrain_create, name='terrain_create'),
     path('terrains/<int:pk>/', views.terrain_detail, name='terrain_detail'),
     path('terrains/<int:pk>/modifier/', views.terrain_update, name='terrain_update'),
@@ -33,6 +36,7 @@ urlpatterns = [
     path('espaces-verts/<int:pk>/supprimer/', views.espace_vert_delete, name='espace_vert_delete'),
 
     path('voiries/', views.voiries_list, name='voiries'),
+    path('voirie/', views.voiries_list, name='voirie'),
     path('voiries/ajouter/', views.voirie_create, name='voirie_create'),
     path('voiries/<int:pk>/', views.voirie_detail, name='voirie_detail'),
     path('voiries/<int:pk>/modifier/', views.voirie_update, name='voirie_update'),

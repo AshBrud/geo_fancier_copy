@@ -3,7 +3,7 @@
 {% block title %}Connexion — GéoFoncier NGOGOM_UAD{% endblock %}
 
 {% block auth_content %}
-<div style="display:contents">
+<div style="display:contents" x-data="loginFlow()">
 
   <!-- Panneau gauche unifié (50% largeur, drone, branding, KPIs, tickers) -->
   {% include 'accounts/auth/components/_left_panel.html' %}
@@ -11,99 +11,151 @@
   <!-- Panneau droit (50% largeur, formulaire centré) -->
   <div class="auth-right-panel">
 
-    <!-- <div class="auth-right-logos">
-      <img src="{% static 'images/logo_ngogom.jpg' %}" alt="Logo de la commune de Ngogom"
-        class="auth-right-logo-ngogom">
-    </div> -->
-
-    <!-- <div class="auth-right-brand">
-      <h2>Géo<span style="color:#1e3a8a; font-weight:900;">Foncier</span> <span
-          style="font-size:14px; color:#94a3b8; font-weight:500;">NGOGOM_UAD</span></h2>
-      <p>Système d'Information Géographique</p>
-    </div> -->
-
     <div class="auth-card-box">
 
-      <div class="auth-card-header">
-        <!-- <div class="auth-card-icon login-icon">
-          <i class="bi bi-box-arrow-in-right"></i>
-        </div> -->
-        <div class="auth-card-header-text">
-          <h2>Connexion</h2>
-          <p>Accédez à votre espace de gestion foncière</p>
-        </div>
-      </div>
-
-      {% if messages %}
-      {% for msg in messages %}
-      <div class="auth-alert mb-3">
-        <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
-      </div>
-      {% endfor %}
-      {% endif %}
-
-      {% if user.is_authenticated %}
-      <div class="auth-alert mb-3">
-        <i class="bi bi-person-check-fill flex-shrink-0"></i>
-        <div>
-          Session ouverte : <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ user.get_role_display
-          }}).
-          Ce n'est pas vous ? Connectez-vous ci-dessous avec <strong>votre propre compte</strong>.
-          <a href="{{ next|default:'/dashboard/' }}">Continuer en tant que {{ user.username }}</a>
-        </div>
-      </div>
-      {% endif %}
-
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-
-        <div class="auth-field">
-          <label>Téléphone ou nom d'utilisateur</label>
-          <div class="auth-input-wrap">
-            <i class="bi bi-person field-icon"></i>
-            <input type="text" name="username" placeholder="77 123 45 67 ou identifiant"
-              value="{{ form.username.value|default:'' }}" class="{% if form.username.errors %}is-invalid{% endif %}"
-              autofocus required>
-          </div>
-          {% if form.username.errors %}
-          <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
-          {% endif %}
-        </div>
-
-        <div class="auth-field">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="mb-0">Mot de passe</label>
-            <a href="{% url 'accounts:password_reset' %}" class="auth-forgot-link">
-              <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
-            </a>
-          </div>
-          <div class="auth-input-wrap">
-            <i class="bi bi-lock field-icon"></i>
-            <input type="password" name="password" id="pwdLogin" placeholder="••••••••"
-              class="{% if form.password.errors %}is-invalid{% endif %}" required>
-            <button type="button" class="toggle-eye" id="toggleLogin">
-              <i class="bi bi-eye" id="eyeLogin"></i>
-            </button>
+      <!-- ========================================== -->
+      <!-- ÉTAPE 1 : CONNEXION CLASSIQUE              -->
+      <!-- ========================================== -->
+      <div x-show="step === 'login'" x-transition:enter.duration.300ms>
+        <div class="auth-card-header">
+          <div class="auth-card-header-text">
+            <h2>Connexion</h2>
+            <p>Accédez à votre espace de gestion foncière</p>
           </div>
         </div>
 
-        {% if form.non_field_errors %}
-        <div class="auth-alert">
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="auth-alert mb-3">
+          <i class="bi bi-info-circle-fill flex-shrink-0"></i> {{ msg }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <div x-show="errorMessage" x-cloak class="auth-alert mb-3" style="background:#fef2f2; color:#b91c1c; border-color:#fecaca;">
           <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-          Identifiant ou mot de passe incorrect.
+          <span x-text="errorMessage"></span>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="auth-alert mb-3">
+          <i class="bi bi-person-check-fill flex-shrink-0"></i>
+          <div>
+            Session ouverte : <strong>{{ user.get_full_name|default:user.username }}</strong> ({{ user.get_role_display }}).
+            Ce n'est pas vous ? Connectez-vous ci-dessous avec <strong>votre propre compte</strong>.
+            <a href="{{ next|default:'/dossiers/' }}">Continuer en tant que {{ user.username }}</a>
+          </div>
         </div>
         {% endif %}
 
-        <button type="submit" class="auth-btn btn-login">
-          Se connecter
-        </button>
-      </form>
+        <form @submit.prevent="submitLogin()" method="post" novalidate>
+          {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-      <!-- <div class="auth-switch-link">
-        Pas encore de compte ?
-        <a href="{% url 'accounts:register' %}">Créer un compte</a>
-      </div> -->
+          <div class="auth-field">
+            <label>Nom d'utilisateur ou adresse email</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-person field-icon"></i>
+              <input type="text" name="username" x-model="username" placeholder="Identifiant ou email"
+                class="{% if form.username.errors %}is-invalid{% endif %}"
+                autofocus required>
+            </div>
+            {% if form.username.errors %}
+            <div class="auth-invalid-msg"><i class="bi bi-exclamation-circle"></i> {{ form.username.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="auth-field">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0">Mot de passe</label>
+              <a href="{% url 'accounts:password_reset' %}" class="auth-forgot-link">
+                <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+              </a>
+            </div>
+            <div class="auth-input-wrap">
+              <i class="bi bi-lock field-icon"></i>
+              <input :type="showPassword ? 'text' : 'password'" name="password" x-model="password" id="pwdLogin" placeholder="••••••••" required>
+              <button type="button" class="toggle-eye" @click="showPassword = !showPassword">
+                <i class="bi" :class="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="auth-btn btn-login" :disabled="loading">
+            <span x-show="!loading"><i class="bi bi-box-arrow-in-right me-1"></i> Se connecter</span>
+            <span x-show="loading"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Connexion en cours...</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ÉTAPE 2 : CHANGEMENT OBLIGATOIRE DE MOT DE PASSE -->
+      <!-- ========================================== -->
+      <div x-show="step === 'must_change_password'" x-cloak x-transition:enter.duration.300ms>
+        <div class="auth-card-header">
+          <div class="auth-card-header-text">
+            <h2>Nouveau mot de passe</h2>
+            <p>Sécurisation obligatoire de votre accès</p>
+          </div>
+        </div>
+
+        <!-- Notification de gouvernance sécurisée -->
+        <div class="p-3 rounded-3 mb-3 border" style="background:#fef3c7; border-color:#fde68a !important; color:#92400e; font-size:12.5px; line-height:1.45;">
+          <div class="d-flex align-items-center gap-2 mb-1 fw-bold">
+            <i class="bi bi-shield-lock-fill text-warning fs-6"></i>
+            <span>Bienvenue, <span x-text="userDisplay"></span></span>
+          </div>
+          <span>Votre compte a été initialisé avec un mot de passe temporaire. Vous devez obligatoirement choisir votre propre mot de passe secret avant d'accéder au système.</span>
+        </div>
+
+        <div x-show="errorMessage" x-cloak class="auth-alert mb-3" style="background:#fef2f2; color:#b91c1c; border-color:#fecaca;">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+          <span x-text="errorMessage"></span>
+        </div>
+
+        <div x-show="successMessage" x-cloak class="auth-alert mb-3" style="background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">
+          <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+          <span x-text="successMessage"></span>
+        </div>
+
+        <form @submit.prevent="submitNewPassword()" method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="auth-field">
+            <label>Nouveau mot de passe secret</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-key field-icon"></i>
+              <input :type="showNewPassword ? 'text' : 'password'" x-model="newPassword" placeholder="Au moins 6 caractères" required minlength="6" autofocus>
+              <button type="button" class="toggle-eye" @click="showNewPassword = !showNewPassword">
+                <i class="bi" :class="showNewPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label>Confirmer le mot de passe</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-check2-circle field-icon"></i>
+              <input :type="showConfirmPassword ? 'text' : 'password'" x-model="confirmPassword" placeholder="Retapez le mot de passe" required>
+              <button type="button" class="toggle-eye" @click="showConfirmPassword = !showConfirmPassword">
+                <i class="bi" :class="showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+            <div x-show="confirmPassword && newPassword !== confirmPassword" class="text-danger mt-1 small">
+              <i class="bi bi-x-circle me-1"></i>Les mots de passe ne correspondent pas.
+            </div>
+          </div>
+
+          <button type="submit" class="auth-btn btn-login mb-2" :disabled="loading || newPassword.length < 6 || newPassword !== confirmPassword">
+            <span x-show="!loading"><i class="bi bi-shield-check me-1"></i> Enregistrer et continuer</span>
+            <span x-show="loading"><span class="spinner-border spinner-border-sm me-1" role="status"></span> Enregistrement...</span>
+          </button>
+
+          <button type="button" class="btn btn-link w-100 text-decoration-none text-muted py-2" style="font-size:12.5px;" @click="step = 'login'; errorMessage = ''">
+            <i class="bi bi-arrow-left me-1"></i> Revenir à la connexion
+          </button>
+        </form>
+      </div>
 
     </div>
 
@@ -112,12 +164,126 @@
 </div>
 
 <script>
-  document.getElementById('toggleLogin').addEventListener('click', function () {
-    const p = document.getElementById('pwdLogin');
-    const i = document.getElementById('eyeLogin');
-    p.type = p.type === 'password' ? 'text' : 'password';
-    i.classList.toggle('bi-eye');
-    i.classList.toggle('bi-eye-slash');
-  });
+  function loginFlow() {
+    return {
+      step: '{% if force_change_step %}must_change_password{% else %}login{% endif %}',
+      username: '{{ form.username.value|default:''|escapejs }}',
+      password: '',
+      newPassword: '',
+      confirmPassword: '',
+      showPassword: false,
+      showNewPassword: false,
+      showConfirmPassword: false,
+      userDisplay: '{% if force_user %}{{ force_user.get_full_name|default:force_user.username|escapejs }}{% endif %}',
+      roleDisplay: '{% if force_user %}{{ force_user.get_role_display|escapejs }}{% endif %}',
+      loading: false,
+      errorMessage: '',
+      successMessage: '',
+
+      getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+      },
+
+      async submitLogin() {
+        if (!this.username || !this.password) return;
+        this.loading = true;
+        this.errorMessage = '';
+
+        try {
+          const formData = new FormData();
+          formData.append('csrfmiddlewaretoken', this.getCsrfToken());
+          formData.append('username', this.username);
+          formData.append('password', this.password);
+          formData.append('action', 'login');
+          formData.append('next', '{{ next|escapejs }}');
+          formData.append('ajax', '1');
+
+          const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json'
+            },
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.ok) {
+            this.errorMessage = data.error || "Identifiant ou mot de passe incorrect.";
+            this.loading = false;
+            return;
+          }
+
+          if (data.must_change_password) {
+            this.userDisplay = data.user_display;
+            this.roleDisplay = data.role_display;
+            this.step = 'must_change_password';
+            this.password = '';
+            this.loading = false;
+            return;
+          }
+
+          if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+          }
+        } catch (err) {
+          console.error("Erreur connexion :", err);
+          this.errorMessage = "Une erreur réseau est survenue. Veuillez réessayer.";
+          this.loading = false;
+        }
+      },
+
+      async submitNewPassword() {
+        if (this.newPassword.length < 6) {
+          this.errorMessage = "Le mot de passe doit comporter au moins 6 caractères.";
+          return;
+        }
+        if (this.newPassword !== this.confirmPassword) {
+          this.errorMessage = "Les deux mots de passe ne correspondent pas.";
+          return;
+        }
+
+        this.loading = true;
+        this.errorMessage = '';
+
+        try {
+          const formData = new FormData();
+          formData.append('csrfmiddlewaretoken', this.getCsrfToken());
+          formData.append('action', 'set_new_password');
+          formData.append('new_password', this.newPassword);
+          formData.append('confirm_password', this.confirmPassword);
+          formData.append('next', '{{ next|escapejs }}');
+          formData.append('ajax', '1');
+
+          const response = await fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json'
+            },
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data.ok) {
+            this.errorMessage = data.error || "Impossible de mettre à jour le mot de passe.";
+            this.loading = false;
+            return;
+          }
+
+          this.successMessage = "Mot de passe sécurisé avec succès ! Redirection en cours...";
+          setTimeout(() => {
+            window.location.href = data.redirect_url || '/dossiers/';
+          }, 500);
+        } catch (err) {
+          console.error("Erreur nouveau mot de passe :", err);
+          this.errorMessage = "Une erreur réseau est survenue. Veuillez réessayer.";
+          this.loading = false;
+        }
+      }
+    };
+  }
 </script>
 {% endblock %}

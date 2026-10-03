@@ -17,13 +17,13 @@ def get_active_dossiers() -> QuerySet[Dossier]:
 def get_accessible_dossiers_for_user(user) -> QuerySet[Dossier]:
     """
     Retourne la liste des dossiers auxquels un utilisateur a légitimement accès :
-    - Superuser : accès souverain à TOUS les dossiers actifs.
+    - Superuser ou acces_tous_territoires : accès souverain à TOUS les dossiers actifs.
     - Admin ou Standard : accès restreint aux dossiers avec adhésion formelle (DossierMembership).
     """
     if not user or not user.is_authenticated:
         return Dossier.objects.none()
 
-    if user.is_superuser:
+    if user.is_superuser or getattr(user, 'acces_tous_territoires', False):
         return get_active_dossiers()
 
     return Dossier.objects.filter(
@@ -46,7 +46,15 @@ def get_user_membership(user, dossier: Dossier) -> Optional[DossierMembership]:
     """Récupère l'adhésion d'un utilisateur à un dossier précis."""
     if not user or not user.is_authenticated or not dossier:
         return None
-    return DossierMembership.objects.filter(user=user, dossier=dossier).select_related('user', 'assigned_by').first()
+    membership = DossierMembership.objects.filter(user=user, dossier=dossier).select_related('user', 'assigned_by').first()
+    if not membership and getattr(user, 'acces_tous_territoires', False):
+        role = 'admin' if user.role == 'admin' else 'operateur'
+        membership, _ = DossierMembership.objects.get_or_create(
+            user=user,
+            dossier=dossier,
+            defaults={'role': role, 'assigned_by': user.created_by}
+        )
+    return membership
 
 
 def get_dossier_members(dossier: Dossier) -> QuerySet[DossierMembership]:

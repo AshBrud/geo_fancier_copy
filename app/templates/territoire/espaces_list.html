@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
-{% block title %}Espaces Fonciers{% endblock %}
+{% load crispy_forms_tags %}
+{% block title %}Espaces Fonciers — {{ active_dossier.nom|default:"Territoire" }}{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="#">Gestion Foncière</a></li>
-<li class="breadcrumb-item active">Espaces</li>
+<li class="breadcrumb-item"><a href="/{{ active_dossier.slug }}/dashboard/">{{ active_dossier.nom|default:"Territoire" }}</a></li>
+<li class="breadcrumb-item active">Espaces & Zones</li>
 {% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="/static/css/slideover.css">
 <style>
+  .clickable-row { cursor: pointer; transition: background-color 0.15s ease-in-out; }
+  .clickable-row:hover { background-color: #f8fafc !important; }
+
   /* ── KPI cards ─────────────────────────────────────────────────────── */
   .fon-kpi {
     background: #fff;
@@ -247,10 +252,11 @@
       <a href="{% url 'territoire:cartographie' %}?focus=campus" class="btn btn-outline-primary btn-sm">
         <i class="bi bi-map me-1"></i>Voir le Campus
       </a>
-      {% if user.is_domaine_foncier %}
-      <a href="{% url 'territoire:espace_create' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Ajouter un sous-espace
-      </a>
+      {% if user.is_domaine_foncier or user.is_admin %}
+      <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-espace-create">
+        <i class="bi bi-plus-lg"></i>
+        <span>Nouveau sous-espace</span>
+      </button>
       {% endif %}
     </div>
   </div>
@@ -373,7 +379,7 @@
         onchange="this.form.submit()">
         <option value="">Tous les types</option>
         {% for t_key, t_label in types %}
-        <option value="{{ t_key }}" {% if type_filter==t_key %}selected{% endif %}>{{ t_label }}</option>
+        <option value="{{ t_key }}" {% if type_filter == t_key %}selected{% endif %}>{{ t_label }}</option>
         {% endfor %}
       </select>
       <button type="submit" class="btn btn-sm btn-primary px-3">
@@ -424,7 +430,23 @@
       </thead>
       <tbody>
         {% for esp in page_obj %}
-        <tr class="tr-{{ esp.type_espace }}">
+        <tr class="tr-{{ esp.type_espace }} clickable-row"
+            data-nom="{{ esp.nom }}"
+            data-code="{{ esp.code }}"
+            data-type="{{ esp.get_type_espace_display }}"
+            data-type-code="{{ esp.type_espace }}"
+            data-superficie="{% if esp.superficie %}{{ esp.superficie|floatformat:0 }} m² ({{ esp.superficie_ha }} ha){% else %}—{% endif %}"
+            data-taux-max="{{ esp.taux_occupation }}%"
+            data-cap-constructible="{% if esp.cap_constructible is not None %}{{ esp.cap_constructible|floatformat:0 }} m²{% else %}—{% endif %}"
+            data-cap-engagee="{% if esp.cap_engagee is not None %}{{ esp.cap_engagee|floatformat:0 }} m²{% else %}—{% endif %}"
+            data-cap-nette="{% if esp.cap_nette is not None %}{{ esp.cap_nette|floatformat:0 }} m²{% else %}—{% endif %}"
+            data-cap-pct="{{ esp.cap_pct|default:0 }}"
+            data-cap-niveau="{{ esp.cap_niveau|default:'secondary' }}"
+            data-usage="{{ esp.usage|default:'—' }}"
+            data-description="{{ esp.description|default:'Aucune description' }}"
+            data-detail-url="{% url 'territoire:espace_detail' esp.pk %}"
+            data-update-url="{% url 'territoire:espace_update' esp.pk %}"
+            data-delete-url="{% url 'territoire:espace_delete' esp.pk %}">
 
           <!-- Code -->
           <td>
@@ -434,10 +456,7 @@
 
           <!-- Nom -->
           <td>
-            <a href="{% url 'territoire:espace_detail' esp.pk %}" class="fw-semibold text-dark text-decoration-none"
-              style="font-size:13.5px;">
-              {{ esp.nom }}
-            </a>
+            <span class="fw-semibold text-dark" style="font-size:13.5px;">{{ esp.nom }}</span>
             {% if esp.description %}
             <div class="text-muted"
               style="font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">
@@ -481,8 +500,7 @@
               <div class="cap-bar cap-{{ esp.cap_niveau }}" style="width:{{ esp.cap_pct }}%;"></div>
             </div>
             <div style="font-size:10px; color:#94a3b8; margin-top:3px;">
-              {{ esp.cap_nette|floatformat:0 }} m² nets · {{ esp.nb_constructions }} demande{{
-              esp.nb_constructions|pluralize }}
+              {{ esp.cap_nette|floatformat:0 }} m² nets · {{ esp.nb_constructions }} demande{{ esp.nb_constructions|pluralize }}
             </div>
             {% else %}
             <span class="text-muted" style="font-size:12px;">—</span>
@@ -495,13 +513,13 @@
           </td>
 
           <!-- Actions -->
-          <td class="text-center">
+          <td class="text-center" onclick="event.stopPropagation();">
             <div class="d-flex gap-1 justify-content-center">
               <a href="{% url 'territoire:espace_detail' esp.pk %}" class="btn btn-icon btn-outline-info btn-sm"
-                data-bs-toggle="tooltip" title="Voir le détail">
+                data-bs-toggle="tooltip" title="Fiche complète">
                 <i class="bi bi-eye"></i>
               </a>
-              {% if user.is_domaine_foncier %}
+              {% if user.is_domaine_foncier or user.is_admin %}
               <a href="{% url 'territoire:espace_update' esp.pk %}" class="btn btn-icon btn-outline-primary btn-sm"
                 data-bs-toggle="tooltip" title="Modifier">
                 <i class="bi bi-pencil"></i>
@@ -566,4 +584,134 @@
   {% endif %}
 
 </div>
+
+<!-- =========================================================================
+     MODALE DE CRÉATION DIRECTE (Zero-Page Create)
+     ========================================================================= -->
+{% if creation_form %}
+<div class="modal fade" id="modal-espace-create" tabindex="-1" aria-labelledby="modalEspaceCreateLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-bottom py-3 px-4 bg-light">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-grid-3x3-gap-fill text-primary fs-5"></i>
+          <h5 class="modal-title fw-bold text-dark" id="modalEspaceCreateLabel">Ajouter un Sous-Espace Foncier</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <form method="post" action=".">
+        {% csrf_token %}
+        <input type="hidden" name="submit_espace" value="1">
+
+        <div class="modal-body p-4">
+          <div class="alert alert-info py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <div>Ce sous-espace sera rattaché au périmètre du <strong>{{ campus.nom|default:active_dossier.nom }}</strong>. La superficie UTM 28N et la saturation constructible seront déduites automatiquement.</div>
+          </div>
+
+          {{ creation_form|crispy }}
+        </div>
+
+        <div class="modal-footer border-top py-3 px-4 bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check-lg me-1"></i> Enregistrer le sous-espace
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/slideover.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  SlideOver.bindTable('.table-uad', function (row) {
+    const d = row.dataset;
+
+    const badgeHtml = `<span class="badge-espace badge-${d.typeCode}">${d.type}</span>`;
+
+    const bodyHtml = `
+      <div class="slideover-card">
+        <div class="slideover-section-title">Métriques Spatiales</div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Code Répertoire</span>
+          <span class="slideover-kv-val fw-bold">${d.code}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Superficie brute</span>
+          <span class="slideover-kv-val text-primary fw-bold">${d.superficie}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Taux constructible max</span>
+          <span class="slideover-kv-val">${d.tauxMax}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Usage déclaré</span>
+          <span class="slideover-kv-val">${d.usage}</span>
+        </div>
+      </div>
+
+      <div class="slideover-card">
+        <div class="slideover-section-title">Bilan de Capacité Constructible</div>
+        <div class="d-flex justify-content-between align-items-center mb-1 small">
+          <span class="text-muted">Consommation :</span>
+          <span class="fw-bold text-${d.capNiveau}">${d.capPct}%</span>
+        </div>
+        <div class="progress mb-3" style="height: 8px;">
+          <div class="progress-bar bg-${d.capNiveau}" role="progressbar" style="width: ${d.capPct}%;"></div>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Capacité autorisée</span>
+          <span class="slideover-kv-val">${d.capConstructible}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Superficie allouée</span>
+          <span class="slideover-kv-val text-warning">${d.capEngagee}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Disponibilité nette</span>
+          <span class="slideover-kv-val text-success fw-bold">${d.capNette}</span>
+        </div>
+      </div>
+
+      <div class="slideover-card">
+        <div class="slideover-section-title">Description</div>
+        <p class="text-muted small mb-0" style="white-space: pre-wrap;">${d.description}</p>
+      </div>
+    `;
+
+    const footerHtml = `
+      <div class="d-flex gap-2 w-100 justify-content-between align-items-center">
+        <a href="${d.detailUrl}" class="btn btn-sm btn-outline-info">
+          <i class="bi bi-eye me-1"></i> Fiche complète
+        </a>
+        <div class="d-flex gap-2">
+          {% if user.is_domaine_foncier or user.is_admin %}
+          <a href="${d.deleteUrl}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cet espace ?');">
+            <i class="bi bi-trash me-1"></i> Supprimer
+          </a>
+          <a href="${d.updateUrl}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Modifier
+          </a>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-secondary" onclick="SlideOver.close();">Fermer</button>
+        </div>
+      </div>
+    `;
+
+    return {
+      title: d.nom,
+      badgeHtml: badgeHtml,
+      bodyHtml: bodyHtml,
+      footerHtml: footerHtml
+    };
+  });
+});
+</script>
 {% endblock %}

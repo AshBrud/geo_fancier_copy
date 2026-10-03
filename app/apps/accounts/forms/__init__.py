@@ -1,12 +1,14 @@
 from .forms_auth import LoginForm
 from .forms_admin import AdminCreationForm
-from .forms_user import StandardUserCreationForm, UserUpdateForm, ProfileForm, RegisterForm
+from .forms_user import StandardUserCreationForm, UnifiedUserCreationForm, UserUpdateForm, UserUpdateModalForm, ProfileForm, RegisterForm
 
 __all__ = [
     'LoginForm',
     'AdminCreationForm',
     'StandardUserCreationForm',
+    'UnifiedUserCreationForm',
     'UserUpdateForm',
+    'UserUpdateModalForm',
     'ProfileForm',
     'RegisterForm',
 ]

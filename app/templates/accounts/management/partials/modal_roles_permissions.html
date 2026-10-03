@@ -1,0 +1,411 @@
+<!-- ===== MODALE DE GESTION DE LA MATRICE DES RÔLES & PERMISSIONS RBAC (ALPINE.JS REACTIF) ===== -->
+<div class="modal fade" id="modalRolesPermissions" tabindex="-1" aria-labelledby="modalRolesPermissionsLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <form action="{% url 'accounts:roles_matrix_manage' %}" method="POST" id="formRolesMatrix"
+      class="modal-content rounded-4 border-0 shadow-lg"
+      x-data="rolesMatrixManager()">
+      {% csrf_token %}
+      <input type="hidden" name="target_role" :value="currentRole">
+
+      <!-- En-tête de la modale -->
+      <div class="modal-header border-bottom px-4 pt-4 pb-3">
+        <div>
+          <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="modalRolesPermissionsLabel">
+            <i class="bi bi-shield-check text-primary"></i> Matrice des Rôles & Permissions RBAC
+          </h5>
+          <p class="text-muted small mb-0">
+            Gouvernance descendante : Configurez les habilitations atomiques par type de compte et rôle territorial.
+          </p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <div class="modal-body p-4">
+
+        <!-- 1. SÉLECTEUR DE RÔLE CIBLE -->
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-dark mb-2 text-uppercase"
+            style="font-size:11px; letter-spacing:0.05em;">
+            1. Sélectionnez le profil à configurer :
+          </label>
+          <div class="role-matrix-selector">
+
+            <!-- Rôle Opérateur SIG (Standard) -->
+            <div class="role-matrix-card"
+              :class="{ 'active': currentRole === 'operateur' }"
+              @click="selectRole('operateur')">
+              <div class="role-matrix-title">
+                <i class="bi bi-person-gear text-primary"></i> Opérateur SIG
+              </div>
+              <div class="role-matrix-desc">Collaborateur de terrain habilité à la saisie foncière.</div>
+              <span class="role-matrix-badge bg-primary-subtle text-primary border border-primary-subtle">
+                Type : Standard · Rôle local : operateur
+              </span>
+            </div>
+
+            <!-- Rôle Observateur (Standard) -->
+            <div class="role-matrix-card"
+              :class="{ 'active': currentRole === 'observateur' }"
+              @click="selectRole('observateur')">
+              <div class="role-matrix-title">
+                <i class="bi bi-eye text-secondary"></i> Observateur
+              </div>
+              <div class="role-matrix-desc">Consultation seule des données et cartographies.</div>
+              <span class="role-matrix-badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                Type : Standard · Rôle local : observateur
+              </span>
+            </div>
+
+            <!-- Rôle Administrateur Territorial -->
+            <div class="role-matrix-card {% if not is_super %}disabled{% endif %}"
+              :class="{ 'active': currentRole === 'admin' }"
+              @click="{% if is_super %}selectRole('admin'){% else %}void(0){% endif %}">
+              <div class="role-matrix-title">
+                <i class="bi bi-shield-fill text-danger"></i> Administrateur Territorial
+                {% if not is_super %}
+                <i class="bi bi-lock-fill text-muted ms-auto" title="Réservé au Super Administrateur"></i>
+                {% endif %}
+              </div>
+              <div class="role-matrix-desc">Gestion des membres, des dossiers et configuration métier.</div>
+              <span
+                class="role-matrix-badge {% if is_super %}bg-danger-subtle text-danger border border-danger-subtle{% else %}bg-light text-muted border{% endif %}">
+                Type : Admin · {% if is_super %}Configurable{% else %}Verrouillé (Superuser){% endif %}
+              </span>
+            </div>
+
+            <!-- Rôle Plafond Standard (Superuser) -->
+            {% if is_super %}
+            <div class="role-matrix-card"
+              :class="{ 'active': currentRole === 'standard' }"
+              @click="selectRole('standard')">
+              <div class="role-matrix-title">
+                <i class="bi bi-bounding-box text-warning"></i> Plafond Standard
+              </div>
+              <div class="role-matrix-desc">Enveloppe maximale pour tous les rôles Standard.</div>
+              <span class="role-matrix-badge bg-warning-subtle text-warning border border-warning-subtle">
+                Plafond Global · Type : standard
+              </span>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+        <!-- Bannière explicative dynamique -->
+        <div class="alert alert-info border d-flex align-items-center justify-content-between py-2 px-3 rounded-3 mb-4">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+            <div>
+              <span class="small fw-bold text-dark" x-text="roleMeta[currentRole]?.name"></span>
+              <div class="text-muted" style="font-size:11.5px;" x-text="roleMeta[currentRole]?.desc"></div>
+            </div>
+          </div>
+          <span class="badge bg-white text-primary border fw-semibold" style="font-size:11px;"
+            x-text="activeCount + ' active(s)'"></span>
+        </div>
+
+        <!-- 2. RECHERCHE & CONTRÔLES RAPIDES -->
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+          <div class="input-group input-group-sm" style="max-width: 380px;">
+            <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control"
+              placeholder="Rechercher une permission ou un code..."
+              x-model="searchQuery">
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" @click="toggleAll(true)">
+              <i class="bi bi-check-all me-1"></i>Tout cocher
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @click="toggleAll(false)">
+              <i class="bi bi-x me-1"></i>Tout décocher
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. PANELS DE DOMAINES MÉTIER -->
+        <div id="permissionsContainer">
+          {% for domain_code, domain_data in permissions_by_domain.items %}
+          <div class="perm-domain-panel"
+            x-show="isDomainVisible([{% for p in domain_data.permissions %}{ nom: '{{ p.nom|escapejs }}', code: '{{ p.code }}' }{% if not forloop.last %},{% endif %}{% endfor %}])">
+            <div class="perm-domain-header">
+              <div class="perm-domain-title">
+                <i class="bi bi-folder2-open text-primary"></i>
+                <span>{{ domain_data.label }}</span>
+                <span class="count-pill">{{ domain_data.permissions|length }}</span>
+              </div>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-light border py-0 px-2" style="font-size:11px;"
+                  @click="toggleDomain([{% for p in domain_data.permissions %}'{{ p.code }}'{% if not forloop.last %},{% endif %}{% endfor %}], true)">
+                  Cocher l'ensemble
+                </button>
+                <button type="button" class="btn btn-light border py-0 px-2" style="font-size:11px;"
+                  @click="toggleDomain([{% for p in domain_data.permissions %}'{{ p.code }}'{% if not forloop.last %},{% endif %}{% endfor %}], false)">
+                  Décocher
+                </button>
+              </div>
+            </div>
+
+            <div class="perm-grid">
+              {% for p in domain_data.permissions %}
+              <div class="perm-card"
+                :class="{ 'is-active-perm': isPermGranted('{{ p.code }}'), 'is-locked': isPermLocked('{{ p.code }}') }"
+                x-show="matchesSearch('{{ p.nom|escapejs }}', '{{ p.code }}')">
+                <div class="form-check form-switch m-0 pt-1">
+                  <input class="form-check-input perm-switch" type="checkbox" name="permissions" value="{{ p.code }}"
+                    id="switch_{{ p.code }}"
+                    :checked="isPermGranted('{{ p.code }}')"
+                    :disabled="isPermLocked('{{ p.code }}')"
+                    @change="togglePerm('{{ p.code }}')">
+                </div>
+                <div class="perm-info">
+                  <label class="perm-name m-0" for="switch_{{ p.code }}">
+                    {{ p.nom }}
+                    <span class="perm-code-badge">{{ p.code }}</span>
+                  </label>
+                  {% if p.description %}
+                  <div class="perm-desc">{{ p.description }}</div>
+                  {% endif %}
+                  <div class="perm-lock-notice text-danger small mt-1"
+                    x-show="isPermLocked('{{ p.code }}')"
+                    style="font-size:10.5px;">
+                    <i class="bi bi-shield-lock-fill me-1"></i><span x-text="getLockReason('{{ p.code }}')"></span>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- Pied de page -->
+      <div class="modal-footer border-top px-4 py-3 bg-light d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Fermer</button>
+        <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm" id="btnSaveMatrix">
+          <i class="bi bi-check-circle-fill me-1"></i>Enregistrer les permissions du rôle
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Données RBAC sérialisées en toute sécurité -->
+<script type="application/json" id="rolesMatrixJsonData">{{ roles_matrix_json|default:"{}"|safe }}</script>
+<script type="application/json" id="operatorPermsJsonData">{{ operator_perms_json|default:"[]"|safe }}</script>
+<div id="rbacConfigData" data-is-superuser="{% if is_super %}true{% else %}false{% endif %}" style="display:none;"></div>
+
+<script>
+  function rolesMatrixManager() {
+    const rolesMatrixRaw = JSON.parse(document.getElementById('rolesMatrixJsonData')?.textContent || '{}');
+    const operatorPermsRaw = JSON.parse(document.getElementById('operatorPermsJsonData')?.textContent || '[]');
+    const isSuper = document.getElementById('rbacConfigData')?.dataset.isSuperuser === 'true';
+
+    return {
+      currentRole: 'operateur',
+      rolesData: rolesMatrixRaw,
+      operatorPermsSet: new Set(operatorPermsRaw),
+      isSuperuser: isSuper,
+      searchQuery: '',
+
+      superuserExclusives: ['dossier:delete', 'dossier:delegate_role', 'dossier:supervision'],
+      adminExclusives: [
+        'audit:view', 'audit:export',
+        'users:view', 'users:create', 'users:update', 'users:deactivate', 'users:reset_password',
+        'dossier:create', 'dossier:delete', 'dossier:delegate_role', 'dossier:supervision', 'dossier:configure_modules',
+        'dossier:assign_members', 'dossier:revoke_members', 'dossier:update',
+      ],
+
+      allPermCodes: [
+        {% for domain_code, domain_data in permissions_by_domain.items %}
+          {% for p in domain_data.permissions %}"{{ p.code }}"{% if not forloop.last %},{% endif %}{% endfor %}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ],
+
+      roleMeta: {
+        'operateur': {
+          name: "Opérateur SIG / Technicien (Type Standard)",
+          desc: "Habilités aux saisies opérationnelles sur leurs territoires. Ne peuvent pas dépasser le plafond Standard."
+        },
+        'observateur': {
+          name: "Observateur / Consultation (Type Standard)",
+          desc: "Consultation seule des données et cartographies. Droits de lecture exclusifs (:view)."
+        },
+        'admin': {
+          name: "Administrateur Territorial (Type Admin)",
+          desc: "Responsables territoriaux. Détiennent les prérogatives étendues sur leurs dossiers et la gestion déléguée."
+        },
+        'standard': {
+          name: "Plafond Global du Type Standard",
+          desc: "Enveloppe maximale des prérogatives autorisées pour les comptes et sous-rôles de type Standard."
+        }
+      },
+
+      init() {
+      },
+
+      selectRole(roleCode) {
+        if (roleCode === 'admin' && !this.isSuperuser) {
+          return;
+        }
+        this.currentRole = roleCode;
+      },
+
+      isPermLocked(code) {
+        // 1. Contrôle de délégation : l'opérateur non-superuser ne peut configurer que ce qu'il a
+        if (!this.isSuperuser && !this.operatorPermsSet.has(code)) {
+          return true;
+        }
+
+        // 2. Contraintes strictes par rôle
+        if (this.currentRole === 'admin') {
+          // L'admin a accès à tout sauf aux prérogatives souveraines du Superuser
+          return this.superuserExclusives.includes(code);
+        }
+
+        if (this.currentRole === 'standard') {
+          // Le plafond standard ne peut jamais avoir les prérogatives admin
+          return this.adminExclusives.includes(code);
+        }
+
+        if (this.currentRole === 'operateur') {
+          // L'opérateur est strictement borné par le plafond standard
+          const standardList = this.rolesData['standard'] || [];
+          return !standardList.includes(code);
+        }
+
+        if (this.currentRole === 'observateur') {
+          // L'observateur est borné par le plafond standard ET restreint à :view
+          const standardList = this.rolesData['standard'] || [];
+          if (!standardList.includes(code)) return true;
+          if (!code.endsWith(':view')) return true;
+        }
+
+        return false;
+      },
+
+      getLockReason(code) {
+        if (!this.isSuperuser && !this.operatorPermsSet.has(code)) {
+          return "Hors de vos permissions déléguées";
+        }
+        if (this.currentRole === 'admin' && this.superuserExclusives.includes(code)) {
+          return "Réservé au Super Administrateur";
+        }
+        if (this.currentRole === 'standard' && this.adminExclusives.includes(code)) {
+          return "Strictement réservé aux Administrateurs";
+        }
+        if (this.currentRole === 'operateur') {
+          const standardList = this.rolesData['standard'] || [];
+          if (!standardList.includes(code)) {
+            return "Non autorisé par le Plafond Standard";
+          }
+        }
+        if (this.currentRole === 'observateur') {
+          const standardList = this.rolesData['standard'] || [];
+          if (!standardList.includes(code)) {
+            return "Non autorisé par le Plafond Standard";
+          }
+          if (!code.endsWith(':view')) {
+            return "Profil restreint en consultation seule";
+          }
+        }
+        return "";
+      },
+
+      isPermGranted(code) {
+        if (this.isPermLocked(code)) {
+          return false;
+        }
+        const currentList = this.rolesData[this.currentRole] || [];
+        return currentList.includes(code);
+      },
+
+      togglePerm(code) {
+        if (this.isPermLocked(code)) {
+          return;
+        }
+        if (!this.rolesData[this.currentRole]) {
+          this.rolesData[this.currentRole] = [];
+        }
+
+        const list = this.rolesData[this.currentRole];
+        const idx = list.indexOf(code);
+        const willBeActive = (idx === -1);
+
+        if (willBeActive) {
+          list.push(code);
+        } else {
+          list.splice(idx, 1);
+          // Si on retire du Plafond Standard, répercussion immédiate en cascade
+          if (this.currentRole === 'standard') {
+            ['operateur', 'observateur'].forEach(subRole => {
+              if (this.rolesData[subRole]) {
+                const subIdx = this.rolesData[subRole].indexOf(code);
+                if (subIdx >= 0) {
+                  this.rolesData[subRole].splice(subIdx, 1);
+                }
+              }
+            });
+          }
+        }
+      },
+
+      toggleDomain(domainCodes, checkAll) {
+        domainCodes.forEach(code => {
+          if (this.isPermLocked(code)) return;
+          if (!this.rolesData[this.currentRole]) {
+            this.rolesData[this.currentRole] = [];
+          }
+          const list = this.rolesData[this.currentRole];
+          const isPresent = list.includes(code);
+          if (checkAll && !isPresent) {
+            this.togglePerm(code);
+          } else if (!checkAll && isPresent) {
+            this.togglePerm(code);
+          }
+        });
+      },
+
+      toggleAll(checkAll) {
+        this.allPermCodes.forEach(code => {
+          if (this.isPermLocked(code)) return;
+          if (!this.rolesData[this.currentRole]) {
+            this.rolesData[this.currentRole] = [];
+          }
+          const list = this.rolesData[this.currentRole];
+          const isPresent = list.includes(code);
+          if (checkAll && !isPresent) {
+            this.togglePerm(code);
+          } else if (!checkAll && isPresent) {
+            this.togglePerm(code);
+          }
+        });
+      },
+
+      get activeCount() {
+        const list = this.rolesData[this.currentRole] || [];
+        return list.filter(code => !this.isPermLocked(code)).length;
+      },
+
+      matchesSearch(nom, code) {
+        if (!this.searchQuery || !this.searchQuery.trim()) return true;
+        const q = this.searchQuery.trim().toLowerCase();
+        return nom.toLowerCase().includes(q) || code.toLowerCase().includes(q);
+      },
+
+      isDomainVisible(domainPerms) {
+        if (!this.searchQuery || !this.searchQuery.trim()) return true;
+        const q = this.searchQuery.trim().toLowerCase();
+        return domainPerms.some(p => p.nom.toLowerCase().includes(q) || p.code.toLowerCase().includes(q));
+      }
+    };
+  }
+
+  // Enregistrement global pour Alpine
+  window.rolesMatrixManager = rolesMatrixManager;
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('rolesMatrixManager', rolesMatrixManager);
+  });
+</script>

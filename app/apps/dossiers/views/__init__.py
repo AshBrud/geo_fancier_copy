@@ -5,6 +5,8 @@ from .views_dossier import (
     dossier_members,
     dossier_assign_member,
     dossier_revoke_member,
+    dossier_create,
+    dossier_settings,
 )
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     'dossier_members',
     'dossier_assign_member',
     'dossier_revoke_member',
+    'dossier_create',
+    'dossier_settings',
 ]

@@ -31,6 +31,11 @@ urlpatterns = [
     path('login/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
     path('register/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
     path('', RedirectView.as_view(url='/dossiers/', permanent=False)),
+
+    # =========================================================================
+    # ESPACE DE TRAVAIL TERRITORIAL V2 (Dossier-First Routing: /{slug}/...)
+    # =========================================================================
+    path('<slug:dossier_slug>/', include('dossiers.workspace_urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

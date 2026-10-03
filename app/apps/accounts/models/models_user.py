@@ -61,12 +61,18 @@ class CustomUser(AbstractUser):
     ROLE_MAIRE = 'maire'
     ROLE_CITOYEN = 'citoyen'
 
+    CANONICAL_ROLES_CHOICES = [
+        (ROLE_SUPERUSER, 'Super Administrateur'),
+        (ROLE_ADMIN, 'Administrateur Territorial'),
+        (ROLE_STANDARD, 'Opérateur Standard'),
+    ]
+
     ROLES = [
         # Canoniques V2
         (ROLE_SUPERUSER, 'Super Administrateur'),
         (ROLE_ADMIN, 'Administrateur Territorial'),
         (ROLE_STANDARD, 'Opérateur Standard'),
-        # Historiques V1
+        # Historiques V1 (préservés pour intégrité et migration transparente)
         (ROLE_DOMAINE, 'Responsable Domaine Foncier (Legacy)'),
         (ROLE_ADMINISTRATION, 'Administration Universitaire (Legacy)'),
         (ROLE_OBSERVATEUR, 'Observateur UAD (Legacy)'),
@@ -119,12 +125,22 @@ class CustomUser(AbstractUser):
         null=True,
         verbose_name="Photo de profil"
     )
+    acces_tous_territoires = models.BooleanField(
+        default=False,
+        verbose_name="Accès universel aux territoires",
+        help_text="Accorde l'accès automatique à l'ensemble des dossiers territoriaux (actuels et futurs)."
+    )
     user_permissions_custom = models.ManyToManyField(
         'accounts.Permission',
         through='accounts.UserPermissionLink',
         related_name='custom_users',
         blank=True,
         verbose_name="Surcharges individuelles de permissions"
+    )
+    must_change_password = models.BooleanField(
+        default=False,
+        verbose_name="Changement de mot de passe obligatoire",
+        help_text="Si activé, l'utilisateur doit obligatoirement définir un nouveau mot de passe lors de sa connexion."
     )
 
     class Meta:
@@ -238,11 +254,13 @@ class CustomUser(AbstractUser):
         if override is not None:
             return override.is_granted
 
-        # Permissions du rôle RBAC
-        if self.assigned_role and self.assigned_role.permissions.filter(code=perm_code).exists():
-            return True
+        # Résolution dynamique selon le rôle RBAC assigné ou le rôle statutaire
+        from accounts.models import Role
+        role_obj = self.assigned_role or Role.objects.filter(code=self.role).first()
+        if role_obj and role_obj.permissions.exists():
+            return role_obj.permissions.filter(code=perm_code).exists()
 
-        # Rôle canonique Admin territorial
+        # Rôle canonique Admin territorial (repli si le rôle n'a pas encore de permissions spécifiques en base)
         if self.role == self.ROLE_ADMIN:
             # L'Admin dispose de toutes les permissions sauf les exclusivités Superuser
             superuser_exclusive = {
@@ -275,7 +293,7 @@ class CustomUser(AbstractUser):
             return perm_code in citoyen_perms
 
         if self.role == self.ROLE_OBSERVATEUR:
-            return perm_code.endswith(':view')
+            return perm_code.endswith(':view') and not (perm_code.startswith('users:') or perm_code.startswith('audit:'))
 
         return False
 
@@ -294,8 +312,9 @@ class CustomUser(AbstractUser):
             return set(Permission.objects.values_list('code', flat=True))
 
         perms = set()
-        if self.assigned_role:
-            perms.update(self.assigned_role.get_permission_codes())
+        role_obj = self.assigned_role or Role.objects.filter(code=self.role).first()
+        if role_obj:
+            perms.update(role_obj.get_permission_codes())
 
         # Surcharges
         for link in self.custom_permission_links.select_related('permission').all():

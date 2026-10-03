@@ -24,6 +24,8 @@ urlpatterns = [
     path('users/create/', management.user_create, name='user_create'),
     path('users/<int:pk>/update/', management.user_update, name='user_update'),
     path('users/<int:pk>/delete/', management.user_delete, name='user_delete'),
+    path('users/<int:pk>/activate/', management.user_activate, name='user_activate'),
+    path('roles/matrix/', management.roles_matrix_manage, name='roles_matrix_manage'),
     path('activity/', management.activity_log, name='activity_log'),
 
     # =========================================================================

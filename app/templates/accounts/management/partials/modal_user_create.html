@@ -1,0 +1,516 @@
+<!-- ===== MODALE DE CRÉATION DE COMPTE UTILISATEUR (WIZARD 3 ÉTAPES) ===== -->
+<div class="modal fade" id="modalCreateUser" tabindex="-1" aria-labelledby="modalCreateUserLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <form action="{% url 'accounts:user_create' %}" method="POST" id="wizardUserForm">
+        {% csrf_token %}
+        <div class="modal-header border-bottom px-4 pt-4 pb-3">
+          <div>
+            <h5 class="modal-title fw-bold text-dark" id="modalCreateUserLabel">
+              <i class="bi bi-person-plus-fill text-primary me-2"></i>Nouveau Compte Utilisateur
+            </h5>
+            <p class="text-muted small mb-0">Assistant de configuration et d'affectation territoriale en 3 étapes.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <!-- Stepper Indicator -->
+          <div class="wizard-steps mb-4">
+            <div class="wizard-step active" id="userStepIndicator1">
+              <div class="step-circle">1</div>
+              <span class="step-label">Type de compte</span>
+            </div>
+            <div class="step-divider" id="userStepDivider1"></div>
+            <div class="wizard-step" id="userStepIndicator2">
+              <div class="step-circle">2</div>
+              <span class="step-label">Identité & Coordonnées</span>
+            </div>
+            <div class="step-divider" id="userStepDivider2"></div>
+            <div class="wizard-step" id="userStepIndicator3">
+              <div class="step-circle">3</div>
+              <span class="step-label">Accès et sécurité</span>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- ÉTAPE 1 : TYPE DE COMPTE                                 -->
+          <!-- ======================================================== -->
+          <div class="wizard-pane active" id="userWizardStep1">
+            <div class="mb-3">
+              <h6 class="fw-bold text-dark mb-1">
+                <i class="bi bi-shield-lock text-primary me-1"></i>Sélectionnez le Type de Compte
+              </h6>
+              <p class="text-muted small">
+                Définit le rang institutionnel global du compte utilisateur et ses prérogatives de délégation.
+              </p>
+            </div>
+
+            {% if is_super %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="role-option-card active" id="cardAccountStandard" for="account_type_standard">
+                  <input type="radio" name="role" id="account_type_standard" value="standard" checked onchange="setUserAccountType('standard')">
+                  <div class="role-option-info">
+                    <div class="role-option-title">
+                      <i class="bi bi-person-badge text-primary me-1"></i>Opérateur Standard
+                    </div>
+                    <div class="role-option-desc">
+                      Collaborateur SIG, géomètre, télépilote, instructeur foncier ou observateur. Rattaché aux opérations de terrain.
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <div class="col-md-6">
+                <label class="role-option-card" id="cardAccountAdmin" for="account_type_admin">
+                  <input type="radio" name="role" id="account_type_admin" value="admin" onchange="setUserAccountType('admin')">
+                  <div class="role-option-info">
+                    <div class="role-option-title">
+                      <i class="bi bi-shield-fill-check text-danger me-1"></i>Administrateur Territorial
+                    </div>
+                    <div class="role-option-desc">
+                      Chef de service ou responsable territorial. Administrateur souverain sur ses dossiers avec délégation de comptes.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            {% else %}
+            <input type="hidden" name="role" id="account_type_hidden" value="standard">
+            <div class="alert alert-light border d-flex align-items-center gap-3 py-3 px-3 rounded-3">
+              <i class="bi bi-info-circle-fill text-primary fs-4"></i>
+              <div>
+                <strong class="text-dark">Type de compte attribué : Opérateur Standard</strong>
+                <div class="text-muted small mt-1">
+                  En tant qu'administrateur territorial délégué, vos prérogatives de gouvernance RBAC vous autorisent à créer exclusivement des collaborateurs de niveau opérationnel.
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- ÉTAPE 2 : IDENTITÉ & COORDONNÉES                         -->
+          <!-- ======================================================== -->
+          <div class="wizard-pane" id="userWizardStep2" style="display: none;">
+            <div class="mb-3">
+              <h6 class="fw-bold text-dark mb-1">
+                <i class="bi bi-person-lines-fill text-primary me-1"></i>Informations Personnelles & Professionnelles
+              </h6>
+              <p class="text-muted small">Renseignez l'identité du collaborateur pour son profil et ses notifications.</p>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="user_username" class="form-label small fw-semibold">Identifiant de connexion <span class="text-danger">*</span></label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-at"></i></span>
+                  <input type="text" class="form-control" id="user_username" name="username" required placeholder="ex: m.diop">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="user_email" class="form-label small fw-semibold">Adresse email professionnelle <span class="text-danger">*</span></label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+                  <input type="email" class="form-control" id="user_email" name="email" required placeholder="ex: m.diop@territoire.sn">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="user_first_name" class="form-label small fw-semibold">Prénom <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="user_first_name" name="first_name" required placeholder="ex: Moussa">
+              </div>
+              <div class="col-md-6">
+                <label for="user_last_name" class="form-label small fw-semibold">Nom <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="user_last_name" name="last_name" required placeholder="ex: Diop">
+              </div>
+              <div class="col-md-12">
+                <label for="user_telephone" class="form-label small fw-semibold">Numéro de téléphone professionnel</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone"></i></span>
+                  <input type="text" class="form-control" id="user_telephone" name="telephone" placeholder="ex: +221 77 000 00 00">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- ÉTAPE 3 : ACCÈS ET SÉCURITÉ                              -->
+          <!-- ======================================================== -->
+          <div class="wizard-pane" id="userWizardStep3" style="display: none;">
+            
+            <!-- 3.1 Sécurité d'accès (Mot de passe) -->
+            <div class="mb-4">
+              <h6 class="fw-bold text-dark mb-2" style="font-size: 13.5px;">
+                <i class="bi bi-key-fill text-warning me-1"></i>Sécurité d'accès
+              </h6>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="user_password" class="form-label small fw-semibold">Mot de passe initial <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control form-control-sm" id="user_password" name="password" minlength="8" placeholder="Au moins 8 caractères">
+                </div>
+                <div class="col-md-6">
+                  <label for="user_confirm_password" class="form-label small fw-semibold">Confirmer le mot de passe <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control form-control-sm" id="user_confirm_password" name="confirm_password" minlength="8" placeholder="Répéter le mot de passe">
+                </div>
+              </div>
+            </div>
+
+            <!-- 3.2 Rôle territorial local -->
+            <div class="mb-4 pb-3 border-bottom">
+              <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;">
+                <i class="bi bi-shield-check text-primary me-1"></i>Rôle au sein des Territoires
+              </h6>
+              <p class="text-muted small mb-2">
+                Définit les prérogatives d'action locale attribuées à l'utilisateur dans ses dossiers d'adhésion.
+              </p>
+
+              <!-- Cas A : Type de compte = Admin (Rôle forcé à Admin du dossier) -->
+              <div id="roleBoxAdmin" style="display: none;">
+                <input type="hidden" name="dossier_role" id="input_dossier_role_admin" value="admin" disabled>
+                <div class="p-3 rounded-3 border bg-light d-flex align-items-center gap-3">
+                  <i class="bi bi-shield-shaded text-danger fs-4"></i>
+                  <div>
+                    <strong class="text-dark small">Rôle automatique : Administrateur du Dossier</strong>
+                    <div class="text-muted" style="font-size: 11.5px;">
+                      Les comptes de type Administrateur détiennent de plein droit le statut d'Administrateur local sur l'ensemble de leurs territoires d'affectation.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cas B : Type de compte = Standard (Choix entre Opérateur et Observateur) -->
+              <div id="roleBoxStandard">
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="role-option-card active" id="cardRoleOperateur" for="dossier_role_operateur">
+                      <input type="radio" name="dossier_role" id="dossier_role_operateur" value="operateur" checked onchange="setUserDossierRole('operateur')">
+                      <div class="role-option-info">
+                        <div class="role-option-title small">
+                          <i class="bi bi-gear-wide-connected text-primary me-1"></i>Opérateur SIG / Technicien
+                        </div>
+                        <div class="role-option-desc">
+                          Saisie, modification spatiale, instruction et opérations de terrain.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="role-option-card" id="cardRoleObservateur" for="dossier_role_observateur">
+                      <input type="radio" name="dossier_role" id="dossier_role_observateur" value="observateur" onchange="setUserDossierRole('observateur')">
+                      <div class="role-option-info">
+                        <div class="role-option-title small">
+                          <i class="bi bi-eye text-secondary me-1"></i>Observateur (Consultation)
+                        </div>
+                        <div class="role-option-desc">
+                          Consultation cartographique et lecture seule sans droit d'édition.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3.3 Périmètre d'affectation territoriale -->
+            <div>
+              <h6 class="fw-bold text-dark mb-1" style="font-size: 13.5px;">
+                <i class="bi bi-folder-symlink-fill text-success me-1"></i>Périmètre d'Affectation Territoriale
+              </h6>
+              <p class="text-muted small mb-3">
+                Choisissez l'étendue des espaces de travail auxquels ce collaborateur a accès.
+              </p>
+
+              <!-- Choix du mode d'affectation -->
+              <div class="affectation-mode-grid mb-3">
+                <label class="affectation-card active" id="cardAffectationAll" for="affectation_all">
+                  <input type="radio" name="affectation_mode" id="affectation_all" value="all" checked onchange="setUserAffectationMode('all')">
+                  <div>
+                    <div class="affectation-card-title">
+                      <i class="bi bi-globe2 text-success me-1"></i>Tout affecter (Actuels et futurs)
+                    </div>
+                    <div class="affectation-card-desc">
+                      Accès universel à la totalité des dossiers territoriaux actifs et aux futurs périmètres créés.
+                    </div>
+                  </div>
+                </label>
+
+                <label class="affectation-card" id="cardAffectationSelection" for="affectation_selection">
+                  <input type="radio" name="affectation_mode" id="affectation_selection" value="selection" onchange="setUserAffectationMode('selection')">
+                  <div>
+                    <div class="affectation-card-title">
+                      <i class="bi bi-check2-square text-primary me-1"></i>Certains dossiers (Sélection ciblée)
+                    </div>
+                    <div class="affectation-card-desc">
+                      Sélectionnez nominativement les dossiers sur lesquels ce collaborateur sera autorisé.
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Liste ciblée des dossiers (visible uniquement si "selection" est choisi) -->
+              <div id="containerDossiersSelection" style="display: none;" class="p-3 rounded-3 border bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small fw-bold text-dark">
+                    Cochez les territoires à rattacher ({{ available_dossiers|length }} disponible{{ available_dossiers|length|pluralize }}) :
+                  </span>
+                  <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary py-0" style="font-size: 11px;" onclick="toggleAllDossiers(true)">Tout cocher</button>
+                    <button type="button" class="btn btn-outline-secondary py-0" style="font-size: 11px;" onclick="toggleAllDossiers(false)">Tout décocher</button>
+                  </div>
+                </div>
+
+                <div class="territory-checkbox-grid">
+                  {% for d in available_dossiers %}
+                  <label class="territory-checkbox-card" id="territoryCard_{{ d.id }}" for="dossier_check_{{ d.id }}">
+                    <input class="form-check-input territory-checkbox" type="checkbox" name="dossier_ids" value="{{ d.id }}" id="dossier_check_{{ d.id }}" onchange="handleTerritoryCheck(this)">
+                    <div class="territory-card-content">
+                      <div class="territory-card-title">
+                        <i class="bi bi-folder2-open text-primary me-1"></i>{{ d.nom }}
+                      </div>
+                      <div class="territory-card-meta">
+                        <span class="badge bg-white text-secondary border">{{ d.get_type_territoire_display }}</span>
+                        {% if d.superficie_ha %}
+                        <span class="text-muted">{{ d.superficie_ha }} ha</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </label>
+                  {% empty %}
+                  <div class="text-muted small py-3 text-center">Aucun dossier disponible à l'affectation.</div>
+                  {% endfor %}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Navigation du Wizard -->
+        <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4 d-flex justify-content-between">
+          <div>
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btnUserPrev" style="display: none;" onclick="prevUserWizardStep()">
+              <i class="bi bi-arrow-left me-1"></i>Précédent
+            </button>
+            <button type="button" class="btn btn-link text-muted btn-sm text-decoration-none" id="btnUserCancel" data-bs-dismiss="modal">
+              Annuler
+            </button>
+          </div>
+          <div>
+            <button type="button" class="btn btn-primary btn-sm px-4" id="btnUserNext" onclick="nextUserWizardStep()">
+              Suivant <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button type="submit" class="btn btn-success btn-sm px-4" id="btnUserSubmit" style="display: none;">
+              <i class="bi bi-check-circle-fill me-1"></i>Créer le compte
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUserWizardStep = 1;
+
+function updateUserWizardUI() {
+  // 1. Masquer tous les panneaux
+  document.getElementById('userWizardStep1').style.display = 'none';
+  document.getElementById('userWizardStep2').style.display = 'none';
+  document.getElementById('userWizardStep3').style.display = 'none';
+
+  // 2. Afficher le panneau courant
+  const activePane = document.getElementById('userWizardStep' + currentUserWizardStep);
+  if (activePane) activePane.style.display = 'block';
+
+  // 3. Mettre à jour les indicateurs
+  for (let i = 1; i <= 3; i++) {
+    const ind = document.getElementById('userStepIndicator' + i);
+    if (ind) {
+      ind.classList.remove('active', 'completed');
+      if (i === currentUserWizardStep) {
+        ind.classList.add('active');
+      } else if (i < currentUserWizardStep) {
+        ind.classList.add('completed');
+      }
+    }
+  }
+
+  // Diviseurs
+  const div1 = document.getElementById('userStepDivider1');
+  const div2 = document.getElementById('userStepDivider2');
+  if (div1) div1.classList.toggle('active', currentUserWizardStep > 1);
+  if (div2) div2.classList.toggle('active', currentUserWizardStep > 2);
+
+  // 4. Boutons précédent / suivant / soumission
+  const btnPrev = document.getElementById('btnUserPrev');
+  const btnCancel = document.getElementById('btnUserCancel');
+  const btnNext = document.getElementById('btnUserNext');
+  const btnSubmit = document.getElementById('btnUserSubmit');
+
+  if (currentUserWizardStep === 1) {
+    btnPrev.style.display = 'none';
+    btnCancel.style.display = 'inline-block';
+    btnNext.style.display = 'inline-block';
+    btnSubmit.style.display = 'none';
+  } else if (currentUserWizardStep === 2) {
+    btnPrev.style.display = 'inline-block';
+    btnCancel.style.display = 'none';
+    btnNext.style.display = 'inline-block';
+    btnSubmit.style.display = 'none';
+  } else if (currentUserWizardStep === 3) {
+    btnPrev.style.display = 'inline-block';
+    btnCancel.style.display = 'none';
+    btnNext.style.display = 'none';
+    btnSubmit.style.display = 'inline-block';
+  }
+}
+
+function nextUserWizardStep() {
+  if (currentUserWizardStep === 1) {
+    // Vérification éventuelle de l'étape 1
+  } else if (currentUserWizardStep === 2) {
+    // Validation des champs requis de l'étape 2
+    const username = document.getElementById('user_username');
+    const email = document.getElementById('user_email');
+    const firstName = document.getElementById('user_first_name');
+    const lastName = document.getElementById('user_last_name');
+
+    if (!username.value.trim() || !email.value.trim() || !firstName.value.trim() || !lastName.value.trim()) {
+      alert("Veuillez renseigner l'identifiant, l'email, le prénom et le nom de l'utilisateur.");
+      return;
+    }
+  }
+
+  if (currentUserWizardStep < 3) {
+    currentUserWizardStep++;
+    updateUserWizardUI();
+  }
+}
+
+function prevUserWizardStep() {
+  if (currentUserWizardStep > 1) {
+    currentUserWizardStep--;
+    updateUserWizardUI();
+  }
+}
+
+// Changement du Type de Compte (Étape 1)
+function setUserAccountType(type) {
+  const cardStd = document.getElementById('cardAccountStandard');
+  const cardAdm = document.getElementById('cardAccountAdmin');
+  if (cardStd && cardAdm) {
+    if (type === 'admin') {
+      cardStd.classList.remove('active');
+      cardAdm.classList.add('active');
+    } else {
+      cardAdm.classList.remove('active');
+      cardStd.classList.add('active');
+    }
+  }
+
+  // Synchronisation du rôle à l'Étape 3
+  const roleBoxAdmin = document.getElementById('roleBoxAdmin');
+  const roleBoxStandard = document.getElementById('roleBoxStandard');
+  const opRoleInput = document.getElementById('dossier_role_operateur');
+  const obsRoleInput = document.getElementById('dossier_role_observateur');
+  const adminRoleInput = document.getElementById('input_dossier_role_admin');
+
+  if (type === 'admin') {
+    if (roleBoxAdmin) roleBoxAdmin.style.display = 'block';
+    if (roleBoxStandard) roleBoxStandard.style.display = 'none';
+    if (opRoleInput) opRoleInput.disabled = true;
+    if (obsRoleInput) obsRoleInput.disabled = true;
+    if (adminRoleInput) adminRoleInput.disabled = false;
+  } else {
+    if (roleBoxAdmin) roleBoxAdmin.style.display = 'none';
+    if (roleBoxStandard) roleBoxStandard.style.display = 'block';
+    if (opRoleInput) opRoleInput.disabled = false;
+    if (obsRoleInput) obsRoleInput.disabled = false;
+    if (adminRoleInput) adminRoleInput.disabled = true;
+  }
+}
+
+// Changement du Rôle Local (Étape 3)
+function setUserDossierRole(role) {
+  const cardOp = document.getElementById('cardRoleOperateur');
+  const cardObs = document.getElementById('cardRoleObservateur');
+  if (cardOp && cardObs) {
+    if (role === 'observateur') {
+      cardOp.classList.remove('active');
+      cardObs.classList.add('active');
+    } else {
+      cardObs.classList.remove('active');
+      cardOp.classList.add('active');
+    }
+  }
+}
+
+// Changement du Mode d'Affectation (Étape 3)
+function setUserAffectationMode(mode) {
+  const cardAll = document.getElementById('cardAffectationAll');
+  const cardSel = document.getElementById('cardAffectationSelection');
+  const containerSel = document.getElementById('containerDossiersSelection');
+
+  if (mode === 'all') {
+    if (cardAll) cardAll.classList.add('active');
+    if (cardSel) cardSel.classList.remove('active');
+    if (containerSel) containerSel.style.display = 'none';
+  } else {
+    if (cardAll) cardAll.classList.remove('active');
+    if (cardSel) cardSel.classList.add('active');
+    if (containerSel) containerSel.style.display = 'block';
+  }
+}
+
+// Sélection de territoires
+function handleTerritoryCheck(checkbox) {
+  const card = document.getElementById('territoryCard_' + checkbox.value);
+  if (card) {
+    card.classList.toggle('selected', checkbox.checked);
+  }
+}
+
+function toggleAllDossiers(checkAll) {
+  document.querySelectorAll('.territory-checkbox').forEach(cb => {
+    cb.checked = checkAll;
+    handleTerritoryCheck(cb);
+  });
+}
+
+// Validation finale du formulaire
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('wizardUserForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const p1 = document.getElementById('user_password').value;
+      const p2 = document.getElementById('user_confirm_password').value;
+
+      if (!p1 || p1.length < 8) {
+        e.preventDefault();
+        alert("Le mot de passe doit comporter au moins 8 caractères.");
+        return;
+      }
+      if (p1 !== p2) {
+        e.preventDefault();
+        alert("Les deux mots de passe saisis ne correspondent pas.");
+        return;
+      }
+
+      // Si mode sélection ciblée, vérifier qu'au moins 1 dossier est coché
+      const isSelectionMode = document.getElementById('affectation_selection')?.checked;
+      if (isSelectionMode) {
+        const checkedCount = document.querySelectorAll('.territory-checkbox:checked').length;
+        if (checkedCount === 0) {
+          const confirmNoTerritory = confirm("Vous n'avez coché aucun dossier. L'utilisateur sera créé sans aucun accès territorial immédiat. Voulez-vous continuer ?");
+          if (!confirmNoTerritory) {
+            e.preventDefault();
+            return;
+          }
+        }
+      }
+    });
+  }
+});
+</script>

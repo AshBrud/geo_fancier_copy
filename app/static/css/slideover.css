@@ -1,0 +1,195 @@
+/* ==========================================================================
+   SLIDEOVER DRAWER (Tiroir d'Inspection Latéral Droit)
+   Composant UI V2 pour l'affichage détaillé sans rupture de page
+   ========================================================================== */
+
+/* --- Backdrop flouté --- */
+.slideover-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1060;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.slideover-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Panneau Tiroir Coulissant --- */
+.slideover-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 540px;
+  max-width: 100vw;
+  background-color: #ffffff;
+  box-shadow: -4px 0 25px rgba(15, 23, 42, 0.18);
+  z-index: 1065;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slideover-backdrop.active .slideover-drawer {
+  transform: translateX(0);
+}
+
+/* --- Header du SlideOver --- */
+.slideover-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.slideover-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.slideover-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slideover-close-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.slideover-close-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* --- Corps du SlideOver --- */
+.slideover-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background-color: #f8fafc;
+}
+
+/* Cartouche résumé d'information */
+.slideover-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.slideover-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+/* Lignes de clés / valeurs */
+.slideover-kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13.5px;
+}
+
+.slideover-kv-row:last-child {
+  border-bottom: none;
+}
+
+.slideover-kv-key {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.slideover-kv-val {
+  color: #1e293b;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Mini carte dans le SlideOver */
+.slideover-minimap {
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  margin-top: 8px;
+}
+
+/* --- Footer d'Actions --- */
+.slideover-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* --- Styles pour les Tables Épurées et Interactives --- */
+.table-compact th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 12px 16px;
+}
+
+.table-compact td {
+  padding: 14px 16px;
+  font-size: 13.5px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table-row-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.table-row-clickable:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.table-row-clickable.selected {
+  background-color: #e0e7ff !important;
+  border-left: 3px solid #1e3a8a;
+}

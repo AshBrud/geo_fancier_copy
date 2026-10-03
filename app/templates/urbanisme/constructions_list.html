@@ -1,30 +1,42 @@
 {% extends 'base.html' %}
-{% block title %}Demandes de construction{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Constructions</li>{% endblock %}
+{% load crispy_forms_tags %}
+
+{% block title %}Projets d'Urbanisme & Constructions{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/{{ active_dossier.slug }}/dashboard/">{{ active_dossier.nom }}</a></li>
+<li class="breadcrumb-item active">Urbanisme & Projets</li>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<!-- En-tête de page standardisé -->
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h1 class="page-title"><i class="bi bi-building-add"></i> Demandes de construction</h1>
-    <p class="page-description">Suivi des demandes de construction et de leur analyse de faisabilité sur le campus.</p>
+    <h1 class="page-title"><i class="bi bi-building-gear text-primary"></i> Projets d'Implantation & Constructions</h1>
+    <p class="page-description">Supervision, instruction et faisabilité des projets fonciers sur {{ active_dossier.nom }}.</p>
   </div>
-  <a href="{% url 'urbanisme:nouvelle' %}" class="btn btn-primary">
-    <i class="bi bi-geo-alt-fill me-2"></i>Analyser la disponibilité
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'urbanisme:nouvelle' %}" class="btn btn-outline-primary">
+      <i class="bi bi-compass me-1"></i> Étude spatiale guidée
+    </a>
+    <button type="button" class="btn btn-primary px-3" data-bs-toggle="modal" data-bs-target="#modal-nouveau-projet">
+      <i class="bi bi-plus-lg me-1"></i> Nouveau Projet
+    </button>
+  </div>
 </div>
 
-<div class="card mb-3">
+<!-- Filtres de recherche -->
+<div class="card border-0 shadow-sm mb-3">
   <div class="card-body py-2">
-    <form method="get" action="{% url 'urbanisme:list' %}" class="row g-2 align-items-center">
+    <form method="get" class="row g-2 align-items-center">
       <div class="col-md-5">
         <div class="input-group input-group-sm">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Nom du projet..." value="{{ q }}">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Rechercher par nom de projet..." value="{{ q }}">
         </div>
       </div>
       <div class="col-md-3">
         <select name="statut" class="form-select form-select-sm">
-          <option value="">Tous les statuts</option>
+          <option value="">Tous les statuts d'instruction</option>
           {% for s_key, s_label in statuts %}
           <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
           {% endfor %}
@@ -32,73 +44,230 @@
       </div>
       <div class="col-auto">
         <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
-        <a href="{% url 'urbanisme:list' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+        {% if q or statut %}
+        <a href="." class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+        {% endif %}
+      </div>
+      <div class="col-auto ms-auto text-muted small">
+        <i class="bi bi-info-circle me-1"></i> Cliquez sur une ligne pour ouvrir sa fiche détaillée
       </div>
     </form>
   </div>
 </div>
 
-<div class="card">
+<!-- Tableau épuré des Projets (Lignes cliquables avec SlideOver) -->
+<div class="card border-0 shadow-sm">
   <div class="card-body p-0">
-    <table class="table table-uad mb-0">
-      <thead>
-        <tr><th>Projet</th><th>Type</th><th>Superficie</th><th>Disponible</th><th>Statut</th><th>Demandeur</th><th>Date</th><th>Changer statut</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for c in page_obj %}
-        <tr>
-          <td class="fw-semibold">{{ c.nom_projet }}</td>
-          <td class="text-muted small">{{ c.type_construction }}</td>
-          <td>{{ c.superficie_souhaitee|floatformat:0 }} m²</td>
-          <td>
-            {% if c.disponible is None %}
-              <span class="text-muted">—</span>
-            {% elif c.disponible %}
-              <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Oui</span>
-            {% else %}
-              <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Non</span>
-            {% endif %}
-          </td>
-          <td><span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span></td>
-          <td class="text-muted small">{% if c.demandeur %}{{ c.demandeur.get_full_name|default:c.demandeur.username }}{% else %}—{% endif %}</td>
-          <td class="text-muted small">{{ c.date_demande|date:"d/m/Y" }}</td>
-          <td>
-            {% if c.statut == 'rejetee' %}
-              <span class="text-muted small"><i class="bi bi-lock me-1"></i>Rejetée</span>
-            {% elif c.disponible == False and c.statut == 'en_cours' %}
-              <form method="post" action="{% url 'urbanisme:update_statut' c.pk %}" class="d-inline">
-                {% csrf_token %}
-                <select name="statut" onchange="this.form.submit()" class="form-select form-select-sm border-danger" style="width:auto" title="Zone non disponible — approbation impossible">
-                  <option value="en_cours" {% if c.statut == 'en_cours' %}selected{% endif %}>En cours</option>
-                  <option value="rejetee">Rejetée</option>
-                </select>
-              </form>
-            {% else %}
-              <form method="post" action="{% url 'urbanisme:update_statut' c.pk %}" class="d-inline">
-                {% csrf_token %}
-                <select name="statut" onchange="this.form.submit()" class="form-select form-select-sm" style="width:auto">
-                  {% for s_key, s_label in statuts %}
-                  <option value="{{ s_key }}" {% if c.statut == s_key %}selected{% endif %}>{{ s_label }}</option>
-                  {% endfor %}
-                </select>
-              </form>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'urbanisme:delete' c.pk %}"
-               class="btn btn-sm btn-outline-danger"
-               title="Supprimer cette demande">
-              <i class="bi bi-trash"></i>
-            </a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="text-center py-5 text-muted">
-          <i class="bi bi-building-add fs-2 d-block mb-2"></i>Aucune demande enregistrée
-        </td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-hover table-compact mb-0" id="table-constructions">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Désignation du Projet</th>
+            <th style="width: 20%;">Type de Bâti</th>
+            <th style="width: 15%;">Superficie</th>
+            <th style="width: 15%;">Disponibilité</th>
+            <th style="width: 15%;">Statut</th>
+            <th style="width: 10%; text-align: right;">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in page_obj %}
+          <tr class="table-row-clickable"
+              data-id="{{ c.id }}"
+              data-nom="{{ c.nom_projet }}"
+              data-type="{{ c.type_construction }}"
+              data-superficie="{{ c.superficie_souhaitee|floatformat:0 }} m²"
+              data-disponible="{% if c.disponible is True %}Faisable / Disponible{% elif c.disponible is False %}Conflit / Non disponible{% else %}En cours d'étude{% endif %}"
+              data-disponible-class="{% if c.disponible is True %}success{% elif c.disponible is False %}danger{% else %}warning{% endif %}"
+              data-statut="{{ c.get_statut_display }}"
+              data-statut-code="{{ c.statut }}"
+              data-badge="{{ c.badge_couleur }}"
+              data-demandeur="{% if c.demandeur %}{{ c.demandeur.get_full_name|default:c.demandeur.username }}{% else %}Non assigné{% endif %}"
+              data-espace="{% if c.espace_souhaitee %}{{ c.espace_souhaitee.nom }}{% else %}Non assigné{% endif %}"
+              data-date="{{ c.formatted_date_creation|default:c.date_demande|date:'d/m/Y H:i' }}"
+              data-rapport="{{ c.rapport_faisabilite|default:'Aucun rapport analytique généré.'|escape }}"
+              data-update-url="{% url 'urbanisme:update_statut' c.pk %}"
+              data-delete-url="{% url 'urbanisme:delete' c.pk %}">
+            <td>
+              <div class="fw-bold text-dark">{{ c.nom_projet }}</div>
+              <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ c.espace_souhaitee.nom|default:"Emprise générale" }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ c.type_construction }}</span>
+            </td>
+            <td class="fw-semibold text-secondary">
+              {{ c.superficie_souhaitee|floatformat:0 }} m²
+            </td>
+            <td>
+              {% if c.disponible is None %}
+                <span class="badge bg-light text-muted border">En étude</span>
+              {% elif c.disponible %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-check-circle-fill me-1"></i>Disponible
+                </span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                  <i class="bi bi-exclamation-octagon-fill me-1"></i>Conflit
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-{{ c.badge_couleur }}">{{ c.get_statut_display }}</span>
+            </td>
+            <td class="text-muted small text-end">
+              {{ c.date_demande|date:"d/m/Y" }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-building-add fs-1 text-secondary opacity-50 d-block mb-3"></i>
+              <p class="mb-2 fw-semibold">Aucun projet de construction enregistré pour ce territoire.</p>
+              <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-nouveau-projet">
+                <i class="bi bi-plus-lg me-1"></i> Créer le premier projet
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+    <small class="text-muted">
+      Affichage de {{ page_obj.start_index }} à {{ page_obj.end_index }} sur {{ page_obj.paginator.count }} projets
+    </small>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Précédent</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if statut %}&statut={{ statut }}{% endif %}">Suivant</a></li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- =========================================================================
+     MODALE DE CRÉATION DIRECTE (Zero-Page Create)
+     ========================================================================= -->
+<div class="modal fade" id="modal-nouveau-projet" tabindex="-1" aria-labelledby="modalNouveauProjetLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+      <div class="modal-header border-bottom py-3 px-4" style="background-color: #f8fafc;">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-building-add text-primary fs-5"></i>
+          <h5 class="modal-title fw-bold" id="modalNouveauProjetLabel">Nouveau Projet d'Urbanisme</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <form method="post" action=".">
+        {% csrf_token %}
+        <input type="hidden" name="submit_projet" value="1">
+
+        <div class="modal-body p-4">
+          <div class="alert alert-info py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <div>Ce projet sera rattaché à l'espace de travail <strong>{{ active_dossier.nom }}</strong>. L'analyse de faisabilité spatiale sera calculée automatiquement.</div>
+          </div>
+
+          {{ creation_form|crispy }}
+        </div>
+
+        <div class="modal-footer border-top py-3 px-4 bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check-lg me-1"></i> Enregistrer le projet
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Liaison de la table au contrôleur SlideOver
+  SlideOver.bindTable('#table-constructions', function (row) {
+    const d = row.dataset;
+
+    const badgeHtml = `<span class="badge bg-${d.badge}">${d.statut}</span>`;
+
+    const bodyHtml = `
+      <!-- Synthèse principale -->
+      <div class="slideover-card">
+        <div class="slideover-section-title">Paramètres du Projet</div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Nature des travaux</span>
+          <span class="slideover-kv-val">${d.type}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Superficie requise</span>
+          <span class="slideover-kv-val text-primary">${d.superficie}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Zone / Espace ciblé</span>
+          <span class="slideover-kv-val">${d.espace}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Date de soumission</span>
+          <span class="slideover-kv-val">${d.date}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Demandeur / Instructeur</span>
+          <span class="slideover-kv-val">${d.demandeur}</span>
+        </div>
+      </div>
+
+      <!-- Disponibilité Faisabilité -->
+      <div class="slideover-card">
+        <div class="slideover-section-title">Diagnostic de Faisabilité Spatiale</div>
+        <div class="d-flex align-items-center justify-content-between p-2 rounded mb-3 bg-${d.disponibleClass}-subtle border border-${d.disponibleClass}-subtle">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check fs-5 text-${d.disponibleClass}"></i>
+            <span class="fw-bold text-${d.disponibleClass}">${d.disponible}</span>
+          </div>
+        </div>
+        <p class="text-muted small mb-0" style="white-space: pre-wrap;">${d.rapport}</p>
+      </div>
+
+      <!-- Mise à jour rapide du statut -->
+      <div class="slideover-card">
+        <div class="slideover-section-title">Décision d'Instruction</div>
+        <form method="post" action="${d.updateUrl}" class="d-flex gap-2 align-items-center">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+          <select name="statut" class="form-select form-select-sm flex-grow-1">
+            <option value="en_cours" ${d.statutCode === 'en_cours' ? 'selected' : ''}>En cours d'instruction</option>
+            <option value="approuvee" ${d.statutCode === 'approuvee' ? 'selected' : ''}>Approuvée / Autorisée</option>
+            <option value="rejetee" ${d.statutCode === 'rejetee' ? 'selected' : ''}>Rejetée</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-primary">Appliquer</button>
+        </form>
+      </div>
+    `;
+
+    const footerHtml = `
+      <a href="${d.deleteUrl}" class="btn btn-sm btn-outline-danger me-auto" onclick="return confirm('Confirmez-vous la suppression de ce projet ?');">
+        <i class="bi bi-trash me-1"></i> Supprimer
+      </a>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="SlideOver.close();">Fermer</button>
+    `;
+
+    return {
+      title: d.nom,
+      badgeHtml: badgeHtml,
+      bodyHtml: bodyHtml,
+      footerHtml: footerHtml
+    };
+  });
+});
+</script>
 {% endblock %}
