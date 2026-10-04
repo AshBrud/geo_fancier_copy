@@ -56,6 +56,17 @@ class ZoneSecteur(TimeStampedModel):
         (STATUT_ARCHIVE, 'Archivé / Obsolète'),
     ]
 
+    COULEURS_ZONE = {
+        TYPE_VILLAGE: '#059669',
+        TYPE_QUARTIER: '#2563EB',
+        TYPE_SECTEUR_CAMPUS: '#7C3AED',
+        TYPE_ESPACE_LIBRE: '#16A34A',
+        TYPE_ESPACE_RESERVE: '#D97706',
+        TYPE_ZONE_AGRICOLE: '#84CC16',
+        TYPE_ZONE_ACTIVITE: '#EA580C',
+        TYPE_AUTRE: '#64748B',
+    }
+
     TOLERANCE_DEBORDEMENT = 0.02
 
     dossier = models.ForeignKey(
@@ -139,6 +150,31 @@ class ZoneSecteur(TimeStampedModel):
     @property
     def superficie_km2(self) -> float:
         return round(self.superficie_m2 / 1_000_000, 2) if self.superficie_m2 else 0.0
+
+    @property
+    def couleur(self) -> str:
+        return self.COULEURS_ZONE.get(self.type_zone, '#2563EB')
+
+    @property
+    def nb_unites_baties(self) -> int:
+        if 'nb_unites_baties' in self.__dict__:
+            return self.__dict__['nb_unites_baties']
+        return self.unites_baties.count()
+
+    @nb_unites_baties.setter
+    def nb_unites_baties(self, val):
+        self.__dict__['nb_unites_baties'] = val
+
+    @property
+    def surface_batie_m2(self) -> float:
+        if 'surface_batie_m2' in self.__dict__:
+            return self.__dict__['surface_batie_m2'] or 0.0
+        from django.db.models import Sum
+        return float(self.unites_baties.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+
+    @surface_batie_m2.setter
+    def surface_batie_m2(self, val):
+        self.__dict__['surface_batie_m2'] = val
 
     def clean(self):
         if not self.geometrie or not self.dossier_id:
@@ -320,6 +356,18 @@ class UniteBatie(TimeStampedModel):
     def couleur_statut(self) -> str:
         return self.COULEURS_STATUT.get(self.statut_occupation, '#94A3B8')
 
+    @property
+    def emprise_sol_m2(self):
+        """Alias pour superficie_m2."""
+        if 'emprise_sol_m2' in self.__dict__:
+            return self.__dict__['emprise_sol_m2']
+        return self.superficie_m2
+
+    @emprise_sol_m2.setter
+    def emprise_sol_m2(self, val):
+        self.__dict__['emprise_sol_m2'] = val
+        self.superficie_m2 = val
+
     def save(self, *args, **kwargs):
         if not self.code:
             prefix = "BAT" if self.type_bati != self.TYPE_HABITATION else "MAIS"
@@ -440,7 +488,13 @@ class ReseauLineaire(TimeStampedModel):
 
     @property
     def longueur_km(self) -> float:
+        if 'longueur_km' in self.__dict__:
+            return self.__dict__['longueur_km']
         return round(self.longueur_metres / 1000, 2) if self.longueur_metres else 0.0
+
+    @longueur_km.setter
+    def longueur_km(self, val):
+        self.__dict__['longueur_km'] = val
 
     def save(self, *args, **kwargs):
         if not self.code:

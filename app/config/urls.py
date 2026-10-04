@@ -26,7 +26,6 @@ urlpatterns = [
     path('urbanisme/', include('urbanisme.urls')),
     path('navigation/', include('navigation.urls')),
     path('pdu/', include('pdu.urls')),
-    path('habitations/', include('habitations.urls')),
     path('api/', include('territoire.api_urls')),
     path('login/', RedirectView.as_view(url='/accounts/login/', permanent=False)),
     path('register/', RedirectView.as_view(url='/accounts/login/', permanent=False)),

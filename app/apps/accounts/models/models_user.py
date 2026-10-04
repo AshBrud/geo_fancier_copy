@@ -111,13 +111,13 @@ class CustomUser(AbstractUser):
         verbose_name="Téléphone"
     )
     village = models.ForeignKey(
-        'habitations.Village',
+        'dossiers.ZoneSecteur',
         related_name='habitants',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Village de référence",
-        help_text="Champ historique déprécié (remplacé par les memberships de Dossier)."
+        verbose_name="Zone ou village de référence",
+        help_text="Subdivision spatiale de rattachement (remplacé par les memberships de Dossier)."
     )
     photo = models.ImageField(
         upload_to='profils/',

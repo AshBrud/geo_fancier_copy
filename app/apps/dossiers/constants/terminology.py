@@ -30,6 +30,11 @@ TERMINOLOGY_CATALOG: Dict[str, Dict[str, str]] = {
         'zone_plural': 'Villages & Quartiers',
         'zone_desc': 'Subdivisions territoriales locales et localités communales.',
 
+        # Voiries & Réseaux
+        'reseau_label': 'Piste / Voie de desserte',
+        'reseau_plural': 'Routes & Pistes rurales',
+        'reseau_desc': 'Pistes en latérite, routes communales et voies de desserte.',
+
         # Projets & Aménagement
         'projet_label': 'Autorisation de construire',
         'projet_plural': 'Permis & Projets de construction',
@@ -60,6 +65,11 @@ TERMINOLOGY_CATALOG: Dict[str, Dict[str, str]] = {
         'zone_label': 'Secteur de campus',
         'zone_plural': 'Secteurs du Campus',
         'zone_desc': 'Campus principal, zone pédagogique, zone sportive et pôle hébergement.',
+
+        # Voiries & Réseaux
+        'reseau_label': 'Voirie / Allée piétonne',
+        'reseau_plural': 'Voiries & Allées du campus',
+        'reseau_desc': 'Voiries bitumées, allées piétonnes, voies carrossables et réseaux.',
 
         # Projets & Aménagement
         'projet_label': 'Projet d\'extension',
@@ -92,6 +102,11 @@ TERMINOLOGY_CATALOG: Dict[str, Dict[str, str]] = {
         'zone_plural': 'Sections cadastrales',
         'zone_desc': 'Découpage géodésique officiel du cadastre national.',
 
+        # Voiries & Réseaux
+        'reseau_label': 'Emprise de voirie publique',
+        'reseau_plural': 'Voies publiques & Réseaux',
+        'reseau_desc': 'Alignements, voies classées et servitudes de passage cadastrées.',
+
         # Projets & Aménagement
         'projet_label': 'Mutation / Morcellement',
         'projet_plural': 'Opérations cadastrales & Mutations',
@@ -122,6 +137,11 @@ TERMINOLOGY_CATALOG: Dict[str, Dict[str, str]] = {
         'zone_label': 'Circonscription / Arrondissement',
         'zone_plural': 'Circonscriptions territoriales',
         'zone_desc': 'Découpage administratif étatique ou périmètre d\'intervention national.',
+
+        # Voiries & Réseaux
+        'reseau_label': 'Axe routier national / Réseau',
+        'reseau_plural': 'Infrastructures de transport & Réseaux',
+        'reseau_desc': 'Réseau routier national, autoroutes et grandes infrastructures.',
 
         # Projets & Aménagement
         'projet_label': 'Grand projet d\'État',
@@ -154,6 +174,11 @@ TERMINOLOGY_CATALOG: Dict[str, Dict[str, str]] = {
         'zone_plural': 'Secteurs & Pôles',
         'zone_desc': 'Zones d\'activités ou sous-ensembles géographiques.',
 
+        # Voiries & Réseaux
+        'reseau_label': 'Réseau linéaire',
+        'reseau_plural': 'Réseaux linéaires & Voies',
+        'reseau_desc': 'Réseaux de circulation, canalisations et dessertes internes.',
+
         # Projets & Aménagement
         'projet_label': 'Projet d\'aménagement',
         'projet_plural': 'Projets & Chantiers',
@@ -179,6 +204,9 @@ DEFAULT_TERMS: Dict[str, str] = {
     'zone_label': 'Secteur / Localité',
     'zone_plural': 'Secteurs & Localités',
     'zone_desc': 'Sous-secteurs territoriaux.',
+    'reseau_label': 'Réseau linéaire',
+    'reseau_plural': 'Réseaux linéaires',
+    'reseau_desc': 'Réseaux et voiries de transport.',
     'projet_label': 'Projet de construction',
     'projet_plural': 'Projets de construction',
     'projet_desc': 'Autorisations et chantiers.',

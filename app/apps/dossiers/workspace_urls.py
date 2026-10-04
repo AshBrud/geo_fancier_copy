@@ -13,7 +13,6 @@ urlpatterns = [
     # Modules métier de l'espace de travail
     path('urbanisme/', include('urbanisme.urls')),
     path('territoire/', include('territoire.urls')),
-    path('habitations/', include('habitations.urls')),
     path('drones/', include('drones.urls')),
     path('pdu/', include('pdu.urls')),
 

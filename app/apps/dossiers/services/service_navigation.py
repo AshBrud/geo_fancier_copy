@@ -86,36 +86,36 @@ def get_workspace_navigation(dossier, current_path: str = '', user=None) -> List
                 'required_perm': 'cadastre:view',
             },
             {
-                'slug': 'parcelles',
-                'label': get_term(dossier, 'sol_plural', 'Parcelles & Terrains'),
-                'icon': 'bi-bounding-box',
-                'url': f'/{slug}/territoire/terrains/',
-                'required_perm': 'cadastre:view',
-            },
-            {
-                'slug': 'espaces',
-                'label': get_term(dossier, 'zone_plural', 'Espaces & Zones'),
+                'slug': 'zones',
+                'label': get_term(dossier, 'zone_plural', 'Subdivisions & Secteurs'),
                 'icon': 'bi-grid-3x3-gap',
-                'url': f'/{slug}/territoire/espaces/',
+                'url': f'/{slug}/territoire/zones/',
+                'legacy_url': f'/{slug}/territoire/espaces/',
                 'required_perm': 'cadastre:view',
             },
             {
-                'slug': 'voirie',
-                'label': 'Voiries & Réseaux',
-                'icon': 'bi-signpost-split',
-                'url': f'/{slug}/territoire/voiries/',
-                'required_perm': 'cadastre:view',
-            },
-        ]
-
-        if dossier.type_territoire == 'universite' or 'campus' in dossier.slug:
-            territoire_subitems.append({
                 'slug': 'batiments',
-                'label': get_term(dossier, 'bati_plural', 'Bâtiments & Pavillons'),
+                'label': get_term(dossier, 'bati_plural', 'Recensement Bâti'),
                 'icon': 'bi-building',
                 'url': f'/{slug}/territoire/batiments/',
                 'required_perm': 'cadastre:view',
-            })
+            },
+            {
+                'slug': 'reseaux',
+                'label': get_term(dossier, 'reseau_plural', 'Réseaux Linéaires & Voies'),
+                'icon': 'bi-signpost-split',
+                'url': f'/{slug}/territoire/reseaux/',
+                'legacy_url': f'/{slug}/territoire/voiries/',
+                'required_perm': 'cadastre:view',
+            },
+            {
+                'slug': 'suivi-travaux',
+                'label': 'Suivi des Travaux',
+                'icon': 'bi-hammer',
+                'url': f'/{slug}/territoire/suivi-travaux/',
+                'required_perm': 'cadastre:view',
+            },
+        ]
 
         # Filtrage RBAC des sous-items
         accessible_territoire = [
@@ -133,58 +133,7 @@ def get_workspace_navigation(dossier, current_path: str = '', user=None) -> List
             })
 
     # ─────────────────────────────────────────────────────────────
-    # 2. HABITATIONS & BÂTI (mod_habitations)
-    # ─────────────────────────────────────────────────────────────
-    if modules.get('mod_habitations', True) and dossier.type_territoire != 'universite':
-        habitations_subitems = [
-            {
-                'slug': 'carte',
-                'label': 'Cartographie SIG',
-                'icon': 'bi-map',
-                'url': f'/{slug}/habitations/carte/',
-                'legacy_url': f'/{slug}/habitations/',
-                'required_perm': 'habitations:view',
-            },
-            {
-                'slug': 'concessions',
-                'label': get_term(dossier, 'bati_plural', 'Concessions & Maisons'),
-                'icon': 'bi-houses',
-                'url': f'/{slug}/habitations/concessions/',
-                'legacy_url': f'/{slug}/habitations/maisons/',
-                'required_perm': 'habitations:view',
-            },
-            {
-                'slug': 'secteurs',
-                'label': get_term(dossier, 'zone_plural', 'Secteurs & Localités'),
-                'icon': 'bi-geo',
-                'url': f'/{slug}/habitations/villages/',
-                'required_perm': 'habitations:view',
-            },
-            {
-                'slug': 'pistes',
-                'label': 'Routes & Pistes',
-                'icon': 'bi-signpost-split',
-                'url': f'/{slug}/habitations/pistes/',
-                'required_perm': 'habitations:view',
-            },
-        ]
-
-        accessible_habitations = [
-            sub for sub in habitations_subitems
-            if not sub.get('required_perm') or user_has_nav_permission(user, dossier, sub['required_perm'])
-        ]
-
-        if accessible_habitations:
-            groups.append({
-                'key': 'habitations',
-                'label': get_term(dossier, 'bati_label', 'Habitations & Bâti'),
-                'icon': 'bi-house-door',
-                'default_url': accessible_habitations[0]['url'],
-                'subitems': accessible_habitations,
-            })
-
-    # ─────────────────────────────────────────────────────────────
-    # 3. URBANISME & PLANIFICATION (mod_urbanisme)
+    # 2. URBANISME & PLANIFICATION (mod_urbanisme)
     # ─────────────────────────────────────────────────────────────
     if modules.get('mod_urbanisme', True):
         urbanisme_subitems = [
@@ -209,6 +158,13 @@ def get_workspace_navigation(dossier, current_path: str = '', user=None) -> List
                 'label': 'Historique chantiers',
                 'icon': 'bi-clock-history',
                 'url': f'/{slug}/urbanisme/historique/',
+                'required_perm': 'urbanisme:view',
+            },
+            {
+                'slug': 'statistiques',
+                'label': 'Statistiques foncières (PDU)',
+                'icon': 'bi-bar-chart-line',
+                'url': f'/{slug}/pdu/',
                 'required_perm': 'urbanisme:view',
             },
         ]
@@ -260,41 +216,6 @@ def get_workspace_navigation(dossier, current_path: str = '', user=None) -> List
                 'icon': 'bi-airplane',
                 'default_url': accessible_drones[0]['url'],
                 'subitems': accessible_drones,
-            })
-
-    # ─────────────────────────────────────────────────────────────
-    # 5. SIGNALEMENTS TERRAIN (mod_signalements)
-    # ─────────────────────────────────────────────────────────────
-    if modules.get('mod_signalements', True):
-        signalements_subitems = [
-            {
-                'slug': 'liste',
-                'label': 'Incidents & Litiges',
-                'icon': 'bi-list-check',
-                'url': f'/{slug}/habitations/signalements/',
-                'required_perm': 'signalements:view',
-            },
-            {
-                'slug': 'nouveau',
-                'label': 'Signaler un problème',
-                'icon': 'bi-plus-circle',
-                'url': f'/{slug}/habitations/signalements/nouveau/',
-                'required_perm': 'signalements:create',
-            },
-        ]
-
-        accessible_signalements = [
-            sub for sub in signalements_subitems
-            if not sub.get('required_perm') or user_has_nav_permission(user, dossier, sub['required_perm'])
-        ]
-
-        if accessible_signalements:
-            groups.append({
-                'key': 'signalements',
-                'label': 'Signalements Terrain',
-                'icon': 'bi-exclamation-triangle',
-                'default_url': accessible_signalements[0]['url'],
-                'subitems': accessible_signalements,
             })
 
     # ─────────────────────────────────────────────────────────────

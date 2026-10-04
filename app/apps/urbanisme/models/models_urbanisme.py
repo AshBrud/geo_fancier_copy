@@ -3,7 +3,6 @@ from django.conf import settings
 from django.contrib.gis.db import models
 
 from dossiers.models.models_base import TimeStampedModel
-from territoire.models import Batiment, Espace
 
 
 class NouvelleConstruction(TimeStampedModel):
@@ -49,13 +48,6 @@ class NouvelleConstruction(TimeStampedModel):
     zone_souhaitee = models.PolygonField(
         srid=4326, blank=True, null=True,
         verbose_name='Zone souhaitée'
-    )
-    espace_souhaitee = models.ForeignKey(
-        'territoire.Espace',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        verbose_name='Espace sélectionné',
-        related_name='constructions_demandees',
     )
     disponible = models.BooleanField(null=True, blank=True, verbose_name='Zone disponible')
     statut = models.CharField(max_length=20, choices=STATUTS, default=STATUT_EN_COURS, verbose_name='Statut')
@@ -126,14 +118,10 @@ class HistoriqueConstruction(TimeStampedModel):
         (TYPE_DEMOLITION, 'Démolition / Déconstruction'),
     ]
 
-    batiment = models.ForeignKey(
-        Batiment, on_delete=models.CASCADE,
-        related_name='historiques', verbose_name='Bâtiment (Campus)'
-    )
     unite_batie = models.ForeignKey(
-        'dossiers.UniteBatie', on_delete=models.SET_NULL,
+        'dossiers.UniteBatie', on_delete=models.CASCADE,
         null=True, blank=True,
-        related_name='historiques_travaux', verbose_name='Unité bâtie (V2)'
+        related_name='historiques_travaux', verbose_name='Unité bâtie'
     )
     type_travaux = models.CharField(
         max_length=20, choices=TYPES_TRAVAUX,
@@ -157,5 +145,5 @@ class HistoriqueConstruction(TimeStampedModel):
         ordering = ['-date_debut']
 
     def __str__(self):
-        cible = self.unite_batie.nom if self.unite_batie else (self.batiment.nom if self.batiment else "Bâti")
+        cible = self.unite_batie.nom if self.unite_batie else "Bâti"
         return f"{cible} - {self.get_type_travaux_display()} ({self.date_debut.year})"

@@ -5,8 +5,7 @@ propositions d'alternatives et aide à la décision multicritère.
 """
 import json
 from django.db.models import Q
-from territoire.models import Espace, Batiment, Voirie, Terrain, EspaceVert, Campus
-from dossiers.models import ZoneSecteur, UniteBatie, ReseauLineaire
+from dossiers.models import Dossier, ZoneSecteur, UniteBatie, ReseauLineaire
 
 UTM_SRID = 32628
 
@@ -41,7 +40,7 @@ def calculer_pks_pour_espace(espace, statuts=None, exclude_pk=None):
     if exclude_pk:
         base = base.exclude(pk=exclude_pk)
 
-    pks = set(base.filter(espace_souhaitee=espace).values_list('pk', flat=True))
+    pks = set(base.filter(zone_secteur=espace).values_list('pk', flat=True))
     if getattr(espace, 'geometrie', None):
         pks.update(
             base.filter(
@@ -66,19 +65,24 @@ def calculer_superficie_allouee_espace(espace, statuts=None, exclude_pk=None):
 
 
 def trouver_alternatives_projet(projet):
-    """Cherche des espaces constructibles disposant d'assez de superficie nette."""
+    """Cherche des zones constructibles disposant d'assez de superficie nette."""
     from urbanisme.models import NouvelleConstruction
 
-    candidates = Espace.objects.filter(
-        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
-        superficie__gte=projet.superficie_souhaitee,
-    ).order_by('superficie')
+    candidates = ZoneSecteur.objects.filter(
+        type_zone__in=[
+            ZoneSecteur.TYPE_ESPACE_LIBRE,
+            ZoneSecteur.TYPE_SECTEUR_CAMPUS,
+            ZoneSecteur.TYPE_ZONE_ACTIVITE,
+        ],
+        superficie_m2__gte=projet.superficie_souhaitee,
+    ).order_by('superficie_m2')
 
     valides = []
     for esp in candidates:
-        constructible = (esp.superficie or 0) * (esp.taux_occupation / 100)
+        taux_occ = getattr(esp, 'taux_occupation', 40.0) or 40.0
+        constructible = (esp.superficie_m2 or 0) * (taux_occ / 100)
         eng = calculer_superficie_allouee_espace(esp, exclude_pk=projet.pk)
-        batie = esp.superficie_batie + esp.superficie_terrains + esp.superficie_espaces_verts
+        batie = sum(ub.emprise_sol_m2 or 0 for ub in esp.unites_baties.all()) if hasattr(esp, 'unites_baties') else 0
         nette = max(0.0, constructible - eng - batie)
         if nette >= (projet.superficie_souhaitee or 0):
             valides.append((esp, nette))
@@ -90,10 +94,10 @@ def trouver_alternatives_projet(projet):
             f"{e.nom} ({nette:,.0f} m² nets disponibles)"
             for e, nette in valides
         )
-        return Espace.objects.filter(pk__in=[e.pk for e, _ in valides])
+        return ZoneSecteur.objects.filter(pk__in=[e.pk for e, _ in valides])
 
     projet.zones_alternatives = "Aucune zone alternative disponible avec superficie suffisante."
-    return Espace.objects.none()
+    return ZoneSecteur.objects.none()
 
 
 def rejeter_projets_concurrents(projet):
@@ -108,8 +112,8 @@ def rejeter_projets_concurrents(projet):
         return []
 
     # Zone de référence
-    if projet.espace_souhaitee and getattr(projet.espace_souhaitee, 'geometrie', None):
-        zone_ref = projet.espace_souhaitee.geometrie
+    if projet.zone_secteur and getattr(projet.zone_secteur, 'geometrie', None):
+        zone_ref = projet.zone_secteur.geometrie
     elif projet.zone_souhaitee:
         zone_ref = projet.zone_souhaitee
     else:
@@ -123,30 +127,30 @@ def rejeter_projets_concurrents(projet):
     auto_rejetees = []
 
     for concurrent in qs_attente:
-        if concurrent.espace_souhaitee and getattr(concurrent.espace_souhaitee, 'geometrie', None):
-            zone_concurrent = concurrent.espace_souhaitee.geometrie
+        if concurrent.zone_secteur and getattr(concurrent.zone_secteur, 'geometrie', None):
+            zone_concurrent = concurrent.zone_secteur.geometrie
         elif concurrent.zone_souhaitee:
             zone_concurrent = concurrent.zone_souhaitee
         else:
             continue
 
-        espaces_libres = Espace.objects.filter(
-            type_espace=Espace.TYPE_LIBRE,
+        espaces_libres = ZoneSecteur.objects.filter(
+            type_zone__in=[ZoneSecteur.TYPE_ESPACE_LIBRE, ZoneSecteur.TYPE_SECTEUR_CAMPUS, ZoneSecteur.TYPE_ZONE_ACTIVITE],
             geometrie__intersects=zone_concurrent,
         )
         sup_constructible = sum(
-            (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_libres
+            (e.superficie_m2 or 0) * (getattr(e, 'taux_occupation', 40) / 100) for e in espaces_libres
         )
         sup_engagee = sum(
             calculer_superficie_allouee_espace(e, exclude_pk=concurrent.pk)
             for e in espaces_libres
         )
         sup_batie = sum(
-            e.superficie_batie + e.superficie_terrains + e.superficie_espaces_verts
+            sum(ub.emprise_sol_m2 or 0 for ub in e.unites_baties.all()) if hasattr(e, 'unites_baties') else 0
             for e in espaces_libres
         )
         sup_nette = max(0.0, sup_constructible - sup_engagee - sup_batie)
-        sup_brute = sum(e.superficie or 0 for e in espaces_libres)
+        sup_brute = sum(e.superficie_m2 or 0 for e in espaces_libres)
         taux_moy = (sup_constructible / sup_brute * 100) if sup_brute else projet.TAUX_OCCUPATION_MAX * 100
 
         if sup_nette < (concurrent.superficie_souhaitee or 0):
@@ -179,7 +183,7 @@ def analyser_disponibilite_projet(projet):
     """
     from urbanisme.models import NouvelleConstruction
 
-    alternatives = Espace.objects.none()
+    alternatives = ZoneSecteur.objects.none()
     sup_requise = projet.superficie_souhaitee or 0
 
     def _stats_vides(sup_brute=0, espaces_info=None):
@@ -221,36 +225,36 @@ def analyser_disponibilite_projet(projet):
         projet.save()
         return False, projet.rapport_faisabilite, alternatives, _stats_vides()
 
-    # Cas 1 : Espace sélectionné
-    if projet.espace_souhaitee_id and projet.espace_souhaitee:
-        espace_obj = projet.espace_souhaitee
+    # Cas 1 : Zone sélectionnée
+    if projet.zone_secteur_id and projet.zone_secteur:
+        espace_obj = projet.zone_secteur
         zone_analyse = espace_obj.geometrie
-        if espace_obj.type_espace not in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE):
+        if espace_obj.type_zone not in (ZoneSecteur.TYPE_ESPACE_LIBRE, ZoneSecteur.TYPE_SECTEUR_CAMPUS, ZoneSecteur.TYPE_ZONE_ACTIVITE):
             projet.disponible = False
             projet.rapport_faisabilite = (
-                f"L'espace « {espace_obj.nom} » ({espace_obj.code}) n'est pas constructible "
-                f"(statut actuel : {espace_obj.get_type_espace_display()})."
+                f"La zone « {espace_obj.nom} » ({espace_obj.code}) n'est pas constructible "
+                f"(statut actuel : {espace_obj.get_type_zone_display()})."
             )
             projet.zones_alternatives = ''
             alternatives = trouver_alternatives_projet(projet)
             projet.save()
             return False, projet.rapport_faisabilite, alternatives, _stats_vides(
-                sup_brute=espace_obj.superficie or 0,
+                sup_brute=espace_obj.superficie_m2 or 0,
                 espaces_info=[{'nom': espace_obj.nom, 'code': espace_obj.code,
-                               'taux': espace_obj.taux_occupation}],
+                               'taux': getattr(espace_obj, 'taux_occupation', 40)}],
             )
         espaces = [espace_obj]
 
     # Cas 2 : Zone polygonale dessinée
     elif projet.zone_souhaitee:
         zone_analyse = projet.zone_souhaitee
-        espaces = list(Espace.objects.filter(
-            type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
+        espaces = list(ZoneSecteur.objects.filter(
+            type_zone__in=[ZoneSecteur.TYPE_ESPACE_LIBRE, ZoneSecteur.TYPE_SECTEUR_CAMPUS, ZoneSecteur.TYPE_ZONE_ACTIVITE],
             geometrie__intersects=zone_analyse,
         ))
     else:
         projet.disponible = False
-        projet.rapport_faisabilite = "Aucune zone dessinée sur la carte ni espace sélectionné."
+        projet.rapport_faisabilite = "Aucune zone dessinée sur la carte ni zone sélectionnée."
         projet.save()
         return False, projet.rapport_faisabilite, alternatives, _stats_vides()
 
@@ -259,17 +263,17 @@ def analyser_disponibilite_projet(projet):
         projet.rapport_faisabilite = (
             "La zone sélectionnée ne contient aucun espace constructible. "
             "Elle est peut-être réservée, une voirie, ou sa géométrie "
-            "ne correspond à aucun espace enregistré."
+            "ne correspond à aucune zone enregistrée."
         )
         projet.zones_alternatives = ''
         alternatives = trouver_alternatives_projet(projet)
         projet.save()
         return False, projet.rapport_faisabilite, alternatives, _stats_vides()
 
-    sup_brute = sum(e.superficie or 0 for e in espaces)
-    noms_espaces = ', '.join(f"{e.nom} ({e.taux_occupation:.0f}%)" for e in espaces)
+    sup_brute = sum((e.superficie_m2 or 0) for e in espaces)
+    noms_espaces = ', '.join(f"{e.nom} ({getattr(e, 'taux_occupation', 40):.0f}%)" for e in espaces)
 
-    sup_construct = sum((e.superficie or 0) * (e.taux_occupation / 100) for e in espaces)
+    sup_construct = sum((e.superficie_m2 or 0) * (getattr(e, 'taux_occupation', 40) / 100) for e in espaces)
     sup_reservee = sup_brute - sup_construct
     taux_moyen = (sup_construct / sup_brute * 100) if sup_brute else projet.TAUX_OCCUPATION_MAX * 100
 
@@ -292,9 +296,12 @@ def analyser_disponibilite_projet(projet):
     nb_attente = qs_attente.count()
 
     # Superficie occupée par le bâti et aménagements
-    sup_batie = sum(e.superficie_batie for e in espaces)
-    sup_terrains = sum(e.superficie_terrains for e in espaces)
-    sup_espaces_verts = sum(e.superficie_espaces_verts for e in espaces)
+    sup_batie = sum(
+        sum(ub.emprise_sol_m2 or 0 for ub in e.unites_baties.all()) if hasattr(e, 'unites_baties') else 0
+        for e in espaces
+    )
+    sup_terrains = sum(getattr(e, 'superficie_terrains', 0) for e in espaces)
+    sup_espaces_verts = sum(getattr(e, 'superficie_espaces_verts', 0) for e in espaces)
     sup_batie_totale = sup_batie + sup_terrains + sup_espaces_verts
     sup_occupee = sup_engagee + sup_batie_totale
 
@@ -409,7 +416,7 @@ def analyser_disponibilite_projet(projet):
     return projet.disponible, projet.rapport_faisabilite, alternatives, stats
 
 
-def recommander_emplacements_implantation(type_construction, superficie_requise, zone_dessinee=None):
+def recommander_emplacements_implantation(type_construction, superficie_requise, zone_dessinee=None, dossier=None):
     """
     Système d'aide à la décision multicritère pour l'implantation de nouvelles constructions.
     Analyse les espaces libres, évalue les contraintes et attribue un score sur 100.
@@ -417,13 +424,32 @@ def recommander_emplacements_implantation(type_construction, superficie_requise,
     from urbanisme.models import NouvelleConstruction
 
     superficie_requise = superficie_requise or 0
-    campus = Campus.objects.first()
-    espaces_libres = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).order_by('nom')
+    if not dossier:
+        dossier = Dossier.objects.first()
 
-    batiments = list(Batiment.objects.all())
-    voiries = list(Voirie.objects.all())
-    terrains_sportifs = list(Terrain.objects.filter(type_terrain__icontains='sport'))
-    espaces_verts = list(EspaceVert.objects.all())
+    esp_qs = ZoneSecteur.objects.filter(
+        type_zone__in=[
+            ZoneSecteur.TYPE_ESPACE_LIBRE,
+            ZoneSecteur.TYPE_SECTEUR_CAMPUS,
+            ZoneSecteur.TYPE_ZONE_ACTIVITE,
+            ZoneSecteur.TYPE_VILLAGE,
+            ZoneSecteur.TYPE_QUARTIER,
+        ]
+    )
+    if dossier:
+        esp_qs = esp_qs.filter(dossier=dossier)
+    espaces_libres = esp_qs.order_by('nom')
+
+    bat_qs = UniteBatie.objects.all()
+    voi_qs = ReseauLineaire.objects.all()
+    if dossier:
+        bat_qs = bat_qs.filter(dossier=dossier)
+        voi_qs = voi_qs.filter(dossier=dossier)
+
+    batiments = list(bat_qs)
+    voiries = list(voi_qs)
+    terrains_sportifs = [b for b in batiments if b.type_bati == UniteBatie.TYPE_SPORTIF]
+    espaces_verts = [e for e in espaces_libres if e.type_zone == ZoneSecteur.TYPE_ESPACE_LIBRE]
 
     resultats = []
 
@@ -434,8 +460,8 @@ def recommander_emplacements_implantation(type_construction, superficie_requise,
         raisons, contraintes = [], []
         compatible = True
 
-        if campus and campus.geometrie and not campus.geometrie.contains(espace.geometrie):
-            contraintes.append("Hors du périmètre du Campus.")
+        if dossier and dossier.emprise and not dossier.emprise.contains(espace.geometrie):
+            contraintes.append("Hors du périmètre du Territoire.")
             compatible = False
 
         if zone_dessinee is not None:

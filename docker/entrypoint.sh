@@ -28,9 +28,6 @@ python app/manage.py migrate --noinput
 echo "🌱 [GéoFoncier] Initialisation / Synchronisation idempotente du RBAC..."
 python app/manage.py seed_rbac || true
 
-echo "🌱 [GéoFoncier] Initialisation / Synchronisation idempotente des dossiers..."
-python app/manage.py seed_dossiers || true
-
 echo "📦 [GéoFoncier] Collecte des fichiers statiques (WhiteNoise)..."
 python app/manage.py collectstatic --noinput --clear || true
 

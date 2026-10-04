@@ -18,7 +18,8 @@ function formatCoords(latlng) {
 function loadEspaces(map, layerGroup, options) {
   options = options || {};
   layerGroup = layerGroup || L.layerGroup().addTo(map);
-  const url = '/api/espaces/' + (options.type ? '?type=' + encodeURIComponent(options.type) : '');
+  // Endpoint canonique V2 : /api/zones/ (alias rétrocompatible /api/espaces/ toujours actif côté serveur)
+  const url = '/api/zones/' + (options.type ? '?type=' + encodeURIComponent(options.type) : '');
   fetch(url)
     .then(r => r.json())
     .then(data => {
@@ -183,7 +184,8 @@ function loadEspacesVerts(map, layerGroup) {
    ===================================================== */
 function loadVoiries(map, layerGroup) {
   layerGroup = layerGroup || L.layerGroup().addTo(map);
-  fetch('/api/voiries/')
+  // Endpoint canonique V2 : /api/reseaux/ (alias rétrocompatible /api/voiries/ toujours actif côté serveur)
+  fetch('/api/reseaux/')
     .then(r => r.json())
     .then(data => {
       layerGroup.clearLayers();
@@ -244,3 +246,7 @@ function loadPointsInteret(map, layerGroup) {
     .catch(err => console.warn('Points d\'intérêt non chargés:', err));
   return layerGroup;
 }
+
+// Alias canoniques V2 pour la nomenclature spatiale unifiée
+window.loadZones = loadEspaces;
+window.loadReseaux = loadVoiries;

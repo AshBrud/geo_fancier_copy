@@ -2,35 +2,51 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.db.models import Sum, Count, Q
-from .models import Espace, Batiment, Terrain, EspaceVert, Voirie, PointInteret
+from dossiers.models import ZoneSecteur, UniteBatie, ReseauLineaire
 from .serializers import (
-    EspaceSerializer, BatimentSerializer,
-    TerrainSerializer, EspaceVertSerializer, VoirieSerializer, PointInteretSerializer,
+    ZoneSecteurSerializer, UniteBatieSerializer, ReseauLineaireSerializer,
 )
 
 
-class EspaceAPIView(APIView):
+class ZoneSecteurAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        espaces = Espace.objects.all()
+        dossier_id = request.GET.get('dossier_id') or request.session.get('active_dossier_id')
+        zones = ZoneSecteur.objects.all()
+        if dossier_id:
+            zones = zones.filter(dossier_id=dossier_id)
         type_filter = request.GET.get('type')
         if type_filter:
-            espaces = espaces.filter(type_espace=type_filter)
-        serializer = EspaceSerializer(espaces, many=True)
+            zones = zones.filter(type_zone=type_filter)
+        serializer = ZoneSecteurSerializer(zones, many=True)
         return Response(serializer.data)
 
 
-class BatimentAPIView(APIView):
+class UniteBatieAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        batiments = Batiment.objects.filter(est_actif=True)
+        dossier_id = request.GET.get('dossier_id') or request.session.get('active_dossier_id')
+        batiments = UniteBatie.objects.filter(est_actif=True)
+        if dossier_id:
+            batiments = batiments.filter(dossier_id=dossier_id)
         q = request.GET.get('q')
         if q:
-            from django.db.models import Q
             batiments = batiments.filter(Q(nom__icontains=q) | Q(code__icontains=q))
-        serializer = BatimentSerializer(batiments, many=True)
+        serializer = UniteBatieSerializer(batiments, many=True)
+        return Response(serializer.data)
+
+
+class ReseauLineaireAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        dossier_id = request.GET.get('dossier_id') or request.session.get('active_dossier_id')
+        reseaux = ReseauLineaire.objects.all()
+        if dossier_id:
+            reseaux = reseaux.filter(dossier_id=dossier_id)
+        serializer = ReseauLineaireSerializer(reseaux, many=True)
         return Response(serializer.data)
 
 
@@ -38,28 +54,36 @@ class StatsAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        espaces_stats = Espace.objects.values('type_espace').annotate(
+        dossier_id = request.GET.get('dossier_id')
+        zones_qs = ZoneSecteur.objects.all()
+        batiments_qs = UniteBatie.objects.all()
+        reseaux_qs = ReseauLineaire.objects.all()
+        if dossier_id:
+            zones_qs = zones_qs.filter(dossier_id=dossier_id)
+            batiments_qs = batiments_qs.filter(dossier_id=dossier_id)
+            reseaux_qs = reseaux_qs.filter(dossier_id=dossier_id)
+
+        zones_stats = zones_qs.values('type_zone').annotate(
             count=Count('id'),
-            superficie=Sum('superficie')
+            superficie=Sum('superficie_m2')
         )
-        stats = {item['type_espace']: {
+        stats = {item['type_zone']: {
             'count': item['count'],
             'superficie': item['superficie'] or 0
-        } for item in espaces_stats}
+        } for item in zones_stats}
 
-        total_superficie = Espace.objects.aggregate(t=Sum('superficie'))['t'] or 0
-        superficie_batiments = Batiment.objects.aggregate(t=Sum('superficie'))['t'] or 0
+        total_superficie = zones_qs.aggregate(t=Sum('superficie_m2'))['t'] or 0
+        superficie_batiments = batiments_qs.aggregate(t=Sum('superficie_m2'))['t'] or 0
+        longueur_reseaux = reseaux_qs.aggregate(t=Sum('longueur_metres'))['t'] or 0
 
         return Response({
-            'total_espaces': Espace.objects.count(),
-            'total_batiments': Batiment.objects.count(),
-            'superficie_totale': total_superficie,
-            'superficie_batiments': superficie_batiments,
-            'taux_occupation': round(
-                (stats.get('occupe', {}).get('superficie', 0) / total_superficie * 100)
-                if total_superficie else 0, 1
-            ),
-            'par_type': stats,
+            'total_zones': zones_qs.count(),
+            'total_batiments': batiments_qs.count(),
+            'total_reseaux': reseaux_qs.count(),
+            'superficie_totale_m2': total_superficie,
+            'superficie_batiments_m2': superficie_batiments,
+            'longueur_reseaux_m': longueur_reseaux,
+            'par_type_zone': stats,
         })
 
 
@@ -81,41 +105,3 @@ class OrthophotoAPIView(APIView):
             for o in orthos
         ]
         return Response(data)
-
-
-class TerrainAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        terrains = Terrain.objects.all()
-        sport = request.GET.get('sport')
-        if sport == '1':
-            terrains = terrains.filter(type_terrain__icontains='sport')
-        elif sport == '0':
-            terrains = terrains.exclude(type_terrain__icontains='sport')
-        serializer = TerrainSerializer(terrains, many=True)
-        return Response(serializer.data)
-
-
-class EspaceVertAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        serializer = EspaceVertSerializer(EspaceVert.objects.all(), many=True)
-        return Response(serializer.data)
-
-
-class VoirieAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        serializer = VoirieSerializer(Voirie.objects.all(), many=True)
-        return Response(serializer.data)
-
-
-class PointInteretAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        serializer = PointInteretSerializer(PointInteret.objects.all(), many=True)
-        return Response(serializer.data)

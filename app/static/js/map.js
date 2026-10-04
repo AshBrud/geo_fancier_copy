@@ -122,3 +122,7 @@ function loadPriorityOrthophoto(map, opts) {
       return null;
     });
 }
+
+// Alias canoniques V2 pour la compatibilité cartographique tous territoires
+window.initTerritoireMap = initCampusMap;
+window.initGeoMap = initCampusMap;

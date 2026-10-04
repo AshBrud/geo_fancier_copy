@@ -251,8 +251,8 @@
       {{ nb_orthophotos }} orthophoto{{ nb_orthophotos|pluralize }}
     </span>
     {% if user.can_manage_foncier %}
-    <a href="{% url 'territoire:espace_create' %}" class="btn btn-sm btn-success">
-      <i class="bi bi-plus-lg me-1"></i>Espace
+    <a href="{% url 'territoire:zone_create' %}" class="btn btn-sm btn-success">
+      <i class="bi bi-plus-lg me-1"></i>Subdivision
     </a>
     <a href="{% url 'territoire:batiment_create' %}" class="btn btn-sm btn-primary">
       <i class="bi bi-plus-lg me-1"></i>Bâtiment

@@ -22,11 +22,11 @@ def _suivant(request):
 
 
 def _contexte_commune():
-    """Identité de la commune et villages affichés dans le défilement des pages d'accès."""
-    from habitations.models import Commune, Village
+    """Identité du territoire et zones affichées dans le défilement des pages d'accès."""
+    from dossiers.models import Dossier, ZoneSecteur
     return {
-        'commune': Commune.objects.first(),
-        'villages_defilement': Village.objects.order_by('nom').only('nom', 'code'),
+        'commune': Dossier.objects.first(),
+        'villages_defilement': ZoneSecteur.objects.order_by('nom').only('nom', 'code'),
     }
 
 
@@ -154,12 +154,12 @@ def login_view(request):
     else:
         form = LoginForm(request)
 
-    from territoire.models import Espace, Batiment
+    from dossiers.models import ZoneSecteur, UniteBatie
     from drones.models import Orthophoto
     return render(request, 'accounts/auth/login.html', {
         'form': form,
-        'nb_espaces': Espace.objects.count(),
-        'nb_batiments': Batiment.objects.count(),
+        'nb_espaces': ZoneSecteur.objects.count(),
+        'nb_batiments': UniteBatie.objects.count(),
         'nb_orthophotos': Orthophoto.objects.count(),
         'next': _suivant(request),
         'page_auth': True,

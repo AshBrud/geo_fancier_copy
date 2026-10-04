@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Réseaux Linéaires & Voies — {{ active_dossier.nom|default:"Territoire" }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/{{ active_dossier.slug }}/dashboard/">{{ active_dossier.nom|default:"Territoire" }}</a></li>
+<li class="breadcrumb-item active">Réseaux Linéaires & Voies</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/slideover.css">
+<style>
+/* ===== KPI FONCIER ===== */
+.fon-kpi {
+  background: #fff; border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all .22s; height: 100%;
+}
+.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+.fon-kpi-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.fon-kpi-body { min-width: 0; }
+.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
+.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; white-space: nowrap; }
+.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
+
+/* ===== BARRE TABLE ===== */
+.table-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+}
+.table-card-title {
+  font-size: 14px; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.table-card-title .count-pill {
+  font-size: 11px; background: #f1f5f9; color: #64748b;
+  border-radius: 20px; padding: 2px 8px; font-weight: 600;
+}
+.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+
+.voie-code {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 5px; padding: 2px 8px;
+  font-size: 11.5px; color: #475569; font-family: monospace;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.clickable-row:hover {
+  background-color: #f8fafc !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== EN-TÊTE ===== -->
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+        <i class="bi bi-geo-alt me-1"></i>{{ active_dossier.nom|default:"Territoire" }}
+      </span>
+      <span class="badge bg-light text-secondary border" style="font-size: 11px;">
+        {{ stats.total_troncons }} tronçon{{ stats.total_troncons|pluralize }}
+      </span>
+    </div>
+    <h1 class="page-title mb-1"><i class="bi bi-signpost-split text-primary me-2"></i> Réseaux Linéaires & Voies</h1>
+    <p class="page-description text-muted mb-0">Réseau viaire, routes bitumées, pistes rurales, allées piétonnes et linéaires SIG métriques.</p>
+  </div>
+  {% if user.is_domaine_foncier or user.is_admin %}
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-voie-create">
+      <i class="bi bi-plus-lg"></i>
+      <span>Nouveau Tronçon</span>
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ===== KPI ===== -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-4">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#eff6ff;">
+        <i class="bi bi-signpost-split-fill" style="color:#1E3A8A;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val">{{ stats.total_troncons }}</div>
+        <div class="fon-kpi-lbl">Tronçons inventoriés</div>
+        <div class="fon-kpi-foot">Segments cartographiés</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#dcfce7;">
+        <i class="bi bi-speedometer" style="color:#16A34A;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val" style="color:#16A34A;">{{ stats.longueur_totale_km }} km</div>
+        <div class="fon-kpi-lbl">Linéaire total cumulé</div>
+        <div class="fon-kpi-foot">{{ stats.longueur_totale_m|floatformat:0 }} mètres linéaires</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-4">
+    <div class="fon-kpi">
+      <div class="fon-kpi-icon" style="background:#fef3c7;">
+        <i class="bi bi-compass" style="color:#D97706;"></i>
+      </div>
+      <div class="fon-kpi-body">
+        <div class="fon-kpi-val" style="color:#D97706;">UTM métrique</div>
+        <div class="fon-kpi-lbl">Projection de calcul</div>
+        <div class="fon-kpi-foot">Précision SIG certifiée</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+
+  <!-- En-tête avec filtres -->
+  <div class="table-card-header">
+    <div class="table-card-title">
+      <i class="bi bi-table text-primary"></i>
+      Inventaire des tronçons
+      <span class="count-pill">{{ page_obj.paginator.count }}</span>
+    </div>
+    <form method="get" class="filter-bar">
+      <div class="input-group input-group-sm" style="width:220px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
+        </span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0"
+               placeholder="Nom ou code…" value="{{ q }}" style="font-size:12.5px;">
+      </div>
+
+      <select name="type_voie" class="form-select form-select-sm" style="width:160px; font-size:12.5px;" onchange="this.form.submit()">
+        <option value="">Toutes les voies</option>
+        {% for t_key, t_label in types_voie %}
+        <option value="{{ t_key }}" {% if type_voie == t_key %}selected{% endif %}>{{ t_label }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
+      {% if q or type_voie %}
+      <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x-lg"></i>
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" id="table-voiries">
+      <thead class="bg-light">
+        <tr>
+          <th class="ps-4">Code</th>
+          <th>Désignation</th>
+          <th>Nature</th>
+          <th>Longueur</th>
+          <th>Largeur</th>
+          <th>Praticabilité</th>
+          {% if user.is_domaine_foncier or user.is_admin %}<th class="text-end pe-4">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for res in page_obj %}
+        <tr class="clickable-row"
+            data-nom="{{ res.nom|default:res.get_type_voie_display }}"
+            data-code="{{ res.code }}"
+            data-type="{{ res.get_type_voie_display }}"
+            data-couleur="{{ res.couleur }}"
+            data-longueur="{{ res.longueur_km }} km ({{ res.longueur_metres|floatformat:0 }} m)"
+            data-largeur="{% if res.largeur_estimee_m %}{{ res.largeur_estimee_m }} m{% else %}Non précisée{% endif %}"
+            data-etat="{{ res.etat_chaussee|default:'Non renseigné' }}"
+            data-description="{{ res.description|default:'Aucune observation' }}"
+            data-detail-url="{% url 'territoire:reseau_detail' res.pk %}"
+            data-update-url="{% url 'territoire:reseau_update' res.pk %}"
+            data-delete-url="{% url 'territoire:reseau_delete' res.pk %}">
+          <td class="ps-4">
+            <span class="voie-code">{{ res.code }}</span>
+          </td>
+          <td>
+            <span class="fw-semibold text-dark d-block" style="font-size:13.5px;">{{ res.nom|default:res.get_type_voie_display }}</span>
+            {% if res.description %}
+            <div class="text-muted" style="font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">
+              {{ res.description }}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge border" style="background-color: {{ res.couleur }}15; color: {{ res.couleur }}; border-color: {{ res.couleur }}40 !important;">
+              <i class="bi bi-signpost me-1"></i>{{ res.get_type_voie_display }}
+            </span>
+          </td>
+          <td>
+            <span class="fw-bold text-dark">{{ res.longueur_km }} km</span>
+            <span class="text-muted d-block small" style="font-size:10.5px;">{{ res.longueur_metres|floatformat:0 }} m</span>
+          </td>
+          <td>
+            <span class="text-muted small">{% if res.largeur_estimee_m %}{{ res.largeur_estimee_m }} m{% else %}—{% endif %}</span>
+          </td>
+          <td>
+            {% if res.etat_chaussee %}
+            <span class="badge bg-light text-dark border">{{ res.etat_chaussee }}</span>
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          {% if user.is_domaine_foncier or user.is_admin %}
+          <td class="text-end pe-4" onclick="event.stopPropagation();">
+            <div class="d-inline-flex gap-1">
+              <a href="{% url 'territoire:reseau_detail' res.pk %}"
+                 class="btn btn-sm btn-outline-info"
+                 data-bs-toggle="tooltip" title="Fiche complète">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'territoire:reseau_update' res.pk %}"
+                 class="btn btn-sm btn-outline-primary"
+                 data-bs-toggle="tooltip" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'territoire:reseau_delete' res.pk %}"
+                 class="btn btn-sm btn-outline-danger"
+                 data-bs-toggle="tooltip" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if user.is_domaine_foncier or user.is_admin %}7{% else %}6{% endif %}">
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-signpost-2 fs-1 text-secondary opacity-50 mb-2"></i>
+              <p class="mb-0">Aucun tronçon trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-3 px-4">
+    <small class="text-muted">
+      Page <strong>{{ page_obj.number }}</strong> sur {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} tronçons)
+    </small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type_voie={{ type_voie }}">
+            <i class="bi bi-chevron-left" style="font-size:10px;"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+          <a class="page-link" href="?page={{ num }}&q={{ q }}&type_voie={{ type_voie }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type_voie={{ type_voie }}">
+            <i class="bi bi-chevron-right" style="font-size:10px;"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- =========================================================================
+     MODALE DE CRÉATION DIRECTE
+     ========================================================================= -->
+{% if form %}
+<div class="modal fade" id="modal-voie-create" tabindex="-1" aria-labelledby="modalVoieCreateLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-bottom py-3 px-4 bg-light">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-signpost-plus text-primary fs-5"></i>
+          <h5 class="modal-title fw-bold text-dark" id="modalVoieCreateLabel">Nouveau Tronçon Linéaire</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <form method="post" action="{% url 'territoire:reseau_create' %}">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="alert alert-info py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <div>Rattachement au territoire actif <strong>{{ active_dossier.nom }}</strong>. La longueur métrique sera calculée automatiquement.</div>
+          </div>
+
+          {% crispy form %}
+        </div>
+
+        <div class="modal-footer border-top py-3 px-4 bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check-lg me-1"></i> Enregistrer le tronçon
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/slideover.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  SlideOver.bindTable('#table-voiries', function (row) {
+    const d = row.dataset;
+
+    const badgeHtml = `<span class="badge border" style="background-color: ${d.couleur}15; color: ${d.couleur}; border-color: ${d.couleur}40 !important;">${d.type}</span>`;
+
+    const bodyHtml = `
+      <div class="slideover-card">
+        <div class="slideover-section-title">Caractéristiques du Tronçon</div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Code Identifiant</span>
+          <span class="slideover-kv-val fw-bold">${d.code}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Nature de la voie</span>
+          <span class="slideover-kv-val">${d.type}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Longueur métrique</span>
+          <span class="slideover-kv-val text-primary fw-bold">${d.longueur}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Largeur estimée</span>
+          <span class="slideover-kv-val">${d.largeur}</span>
+        </div>
+        <div class="slideover-kv-row">
+          <span class="slideover-kv-key">Praticabilité</span>
+          <span class="slideover-kv-val fw-semibold">${d.etat}</span>
+        </div>
+      </div>
+
+      <div class="slideover-card">
+        <div class="slideover-section-title">Description & Utilisation</div>
+        <p class="text-muted small mb-0" style="white-space: pre-wrap;">${d.description}</p>
+      </div>
+    `;
+
+    const footerHtml = `
+      <div class="d-flex gap-2 w-100 justify-content-between align-items-center">
+        <a href="${d.detailUrl}" class="btn btn-sm btn-outline-info">
+          <i class="bi bi-eye me-1"></i> Fiche complète
+        </a>
+        <div class="d-flex gap-2">
+          {% if user.is_domaine_foncier or user.is_admin %}
+          <a href="${d.deleteUrl}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de ce tronçon ?');">
+            <i class="bi bi-trash me-1"></i> Supprimer
+          </a>
+          <a href="${d.updateUrl}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Modifier
+          </a>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-secondary" onclick="SlideOver.close();">Fermer</button>
+        </div>
+      </div>
+    `;
+
+    return {
+      title: d.nom,
+      badgeHtml: badgeHtml,
+      bodyHtml: bodyHtml,
+      footerHtml: footerHtml
+    };
+  });
+});
+</script>
+{% endblock %}

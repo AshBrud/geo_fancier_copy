@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count
-from territoire.models import Espace, Batiment, superficie_campus_totale
+from dossiers.models import ZoneSecteur, UniteBatie
 from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.decorators import foncier_required
 import json
@@ -13,21 +13,52 @@ def statistiques(request):
     from django.db.models.functions import ExtractYear
     from urbanisme.models import HistoriqueConstruction as HC, NouvelleConstruction as NC
 
-    total_sup_m2 = superficie_campus_totale()
+    dossier = getattr(request, 'active_dossier', None)
+
+    total_sup_m2 = 0.0
+    zs_qs = ZoneSecteur.objects.filter(dossier=dossier) if dossier else ZoneSecteur.objects.all()
+
+    if dossier and dossier.superficie_m2:
+        total_sup_m2 = float(dossier.superficie_m2)
+    elif dossier and dossier.emprise:
+        try:
+            srid = getattr(dossier, 'srid_projection', 32628) or 32628
+            geom_utm = dossier.emprise.transform(srid, clone=True)
+            total_sup_m2 = float(geom_utm.area)
+        except Exception:
+            total_sup_m2 = float(zs_qs.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+    else:
+        total_sup_m2 = float(zs_qs.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+
     total_sup_ha = round(total_sup_m2 / 10000, 2)
 
-    # ── Espaces par type ──────────────────────────────────────────────────
-    espaces_raw = Espace.objects.values('type_espace').annotate(
-        count=Count('id'), superficie=Sum('superficie')
+    # ── Zones territoriales par type ──────────────────────────────────────
+    zs_base = ZoneSecteur.objects.filter(dossier=dossier) if dossier else ZoneSecteur.objects.all()
+    espaces_raw = zs_base.values('type_zone').annotate(
+        count=Count('id'), superficie=Sum('superficie_m2')
     )
+
+    COULEURS_TYPES = {
+        ZoneSecteur.TYPE_VILLAGE: '#10b981',
+        ZoneSecteur.TYPE_QUARTIER: '#6366f1',
+        ZoneSecteur.TYPE_SECTEUR_CAMPUS: '#0284c7',
+        ZoneSecteur.TYPE_ESPACE_LIBRE: '#22c55e',
+        ZoneSecteur.TYPE_ESPACE_RESERVE: '#f59e0b',
+        ZoneSecteur.TYPE_ZONE_AGRICOLE: '#84cc16',
+        ZoneSecteur.TYPE_ZONE_ACTIVITE: '#ec4899',
+        ZoneSecteur.TYPE_AUTRE: '#94a3b8',
+    }
+    types_dict = dict(ZoneSecteur.TYPES_ZONE)
+
     stats_enrichis = []
     for item in espaces_raw:
         sup_ha = round((item['superficie'] or 0) / 10000, 2)
         pct = round((item['superficie'] or 0) / total_sup_m2 * 100, 1) if total_sup_m2 else 0
+        tz = item['type_zone']
         stats_enrichis.append({
-            'type_espace':   item['type_espace'],
-            'label':         dict(Espace.TYPES).get(item['type_espace'], item['type_espace']),
-            'couleur':       Espace.COULEURS.get(item['type_espace'], '#94a3b8'),
+            'type_espace':   tz,
+            'label':         types_dict.get(tz, tz),
+            'couleur':       COULEURS_TYPES.get(tz, '#94a3b8'),
             'count':         item['count'],
             'superficie_ha': sup_ha,
             'pourcentage':   pct,
@@ -35,49 +66,57 @@ def statistiques(request):
     stats_enrichis.sort(key=lambda x: x['superficie_ha'], reverse=True)
 
     def _sup_type(t):
-        return Espace.objects.filter(type_espace=t).aggregate(s=Sum('superficie'))['s'] or 0
+        return zs_base.filter(type_zone=t).aggregate(s=Sum('superficie_m2'))['s'] or 0
 
-    sup_libre_m2    = _sup_type(Espace.TYPE_LIBRE)
-    sup_occupee_m2  = _sup_type(Espace.TYPE_OCCUPE)
-    sup_reservee_m2 = _sup_type(Espace.TYPE_RESERVE)
+    sup_libre_m2    = _sup_type(ZoneSecteur.TYPE_ESPACE_LIBRE)
+    sup_occupee_m2  = (
+        _sup_type(ZoneSecteur.TYPE_VILLAGE) +
+        _sup_type(ZoneSecteur.TYPE_QUARTIER) +
+        _sup_type(ZoneSecteur.TYPE_SECTEUR_CAMPUS) +
+        _sup_type(ZoneSecteur.TYPE_ZONE_ACTIVITE)
+    )
+    sup_reservee_m2 = _sup_type(ZoneSecteur.TYPE_ESPACE_RESERVE)
+
     taux_libre   = round(sup_libre_m2    / total_sup_m2 * 100, 1) if total_sup_m2 else 0
     taux_occupe  = round(sup_occupee_m2  / total_sup_m2 * 100, 1) if total_sup_m2 else 0
     taux_reserve = round(sup_reservee_m2 / total_sup_m2 * 100, 1) if total_sup_m2 else 0
-    nb_libres    = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count()
-    nb_occupes   = Espace.objects.filter(type_espace=Espace.TYPE_OCCUPE).count()
-    nb_reserves  = Espace.objects.filter(type_espace=Espace.TYPE_RESERVE).count()
+
+    nb_libres    = zs_base.filter(type_zone=ZoneSecteur.TYPE_ESPACE_LIBRE).count()
+    nb_occupes   = zs_base.filter(type_zone__in=[
+        ZoneSecteur.TYPE_VILLAGE, ZoneSecteur.TYPE_QUARTIER,
+        ZoneSecteur.TYPE_SECTEUR_CAMPUS, ZoneSecteur.TYPE_ZONE_ACTIVITE
+    ]).count()
+    nb_reserves  = zs_base.filter(type_zone=ZoneSecteur.TYPE_ESPACE_RESERVE).count()
 
     # ── Capacité constructible ────────────────────────────────────────────
-    espaces_actifs = list(Espace.objects.filter(
-        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE]
-    ))
-    sup_constructible_totale = sum(
-        (e.superficie or 0) * (e.taux_occupation / 100) for e in espaces_actifs
-    )
-    taux_moy_occupation = (
-        sum(e.taux_occupation for e in espaces_actifs) / len(espaces_actifs)
-        if espaces_actifs else 0
-    )
-    sup_engagee_nc = NC.objects.filter(
+    sup_constructible_totale = sup_libre_m2 + (sup_reservee_m2 * 0.5)
+    taux_moy_occupation = taux_occupe
+
+    nc_base = NC.objects.all()
+    if hasattr(NC, 'zone_secteur') and dossier:
+        nc_base = nc_base.filter(zone_secteur__dossier=dossier)
+
+    sup_engagee_nc = nc_base.filter(
         statut__in=NC.STATUTS_ENGAGES
     ).aggregate(t=Sum('superficie_souhaitee'))['t'] or 0
     sup_nette_nc = max(0.0, sup_constructible_totale - sup_engagee_nc)
     pct_engagee_nc = round(sup_engagee_nc / sup_constructible_totale * 100, 1) \
                      if sup_constructible_totale else 0
 
-    # ── Bâtiments ─────────────────────────────────────────────────────────
-    total_batiments  = Batiment.objects.count()
-    batiments_actifs = Batiment.objects.filter(est_actif=True).count()
+    # ── Bâtiments / Unités Bâties ──────────────────────────────────────────
+    ub_base = UniteBatie.objects.filter(dossier=dossier) if dossier else UniteBatie.objects.all()
+    total_batiments  = ub_base.count()
+    batiments_actifs = ub_base.filter(statut_occupation=UniteBatie.OCCUPATION_HABITEE).count()
     densite_bat      = round(total_batiments / total_sup_ha, 2) if total_sup_ha else 0
 
     # ── Pipeline constructions ────────────────────────────────────────────
     nc_stats = {
         item['statut']: {'count': item['count'], 'superficie': item['superficie'] or 0}
-        for item in NC.objects.values('statut').annotate(
+        for item in nc_base.values('statut').annotate(
             count=Count('id'), superficie=Sum('superficie_souhaitee')
         )
     }
-    total_constructions = NC.objects.count()
+    total_constructions = nc_base.count()
 
     _COULEURS_STATUT = {
         'en_cours':  ('#0e7490', '#cffafe'),
@@ -97,7 +136,7 @@ def statistiques(request):
         })
 
     # Types de construction les plus demandés
-    types_demandes = list(NC.objects.values('type_construction').annotate(
+    types_demandes = list(nc_base.values('type_construction').annotate(
         count=Count('id'), superficie=Sum('superficie_souhaitee')
     ).order_by('-count')[:8])
     max_count_type = max((t['count'] for t in types_demandes), default=1)
@@ -106,9 +145,12 @@ def statistiques(request):
         t['superficie'] = round(t['superficie'] or 0)
 
     # ── Historique des travaux ────────────────────────────────────────────
+    hc_base = HC.objects.all()
+    if hasattr(HC, 'unite_batie') and dossier:
+        hc_base = hc_base.filter(unite_batie__dossier=dossier)
     types_travaux_dict = dict(HC.TYPES_TRAVAUX)
     histo_raw = list(
-        HC.objects
+        hc_base
         .annotate(annee=ExtractYear('date_debut'))
         .values('annee', 'type_travaux')
         .annotate(count=Count('id'))
@@ -132,11 +174,13 @@ def statistiques(request):
 
     context = {
         # Globaux
-        'total_superficie': total_sup_ha,
-        'total_espaces':    Espace.objects.count(),
-        'total_batiments':  total_batiments,
-        'batiments_actifs': batiments_actifs,
-        'densite_bat':      densite_bat,
+        'total_superficie':    total_sup_ha,
+        'total_superficie_m2': round(total_sup_m2),
+        'active_dossier':      dossier,
+        'total_espaces':       zs_base.count(),
+        'total_batiments':     total_batiments,
+        'batiments_actifs':    batiments_actifs,
+        'densite_bat':         densite_bat,
         # Espaces par type
         'stats_enrichis': stats_enrichis,
         'nb_libres':      nb_libres,

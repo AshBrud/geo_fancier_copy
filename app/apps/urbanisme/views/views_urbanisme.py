@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.contrib.gis.geos import GEOSGeometry
 
 from accounts.decorators import foncier_required
-from territoire.models import Campus, Espace
+from dossiers.models import Dossier, ZoneSecteur, UniteBatie
 from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from urbanisme.forms import NouvelleConstructionForm, HistoriqueConstructionForm
 from urbanisme.services import (
@@ -47,10 +47,11 @@ def recommander_emplacements_view(request):
     if superficie <= 0:
         return JsonResponse({'error': 'Veuillez renseigner une superficie souhaitée valide.'}, status=400)
 
-    if not Campus.objects.first():
-        return JsonResponse({'error': "Aucun Campus n'est défini : impossible d'analyser les emplacements."}, status=400)
+    active_dossier = getattr(request, 'active_dossier', None) or Dossier.objects.first()
+    if not active_dossier:
+        return JsonResponse({'error': "Aucun dossier territorial n'est défini : impossible d'analyser les emplacements."}, status=400)
 
-    resultats = recommander_emplacements_implantation(type_construction, superficie)
+    resultats = recommander_emplacements_implantation(type_construction, superficie, dossier=active_dossier)
     compatibles = [r for r in resultats if r['compatible']]
 
     return JsonResponse({
@@ -73,7 +74,7 @@ def nouvelle_construction(request):
     resultat = None
     zones_alternatives = []
 
-    espaces_data = get_espaces_constructibles_data()
+    espaces_data = get_espaces_constructibles_data(dossier=dossier)
 
     if request.method == 'POST' and form.is_valid():
         construction = form.save(commit=False)
@@ -86,12 +87,13 @@ def nouvelle_construction(request):
 
         if espace_id:
             try:
-                espace_obj = Espace.objects.get(pk=int(espace_id))
-                if espace_obj.geometrie:
-                    construction.zone_souhaitee = espace_obj.geometrie.convex_hull
-                construction.espace_souhaitee_id = int(espace_id)
-            except (Espace.DoesNotExist, ValueError):
-                messages.warning(request, 'Espace sélectionné introuvable.')
+                zone_obj = ZoneSecteur.objects.get(pk=int(espace_id))
+                if zone_obj.geometrie:
+                    construction.zone_souhaitee = zone_obj.geometrie.convex_hull
+                construction.zone_secteur = zone_obj
+                construction.dossier = zone_obj.dossier
+            except (ZoneSecteur.DoesNotExist, ValueError):
+                messages.warning(request, 'Zone sélectionnée introuvable.')
         elif zone_geojson:
             try:
                 construction.zone_souhaitee = GEOSGeometry(zone_geojson)
@@ -112,7 +114,7 @@ def nouvelle_construction(request):
 
     recentes = get_constructions_recentes(dossier=dossier, limit=5)
 
-    return render(request, 'urbanisme/nouvelle_construction.html', {
+    return render(request, 'urbanisme/constructions/simulation.html', {
         'form': form,
         'resultat': resultat,
         'zones_alternatives': zones_alternatives,
@@ -159,7 +161,7 @@ def constructions_list(request):
     paginator = Paginator(qs, 15)
     page = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'urbanisme/constructions_list.html', {
+    return render(request, 'urbanisme/constructions/list.html', {
         'page_obj': page,
         'q': q,
         'statut': statut,
@@ -202,7 +204,7 @@ def historique_list(request):
     paginator = Paginator(qs, 15)
     page = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'urbanisme/historique_list.html', {
+    return render(request, 'urbanisme/historique/list.html', {
         'page_obj': page,
         'annee': annee,
         'type_travaux': type_travaux,
@@ -223,7 +225,7 @@ def historique_create(request):
         messages.success(request, f'Historique enregistré pour {cible}.')
         return redirect('urbanisme:historique')
 
-    return render(request, 'urbanisme/historique_form.html', {
+    return render(request, 'urbanisme/historique/form.html', {
         'form': form,
         'action': 'Enregistrer un historique'
     })
@@ -239,7 +241,7 @@ def construction_delete(request, pk):
         construction.delete()
         messages.success(request, f'Demande « {nom} » supprimée.')
         return redirect(request.META.get('HTTP_REFERER') or 'urbanisme:list')
-    return render(request, 'urbanisme/construction_confirm_delete.html', {
+    return render(request, 'urbanisme/constructions/confirm_delete.html', {
         'construction': construction
     })
 
@@ -253,4 +255,4 @@ def historique_delete(request, pk):
         h.delete()
         messages.success(request, 'Entrée d\'historique supprimée.')
         return redirect('urbanisme:historique')
-    return render(request, 'urbanisme/confirm_delete.html', {'obj': h})
+    return render(request, 'urbanisme/constructions/generic_delete.html', {'obj': h})

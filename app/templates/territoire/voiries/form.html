@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ action }} · Réseau Linéaire{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'territoire:reseaux' %}">Réseaux Linéaires</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<style>
+.form-hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.form-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.form-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.form-card-hdr {
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-card-body {
+  padding: 20px;
+}
+#draw-map {
+  height: 520px;
+  border-radius: 0 0 12px 12px;
+}
+#length-badge {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  gap: 5px;
+}
+#length-badge.visible {
+  display: inline-flex;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-hero">
+  <div class="form-hero-icon">
+    <i class="bi bi-signpost-split"></i>
+  </div>
+  <div>
+    <h1 class="h4 fw-bold mb-1">{{ action }}</h1>
+    <p class="mb-0 opacity-75 small">
+      {% if obj %}Modification du tronçon « {{ obj.nom|default:obj.code }} »{% else %}Définissez les attributs et tracez la voie linéaire sur la carte{% endif %}
+      · Territoire : <strong>{{ active_dossier.nom }}</strong>
+    </p>
+  </div>
+  <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm ms-auto"
+     style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Veuillez corriger les erreurs ci-dessous :</strong>
+    <ul class="mb-0 mt-1 small">
+      {% for field in form %}
+        {% for error in field.errors %}
+        <li>{{ field.label }} : {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" id="voieForm" novalidate>
+  {% csrf_token %}
+
+  <div class="row g-4">
+    <!-- Colonne Gauche : Attributs -->
+    <div class="col-lg-5">
+      <div class="form-card">
+        <div class="form-card-hdr">
+          <i class="bi bi-card-heading text-primary"></i>
+          Désignation & Caractéristiques de la Voie
+        </div>
+        <div class="form-card-body">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Nom / Tronçon</label>
+            {{ form.nom }}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-bold">Code unique</label>
+              {{ form.code }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold">Nature de la voie</label>
+              {{ form.type_voie }}
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-bold">Largeur estimée (m)</label>
+              {{ form.largeur_estimee_m }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold">État / Praticabilité</label>
+              {{ form.etat_chaussee }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Description / Observations</label>
+            {{ form.description }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tracé GeoJSON synchronisé -->
+      <div class="form-card">
+        <div class="form-card-hdr d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-code-slash text-primary"></i> Tracé géographique (WGS 84)</span>
+          <span id="length-badge"><i class="bi bi-speedometer me-1"></i><span id="length-val">0 m</span></span>
+        </div>
+        <div class="form-card-body p-2">
+          {{ form.geometrie }}
+          <div class="form-text small text-muted px-2 py-1">
+            Utilisez l'outil tracé linéaire (polyline) sur la carte à droite pour dessiner l'axe de la voie.
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 py-2 fw-bold">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer le tronçon
+        </button>
+        <a href="{% url 'territoire:reseaux' %}" class="btn btn-outline-secondary py-2 px-3">
+          Annuler
+        </a>
+      </div>
+    </div>
+
+    <!-- Colonne Droite : Carte Interactive Leaflet Draw Polyline -->
+    <div class="col-lg-7">
+      <div class="form-card h-100">
+        <div class="form-card-hdr d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-map-fill text-primary"></i> Dessin de l'axe routier / linéaire</span>
+          <div class="d-flex gap-1">
+            <button type="button" class="btn btn-xs btn-outline-secondary" onclick="zoomToGeometry()" title="Recentrer">
+              <i class="bi bi-aspect-ratio"></i>
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-danger" onclick="clearGeometry()" title="Effacer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div id="draw-map"></div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var drawMap = L.map('draw-map').setView([14.6928, -17.4467], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(drawMap);
+
+  var drawnItems = new L.FeatureGroup().addTo(drawMap);
+
+  var drawControl = new L.Control.Draw({
+    draw: {
+      polyline: {
+        shapeOptions: { color: '#d97706', weight: 4 }
+      },
+      polygon: false,
+      circle: false,
+      rectangle: false,
+      marker: false,
+      circlemarker: false
+    },
+    edit: {
+      featureGroup: drawnItems,
+      remove: true
+    }
+  });
+  drawMap.addControl(drawControl);
+
+  var geomInput = document.getElementById('id_geometrie');
+
+  function updateInputFromDrawn() {
+    var features = drawnItems.toGeoJSON().features;
+    if (features && features.length > 0) {
+      geomInput.value = JSON.stringify(features[0].geometry);
+      updateLengthBadge();
+    } else {
+      geomInput.value = '';
+      hideLengthBadge();
+    }
+  }
+
+  function updateLengthBadge() {
+    var badge = document.getElementById('length-badge');
+    var val = document.getElementById('length-val');
+    var features = drawnItems.toGeoJSON().features;
+    if (!features.length) { hideLengthBadge(); return; }
+
+    var totalM = 0;
+    drawnItems.eachLayer(function(layer) {
+      if (layer.getLatLngs) {
+        var latlngs = layer.getLatLngs();
+        for (var i = 0; i < latlngs.length - 1; i++) {
+          totalM += latlngs[i].distanceTo(latlngs[i+1]);
+        }
+      }
+    });
+
+    if (totalM > 1000) {
+      val.textContent = (totalM / 1000).toFixed(2) + ' km';
+    } else if (totalM > 0) {
+      val.textContent = Math.round(totalM) + ' m';
+    } else {
+      val.textContent = 'Tracé actif';
+    }
+    badge.classList.add('visible');
+  }
+
+  function hideLengthBadge() {
+    var badge = document.getElementById('length-badge');
+    if (badge) badge.classList.remove('visible');
+  }
+
+  drawMap.on(L.Draw.Event.CREATED, function (e) {
+    drawnItems.clearLayers();
+    drawnItems.addLayer(e.layer);
+    updateInputFromDrawn();
+  });
+
+  drawMap.on(L.Draw.Event.EDITED, function () {
+    updateInputFromDrawn();
+  });
+
+  drawMap.on(L.Draw.Event.DELETED, function () {
+    updateInputFromDrawn();
+  });
+
+  if (geomInput && geomInput.value) {
+    try {
+      var initialData = JSON.parse(geomInput.value);
+      var layer = L.geoJSON(initialData, {
+        style: { color: '#d97706', weight: 4 }
+      });
+      layer.eachLayer(function (l) { drawnItems.addLayer(l); });
+      drawMap.fitBounds(layer.getBounds(), { padding: [30, 30] });
+      updateLengthBadge();
+    } catch(err) {
+      console.warn("Géométrie linéaire initiale non parsable :", err);
+    }
+  }
+
+  window.clearGeometry = function () {
+    drawnItems.clearLayers();
+    geomInput.value = '';
+    hideLengthBadge();
+  };
+
+  window.zoomToGeometry = function () {
+    if (drawnItems.getLayers().length > 0) {
+      drawMap.fitBounds(drawnItems.getBounds(), { padding: [30, 30] });
+    }
+  };
+});
+</script>
+{% endblock %}

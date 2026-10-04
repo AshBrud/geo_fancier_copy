@@ -4,7 +4,7 @@ Isole les requêtes complexes, filtres et calculs de bilans d'affichage.
 """
 import json
 from django.db.models import Q
-from territoire.models import Espace
+from dossiers.models import ZoneSecteur
 from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from urbanisme.services.services_faisabilite import (
     calculer_superficie_allouee_espace,
@@ -16,7 +16,7 @@ def get_projets_construction_qs(dossier=None, statut=None, search_term=None):
     """
     Retourne la liste filtrée des demandes de construction avec optimisation SQL.
     """
-    qs = NouvelleConstruction.objects.select_related('demandeur', 'dossier', 'zone_secteur', 'espace_souhaitee')
+    qs = NouvelleConstruction.objects.select_related('demandeur', 'dossier', 'zone_secteur')
     if dossier:
         qs = qs.filter(dossier=dossier)
     if statut:
@@ -33,7 +33,7 @@ def get_projet_by_id(pk):
     """Retourne une demande de construction par son identifiant ou None."""
     try:
         return NouvelleConstruction.objects.select_related(
-            'demandeur', 'dossier', 'zone_secteur', 'espace_souhaitee'
+            'demandeur', 'dossier', 'zone_secteur'
         ).get(pk=pk)
     except NouvelleConstruction.DoesNotExist:
         return None
@@ -47,17 +47,15 @@ def get_constructions_recentes(dossier=None, limit=5):
     return qs.order_by('-date_demande')[:limit]
 
 
-def get_historique_travaux_qs(annee=None, type_travaux=None, batiment=None, unite_batie=None):
+def get_historique_travaux_qs(annee=None, type_travaux=None, unite_batie=None):
     """
     Retourne la liste des chantiers et historiques d'interventions sur le bâti.
     """
-    qs = HistoriqueConstruction.objects.select_related('batiment', 'unite_batie')
+    qs = HistoriqueConstruction.objects.select_related('unite_batie')
     if annee:
         qs = qs.filter(date_debut__year=annee)
     if type_travaux:
         qs = qs.filter(type_travaux=type_travaux)
-    if batiment:
-        qs = qs.filter(batiment=batiment)
     if unite_batie:
         qs = qs.filter(unite_batie=unite_batie)
     return qs.order_by('-date_debut')
@@ -68,22 +66,26 @@ def get_historique_annees_disponibles():
     return HistoriqueConstruction.objects.dates('date_debut', 'year', order='DESC')
 
 
-def get_bilan_espace(espace, statuts=None, exclude_pk=None):
+def get_bilan_espace(zone_ou_espace, statuts=None, exclude_pk=None):
     """
-    Calcule le bilan volumétrique et surfacique d'un espace foncier.
+    Calcule le bilan volumétrique et surfacique d'une zone ou espace foncier.
     """
-    sup_brute = espace.superficie or 0
-    sup_constructible = (
-        sup_brute * (espace.taux_occupation / 100)
-        if espace.type_espace in (Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE)
-        else 0.0
-    )
+    sup_brute = getattr(zone_ou_espace, 'superficie_m2', None) or getattr(zone_ou_espace, 'superficie', 0) or 0
+    taux_occ = getattr(zone_ou_espace, 'taux_occupation', 40.0) or 40.0
+    sup_constructible = sup_brute * (taux_occ / 100.0)
+
     sup_allouee = calculer_superficie_allouee_espace(
-        espace, statuts=statuts, exclude_pk=exclude_pk
+        zone_ou_espace, statuts=statuts, exclude_pk=exclude_pk
     )
-    sup_batie = espace.superficie_batie
-    sup_terrains = espace.superficie_terrains
-    sup_espaces_verts = espace.superficie_espaces_verts
+
+    if hasattr(zone_ou_espace, 'unites_baties'):
+        from django.db.models import Sum
+        sup_batie = zone_ou_espace.unites_baties.aggregate(s=Sum('superficie_m2'))['s'] or 0.0
+    else:
+        sup_batie = getattr(zone_ou_espace, 'superficie_batie', 0.0) or 0.0
+
+    sup_terrains = getattr(zone_ou_espace, 'superficie_terrains', 0.0) or 0.0
+    sup_espaces_verts = getattr(zone_ou_espace, 'superficie_espaces_verts', 0.0) or 0.0
     sup_occupee = sup_allouee + sup_batie + sup_terrains + sup_espaces_verts
     sup_nette = max(0.0, sup_constructible - sup_occupee)
     pct = round(sup_occupee / sup_constructible * 100, 1) if sup_constructible else 0.0
@@ -101,29 +103,38 @@ def get_bilan_espace(espace, statuts=None, exclude_pk=None):
     }
 
 
-def get_espaces_constructibles_data():
+def get_espaces_constructibles_data(dossier=None):
     """
-    Prépare et sérialise la liste des espaces libres et constructibles avec leur bilan
+    Prépare et sérialise la liste des zones constructibles avec leur bilan
     pour l'injection dans les interfaces cartographiques Leaflet/OpenLayers.
     """
-    espaces_libres = Espace.objects.filter(
-        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE]
-    ).order_by('nom')
+    qs = ZoneSecteur.objects.filter(
+        type_zone__in=[
+            ZoneSecteur.TYPE_ESPACE_LIBRE,
+            ZoneSecteur.TYPE_SECTEUR_CAMPUS,
+            ZoneSecteur.TYPE_ZONE_ACTIVITE,
+            ZoneSecteur.TYPE_VILLAGE,
+            ZoneSecteur.TYPE_QUARTIER,
+        ]
+    )
+    if dossier:
+        qs = qs.filter(dossier=dossier)
+    qs = qs.order_by('nom')
 
     espaces_data = []
-    for e in espaces_libres:
-        if e.geometrie:
-            bilan = get_bilan_espace(e)
+    for z in qs:
+        if z.geometrie:
+            bilan = get_bilan_espace(z)
             espaces_data.append({
-                'id': e.pk,
-                'nom': e.nom,
-                'code': e.code,
-                'superficie': e.superficie or 0,
-                'taux_occupation': e.taux_occupation,
+                'id': z.pk,
+                'nom': z.nom,
+                'code': z.code,
+                'superficie': z.superficie_m2 or 0,
+                'taux_occupation': getattr(z, 'taux_occupation', 40),
                 'sup_constructible': bilan['constructible'],
                 'sup_engagee': bilan['allouee'],
                 'sup_batie': bilan['batie'],
                 'sup_disponible': bilan['nette'],
-                'geojson': json.loads(e.geometrie.geojson),
+                'geojson': json.loads(z.geometrie.geojson),
             })
     return espaces_data

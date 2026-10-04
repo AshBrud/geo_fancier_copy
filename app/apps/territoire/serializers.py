@@ -1,64 +1,57 @@
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from rest_framework import serializers
-from .models import (
-    Espace, Batiment, FonctionBatiment,
-    Terrain, EspaceVert, Voirie, PointInteret,
-)
+from dossiers.models import ZoneSecteur, UniteBatie, ReseauLineaire
 
 
-class EspaceSerializer(GeoFeatureModelSerializer):
+class ZoneSecteurSerializer(GeoFeatureModelSerializer):
+    superficie_ha = serializers.ReadOnlyField()
+    superficie_m2 = serializers.ReadOnlyField()
+    surface_batie_m2 = serializers.ReadOnlyField()
+    nb_unites_baties = serializers.ReadOnlyField()
     couleur = serializers.ReadOnlyField()
+    type_display = serializers.CharField(source='get_type_zone_display', read_only=True)
+    statut_display = serializers.CharField(source='get_statut_display', read_only=True)
+
+    class Meta:
+        model = ZoneSecteur
+        geo_field = 'geometrie'
+        fields = [
+            'id', 'nom', 'code', 'type_zone', 'type_display',
+            'statut', 'statut_display', 'superficie_m2', 'superficie_ha',
+            'surface_batie_m2', 'nb_unites_baties', 'population_estimee',
+            'couleur', 'description'
+        ]
+
+
+class UniteBatieSerializer(GeoFeatureModelSerializer):
+    type_display = serializers.CharField(source='get_type_bati_display', read_only=True)
+    statut_occupation_display = serializers.CharField(source='get_statut_occupation_display', read_only=True)
     superficie_ha = serializers.ReadOnlyField()
-    superficie_batie = serializers.ReadOnlyField()
-    type_display = serializers.CharField(source='get_type_espace_display', read_only=True)
+    emprise_sol_m2 = serializers.ReadOnlyField()
 
     class Meta:
-        model = Espace
+        model = UniteBatie
         geo_field = 'geometrie'
-        fields = ['id', 'nom', 'code', 'type_espace', 'type_display',
-                  'superficie', 'superficie_ha', 'superficie_batie',
-                  'description', 'usage', 'couleur']
+        fields = [
+            'id', 'nom', 'code', 'type_bati', 'type_display',
+            'statut_occupation', 'statut_occupation_display',
+            'superficie_m2', 'emprise_sol_m2', 'superficie_ha',
+            'etages', 'annee_construction',
+            'description', 'photo', 'est_actif',
+            'zone_secteur'
+        ]
 
 
-class BatimentSerializer(GeoFeatureModelSerializer):
-    fonction_nom = serializers.CharField(source='fonction.nom', read_only=True)
-    superficie_ha = serializers.ReadOnlyField()
+class ReseauLineaireSerializer(GeoFeatureModelSerializer):
+    type_display = serializers.CharField(source='get_type_voie_display', read_only=True)
+    longueur_km = serializers.ReadOnlyField()
+    couleur = serializers.ReadOnlyField()
 
     class Meta:
-        model = Batiment
+        model = ReseauLineaire
         geo_field = 'geometrie'
-        fields = ['id', 'nom', 'code', 'fonction', 'fonction_nom', 'superficie',
-                  'superficie_ha', 'etages', 'annee_construction',
-                  'description', 'photo', 'est_actif']
-
-
-class TerrainSerializer(GeoFeatureModelSerializer):
-    superficie_ha = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Terrain
-        geo_field = 'geometrie'
-        fields = ['id', 'nom', 'type_terrain', 'etat', 'superficie', 'superficie_ha', 'observation']
-
-
-class EspaceVertSerializer(GeoFeatureModelSerializer):
-    superficie_ha = serializers.ReadOnlyField()
-
-    class Meta:
-        model = EspaceVert
-        geo_field = 'geometrie'
-        fields = ['id', 'nom', 'type_espace_vert', 'etat', 'superficie', 'superficie_ha', 'observation']
-
-
-class VoirieSerializer(GeoFeatureModelSerializer):
-    class Meta:
-        model = Voirie
-        geo_field = 'geometrie'
-        fields = ['id', 'nom', 'type_voirie', 'revetement', 'etat', 'longueur', 'observation']
-
-
-class PointInteretSerializer(GeoFeatureModelSerializer):
-    class Meta:
-        model = PointInteret
-        geo_field = 'geometrie'
-        fields = ['id', 'nom', 'categorie', 'observation']
+        fields = [
+            'id', 'nom', 'code', 'type_voie', 'type_display',
+            'etat_chaussee', 'largeur_estimee_m',
+            'longueur_metres', 'longueur_km', 'couleur', 'description'
+        ]

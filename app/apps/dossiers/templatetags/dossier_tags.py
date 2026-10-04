@@ -15,21 +15,26 @@ register = template.Library()
 
 
 @register.filter(name='term')
-def term_filter(dossier_or_type, term_args: str) -> str:
+def term_filter(value, arg=None) -> str:
     """
     Filtre template retournant le terme contextuel pour ce dossier.
-    Syntaxe :
-      {{ active_dossier|term:'cle' }}
-      {{ active_dossier|term:'cle,Valeur par défaut' }}
+    Supporte les deux syntaxes :
+      1. Syntaxe standard : {{ active_dossier|term:'zone_plural' }}
+      2. Syntaxe inversée : {{ 'espace_label'|term }}
     """
-    if not term_args:
+    if not value:
         return ''
 
-    parts = [p.strip() for p in str(term_args).split(',', 1)]
-    term_key = parts[0]
-    default_val = parts[1] if len(parts) > 1 else None
-
-    return get_term(dossier_or_type, term_key, default=default_val)
+    if arg is not None:
+        parts = [p.strip() for p in str(arg).split(',', 1)]
+        term_key = parts[0]
+        default_val = parts[1] if len(parts) > 1 else None
+        return get_term(value, term_key, default=default_val)
+    else:
+        parts = [p.strip() for p in str(value).split(',', 1)]
+        term_key = parts[0]
+        default_val = parts[1] if len(parts) > 1 else None
+        return get_term(None, term_key, default=default_val)
 
 
 @register.simple_tag(name='get_lexicon')

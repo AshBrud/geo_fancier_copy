@@ -97,7 +97,6 @@ INSTALLED_APPS = [
     'dashboard',
     'navigation',
     'pdu',
-    'habitations',
 ]
 
 MIDDLEWARE = [
@@ -126,7 +125,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'habitations.context_processors.notifications',
                 'dossiers.context_processors.active_dossier_context',
             ],
         },

@@ -146,6 +146,31 @@ class Dossier(TimeStampedModel):
 
         super().save(*args, **kwargs)
 
+    @property
+    def srid_projection(self) -> int:
+        """Alias pour le SRID de projection métrique (ex: 32628 pour UTM 28N)."""
+        return self.srid_metrique or 32628
+
+    @property
+    def emprise(self):
+        """Alias de commodité pour la géométrie du territoire."""
+        return self.geometrie
+
+    @property
+    def perimetre(self):
+        """Alias pour la géométrie du territoire."""
+        return self.geometrie
+
+    @property
+    def superficie_m2(self) -> float:
+        """Superficie en mètres carrés calculée depuis superficie_ha."""
+        return (self.superficie_ha or 0.0) * 10000.0
+
+    @property
+    def configuration_modules(self) -> Dict[str, Any]:
+        """Alias pour modules_config."""
+        return self.modules_config or {}
+
     # Helpers de gestion modulaire
     def is_module_enabled(self, module_key: str) -> bool:
         """Vérifie si un module métier spécifique est activé pour ce dossier."""

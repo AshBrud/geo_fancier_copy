@@ -13,5 +13,7 @@ class NouvelleConstructionAdmin(admin.GISModelAdmin):
 
 @admin.register(HistoriqueConstruction)
 class HistoriqueConstructionAdmin(admin.ModelAdmin):
-    list_display = ['batiment', 'unite_batie', 'type_travaux', 'date_debut', 'date_fin']
+    list_display = ['unite_batie', 'type_travaux', 'date_debut', 'date_fin']
     list_filter = ['type_travaux', 'date_debut']
+    autocomplete_fields = ['unite_batie']
+

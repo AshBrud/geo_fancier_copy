@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Tableau de bord campus{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Tableau de bord campus</li>{% endblock %}
+{% block title %}Tableau de bord — {{ dossier.nom }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Tableau de bord</li>{% endblock %}
 
 {% block extra_js_vendor %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -16,7 +16,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
-    <p class="page-description">Vue d'ensemble du campus : indicateurs clés, occupation des espaces et activités récentes.</p>
+    <p class="page-description">Vue d'ensemble de l'espace territorial « {{ dossier.nom }} » : indicateurs clés, occupation du sol et activités.</p>
   </div>
   <span class="text-muted small d-none d-md-flex align-items-center gap-2">
     <i class="bi bi-calendar3"></i>{% now "l d F Y" %}
@@ -28,19 +28,24 @@
   <div class="dash-banner-left">
     <div class="dash-greeting">Bonjour, {{ user.first_name|default:user.username }} 👋</div>
     <div class="dash-role-badge"><i class="bi bi-shield-check"></i> {{ user.get_role_display }}</div>
-    <div class="dash-tagline">Université Alioune Diop de Bambey — Système d'Information Géographique</div>
+    <div class="dash-tagline">{{ dossier.nom }} — {{ dossier.get_type_territoire_display|default:"Territoire" }}{% if dossier.region %}, Région de {{ dossier.region }}{% endif %}</div>
   </div>
   <div class="dash-banner-right">
-    <a href="{% url 'territoire:cartographie' %}" class="dash-quick-btn">
+    <a href="{% url 'territoire:carte' %}" class="dash-quick-btn">
       <i class="bi bi-map-fill"></i> Carte
     </a>
-    <a href="{% url 'territoire:espaces' %}" class="dash-quick-btn">
-      <i class="bi bi-grid-3x3-gap"></i> Espaces
+    <a href="{% url 'territoire:zones' %}" class="dash-quick-btn">
+      <i class="bi bi-grid-3x3-gap"></i> {{ term_zone_plural }}
     </a>
-    {% if user.is_domaine_foncier %}
-    <a href="{% url 'urbanisme:nouvelle' %}" class="dash-quick-btn">
-      <i class="bi bi-building-add"></i> Construction
+    <a href="{% url 'territoire:batiments' %}" class="dash-quick-btn">
+      <i class="bi bi-building"></i> {{ term_bati_plural }}
     </a>
+    {% if has_urbanisme and user.is_domaine_foncier %}
+    <a href="{% url 'urbanisme:faisabilite' %}" class="dash-quick-btn">
+      <i class="bi bi-building-add"></i> Projets
+    </a>
+    {% endif %}
+    {% if has_drones and user.is_domaine_foncier %}
     <a href="{% url 'drones:missions' %}" class="dash-quick-btn">
       <i class="bi bi-airplane"></i> Missions
     </a>
@@ -49,7 +54,7 @@
 </div>
 
 <!-- ===== INDICATEURS CLÉS ===== -->
-<div class="dash-section-lbl">Indicateurs clés du campus</div>
+<div class="dash-section-lbl">Indicateurs clés du territoire</div>
 <div class="row g-3 mb-4">
 
   <div class="col-6 col-md-4 col-xl">
@@ -60,7 +65,7 @@
       <div class="kpi-pro-val">{{ superficie_totale }}</div>
       <div class="kpi-pro-lbl">Superficie totale (ha)</div>
       <div class="kpi-pro-foot">
-        <i class="bi bi-geo-alt-fill text-primary"></i> Valeur officielle UAD
+        <i class="bi bi-geo-alt-fill text-primary"></i> Emprise territoriale
       </div>
     </div>
   </div>
@@ -71,10 +76,10 @@
         <i class="bi bi-layer-backward"></i>
       </div>
       <div class="kpi-pro-val" style="color:#dc2626;">{{ superficie_occupee }}</div>
-      <div class="kpi-pro-lbl">Superficie utilisée (ha)</div>
+      <div class="kpi-pro-lbl">Superficie bâtie / occupée (ha)</div>
       <div class="kpi-pro-foot">
         <i class="bi bi-circle-fill text-danger" style="font-size:8px;"></i>
-        {{ taux_occupation }}% du campus occupé
+        {{ taux_occupation }}% du territoire
       </div>
     </div>
   </div>
@@ -82,13 +87,13 @@
   <div class="col-6 col-md-4 col-xl">
     <div class="kpi-pro">
       <div class="kpi-pro-icon" style="background:#f0fdf4;color:#16A34A;">
-        <i class="bi bi-patch-check-fill"></i>
+        <i class="bi bi-grid-3x3-gap-fill"></i>
       </div>
-      <div class="kpi-pro-val" style="color:#16A34A;">{{ superficie_libre }}</div>
-      <div class="kpi-pro-lbl">Superficie libre (ha)</div>
+      <div class="kpi-pro-val" style="color:#16A34A;">{{ total_zones }}</div>
+      <div class="kpi-pro-lbl">{{ term_zone_plural }}</div>
       <div class="kpi-pro-foot">
         <i class="bi bi-circle-fill text-success" style="font-size:8px;"></i>
-        {{ nb_espaces_libres }} espace{{ nb_espaces_libres|pluralize }} disponible{{ nb_espaces_libres|pluralize }}
+        {{ total_batiments }} {{ term_bati_plural|lower }} recensé{{ total_batiments|pluralize }}
       </div>
     </div>
   </div>
@@ -96,17 +101,15 @@
   <div class="col-6 col-md-4 col-xl">
     <div class="kpi-pro">
       <div class="kpi-pro-icon" style="background:#fffbeb;color:#d97706;">
-        <i class="bi bi-speedometer2"></i>
+        <i class="bi bi-building"></i>
       </div>
-      <div class="kpi-pro-val {% if taux_occupation > 70 %}text-danger{% elif taux_occupation > 40 %}text-warning{% else %}text-success{% endif %}">
-        {{ taux_occupation }}%
+      <div class="kpi-pro-val">
+        {{ total_batiments }}
       </div>
-      <div class="kpi-pro-lbl">Taux d'occupation</div>
-      <div class="kpi-pro-foot" style="border-top:none;padding-top:6px;">
-        <div class="occ-bar w-100">
-          <div class="occ-fill {% if taux_occupation > 70 %}bg-danger{% elif taux_occupation > 40 %}bg-warning{% else %}bg-success{% endif %}"
-               style="width:{{ taux_occupation|stringformat:'g' }}%;"></div>
-        </div>
+      <div class="kpi-pro-lbl">{{ term_bati_plural }}</div>
+      <div class="kpi-pro-foot">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:8px;"></i>
+        {{ nb_habitees }} occupé{{ nb_habitees|pluralize }} · {{ taux_habitation }}%
       </div>
     </div>
   </div>
@@ -114,33 +117,49 @@
   <div class="col-6 col-md-4 col-xl">
     <div class="kpi-pro">
       <div class="kpi-pro-icon" style="background:#ecfeff;color:#0891b2;">
-        <i class="bi bi-camera-video-fill"></i>
+        <i class="bi bi-signpost-split-fill"></i>
       </div>
-      <div class="kpi-pro-val">{{ total_orthophotos }}</div>
-      <div class="kpi-pro-lbl">Orthophotos</div>
+      <div class="kpi-pro-val">{{ longueur_reseaux_km }}</div>
+      <div class="kpi-pro-lbl">{{ term_reseau_plural }} (km)</div>
       <div class="kpi-pro-foot">
-        <i class="bi bi-geo-alt-fill text-success"></i>Données drones
+        <i class="bi bi-compass text-info"></i> {{ total_reseaux }} tronçon{{ total_reseaux|pluralize }}
       </div>
     </div>
   </div>
 
+  {% if has_signalements and sig_total is not None %}
+  <div class="col-6 col-md-4 col-xl">
+    <div class="kpi-pro">
+      <div class="kpi-pro-icon" style="background:#fff1f2;color:#E11D48;">
+        <i class="bi bi-megaphone-fill"></i>
+      </div>
+      <div class="kpi-pro-val" style="color:#E11D48;">{{ sig_ouverts }}</div>
+      <div class="kpi-pro-lbl">Signalements à traiter</div>
+      <div class="kpi-pro-foot">
+        <i class="bi bi-list-check"></i> {{ sig_total }} signalement{{ sig_total|pluralize }} au total
+      </div>
+    </div>
+  </div>
+  {% elif has_drones %}
   <div class="col-6 col-md-4 col-xl">
     <div class="kpi-pro">
       <div class="kpi-pro-icon" style="background:#eef2ff;color:#4338ca;">
         <i class="bi bi-airplane-fill"></i>
       </div>
       <div class="kpi-pro-val">{{ total_missions }}</div>
-      <div class="kpi-pro-lbl">Missions de vol</div>
+      <div class="kpi-pro-lbl">Missions Drones</div>
       <div class="kpi-pro-foot">
-        <i class="bi bi-check-circle-fill text-success"></i>{{ missions_integrees }} intégrée{{ missions_integrees|pluralize }}
+        <i class="bi bi-check-circle-fill text-success"></i>{{ missions_integrees }} intégrée{{ missions_integrees|pluralize }} · {{ total_orthophotos }} orthophoto{{ total_orthophotos|pluralize }}
       </div>
     </div>
   </div>
+  {% endif %}
 
 </div>
 
-<!-- ===== CAPACITÉ CONSTRUCTIBLE ===== -->
-<div class="dash-section-lbl">Capacité constructible de l'université</div>
+<!-- ===== CAPACITÉ CONSTRUCTIBLE & URBANISME ===== -->
+{% if has_urbanisme %}
+<div class="dash-section-lbl">Capacité constructible & planification urbaine</div>
 <div class="row g-3 mb-4">
   <div class="col-12">
     <div class="ch-card">
@@ -232,16 +251,17 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- ===== GRAPHIQUES & ANALYSE ===== -->
-<div class="dash-section-lbl">Analyse foncière</div>
+<div class="dash-section-lbl">Analyse spatiale & occupation du sol</div>
 <div class="row g-3 mb-4">
 
   <!-- Donut répartition -->
   <div class="col-lg-4">
     <div class="ch-card">
       <div class="ch-card-hdr">
-        <div class="ch-card-title"><i class="bi bi-pie-chart-fill text-primary"></i>Répartition des espaces</div>
+        <div class="ch-card-title"><i class="bi bi-pie-chart-fill text-primary"></i>Répartition du sol</div>
       </div>
       <div class="card-body">
         <div style="height:185px;display:flex;justify-content:center;">
@@ -252,19 +272,19 @@
           <div class="col-6">
             <div class="d-flex align-items-center gap-2" style="font-size:12px;padding:4px 0;border-bottom:1px dashed #f1f5f9;">
               <span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:#16A34A;"></span>
-              <span class="text-muted flex-grow-1">Libres</span>
+              <span class="text-muted flex-grow-1">Libre</span>
               <strong>{{ superficie_libre }} ha</strong>
             </div>
             <div class="d-flex align-items-center gap-2" style="font-size:12px;padding:4px 0;">
               <span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:#DC2626;"></span>
-              <span class="text-muted flex-grow-1">Occupés</span>
+              <span class="text-muted flex-grow-1">Bâti / Occupé</span>
               <strong>{{ superficie_occupee }} ha</strong>
             </div>
           </div>
           <div class="col-6">
             <div class="d-flex align-items-center gap-2" style="font-size:12px;padding:4px 0;">
               <span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:#F59E0B;"></span>
-              <span class="text-muted flex-grow-1">Réservés</span>
+              <span class="text-muted flex-grow-1">Réservé</span>
               <strong>{{ superficie_reservee }} ha</strong>
             </div>
           </div>
@@ -277,23 +297,21 @@
   <div class="col-lg-4">
     <div class="ch-card h-100">
       <div class="ch-card-hdr">
-        <div class="ch-card-title"><i class="bi bi-bar-chart-line-fill text-primary"></i>Occupation du campus</div>
+        <div class="ch-card-title"><i class="bi bi-bar-chart-line-fill text-primary"></i>Occupation du territoire</div>
       </div>
       <div class="card-body">
 
         <div class="occ-row">
           <div class="occ-hd">
-            <span class="occ-name">Occupé</span>
+            <span class="occ-name">Occupé / Bâti</span>
             <span class="occ-pct text-danger">{{ taux_occupation }}%</span>
           </div>
           <div class="occ-bar"><div class="occ-fill bg-danger" style="width:{{ taux_occupation|stringformat:'g' }}%;"></div></div>
           <div class="occ-sub">
-            {{ superficie_occupee }} ha d'espaces occupés
+            {{ superficie_occupee }} ha d'emprise
             <span class="d-block" style="font-size:10px;color:#94a3b8;margin-top:2px;">
-              {{ nb_batiments_occ }} bâtiment{{ nb_batiments_occ|pluralize }} ·
-              {{ nb_voiries_occ }} voirie{{ nb_voiries_occ|pluralize }} ·
-              {{ nb_espaces_verts_occ }} espace{{ nb_espaces_verts_occ|pluralize }} vert{{ nb_espaces_verts_occ|pluralize }} ·
-              {{ nb_terrains_sportifs }} terrain{{ nb_terrains_sportifs|pluralize }} sportif{{ nb_terrains_sportifs|pluralize }}
+              {{ total_batiments }} {{ term_bati_plural|lower }} recensé{{ total_batiments|pluralize }} ·
+              {{ total_reseaux }} tronçon{{ total_reseaux|pluralize }} de {{ term_reseau_plural|lower }} ({{ longueur_reseaux_km }} km)
             </span>
           </div>
         </div>
@@ -306,7 +324,7 @@
           <div class="occ-bar">
             <div class="occ-fill bg-success" style="width:{{ pct_libre|stringformat:'g' }}%;"></div>
           </div>
-          <div class="occ-sub">{{ superficie_libre }} ha · {{ nb_espaces_libres }} espace{{ nb_espaces_libres|pluralize }}</div>
+          <div class="occ-sub">{{ superficie_libre }} ha · {{ nb_espaces_libres }} zone{{ nb_espaces_libres|pluralize }} disponible{{ nb_espaces_libres|pluralize }}</div>
         </div>
 
         <div class="occ-row">

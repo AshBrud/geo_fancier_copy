@@ -5,7 +5,5 @@ app_name = 'dashboard'
 
 urlpatterns = [
     path('', views.dashboard_router, name='index'),
-    path('universite/', views.universite, name='universite'),
-    path('home/', views.home, name='home'),
     path('<slug:slug>/', views.dossier_dashboard, name='dossier_dashboard'),
 ]

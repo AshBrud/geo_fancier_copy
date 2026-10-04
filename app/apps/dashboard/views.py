@@ -1,12 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q
-from territoire.models import Espace, Batiment, Campus, Terrain, EspaceVert, Voirie
+from dossiers.models import Dossier, ZoneSecteur, UniteBatie, ReseauLineaire, SignalementDommage
 from drones.models import Orthophoto, Mission
 from urbanisme.models import NouvelleConstruction, HistoriqueConstruction
 from accounts.models import CustomUser, ActivityLog
-from habitations.views import _json_script
-from habitations.models import Commune, Maison, OrthophotoCommune, Piste, Signalement, Village
 from django.contrib import messages
 from dossiers.selectors import get_dossier_by_slug, get_accessible_dossiers_for_user
 import json
@@ -64,167 +62,152 @@ def dossier_dashboard(request, slug=None, dossier_slug=None):
     request.session['active_dossier_slug'] = dossier.slug
     request.active_dossier = dossier
 
-    # Rendu adapté au type d'entité territoriale du dossier
-    if dossier.type_territoire == 'universite' or 'campus' in dossier.slug:
-        return _render_dashboard_campus(request, dossier)
+    # Activation en session & requête
+    request.session['active_dossier_id'] = str(dossier.id)
+    request.session['active_dossier_slug'] = dossier.slug
+    request.active_dossier = dossier
 
-    return _render_dashboard_collectivite(request, dossier)
+    return render_dossier_dashboard(request, dossier)
 
 
 @login_required
-def _render_dashboard_collectivite(request, dossier=None):
+def render_dossier_dashboard(request, dossier):
     """
-    Tableau de bord décisionnel pour une Collectivité Territoriale ou Commune (V2).
-    Affiche les indicateurs de recensement, parcelles, voiries et signalements.
+    Tableau de bord territorial unifié V2 :
+    S'adapte dynamiquement à la typologie du territoire (commune, campus, zone industrielle, etc.)
+    grâce au dictionnaire de terminologie et aux modules activés.
     """
+    from dossiers.services.service_navigation import get_term
     user = request.user
-    dossier = dossier or getattr(request, 'active_dossier', None)
+    modules = dossier.configuration_modules or {}
 
-    commune = Commune.objects.first()
-    stats = commune.stats_bati() if commune else {
-        'nb_villages': Village.objects.count(), 'nb_maisons': 0, 'nb_habitees': 0,
-        'nb_non_habitees': 0, 'superficie_batie': 0,
-    }
-    nb_maisons = stats['nb_maisons']
-    taux_habitation = round(stats['nb_habitees'] / nb_maisons * 100, 1) if nb_maisons else 0
+    # ── Terminologie dynamique selon le territoire ──
+    term_zone_singular = get_term(dossier, 'zone_singular', 'Subdivision')
+    term_zone_plural = get_term(dossier, 'zone_plural', 'Subdivisions')
+    term_bati_singular = get_term(dossier, 'bati_singular', 'Bâtiment')
+    term_bati_plural = get_term(dossier, 'bati_plural', 'Bâtiments')
+    term_reseau_singular = get_term(dossier, 'reseau_singular', 'Réseau')
+    term_reseau_plural = get_term(dossier, 'reseau_plural', 'Réseaux & Voies')
 
-    villages = Village.objects.annotate(
-        nb_maisons=Count('maisons'),
-        nb_habitees=Count('maisons', filter=Q(maisons__statut_occupation=Maison.HABITEE)),
-        surface_batie=Sum('maisons__superficie'),
-    ).order_by('-nb_maisons', 'nom')
+    # ── Requêtes spatiales scopées au dossier actif ──
+    ub_qs = UniteBatie.objects.filter(dossier=dossier)
+    zs_qs = ZoneSecteur.objects.filter(dossier=dossier)
+    rl_qs = ReseauLineaire.objects.filter(dossier=dossier)
+    nc_base = NouvelleConstruction.objects.filter(dossier=dossier)
+    ortho_qs = Orthophoto.objects.filter(Q(mission__dossier=dossier) | Q(mission__isnull=True))
+    mission_qs = Mission.objects.filter(dossier=dossier)
 
-    pistes = Piste.objects.aggregate(nb=Count('id'), longueur=Sum('longueur'))
-
-    context = {
-        'dossier': dossier,
-        'commune': commune,
-        'stats': stats,
-        'taux_habitation': taux_habitation,
-        'superficie_batie_ha': round(stats['superficie_batie'] / 10000, 2),
-        'villages': villages,
-        'nb_pistes': pistes['nb'],
-        'longueur_pistes_km': round((pistes['longueur'] or 0) / 1000, 2),
-        'nb_orthophotos': OrthophotoCommune.objects.count(),
-        'maisons_json': json.dumps([stats['nb_habitees'], stats['nb_non_habitees']]),
-        'villages_labels': _json_script([v.nom for v in villages[:12]]),
-        'villages_data': json.dumps([v.nb_maisons for v in villages[:12]]),
-    }
-
-    if user.can_manage_signalements:
-        signalements = Signalement.objects.all()
-        agg = signalements.aggregate(
-            total=Count('id'),
-            **{code: Count('id', filter=Q(statut=code)) for code, _ in Signalement.STATUTS},
-        )
-        par_categorie = dict(signalements.values_list('categorie').annotate(n=Count('id')))
-        context.update({
-            'sig_total': agg['total'],
-            'sig_ouverts': agg['total'] - agg[Signalement.RESOLU],
-            'sig_statuts': [
-                {'libelle': lib, 'nb': agg[code], 'couleur': Signalement.STATUT_COULEURS[code],
-                 'pct': round(agg[code] / agg['total'] * 100) if agg['total'] else 0}
-                for code, lib in Signalement.STATUTS
-            ],
-            'categories_labels': json.dumps([lib for code, lib in Signalement.CATEGORIES], ensure_ascii=False),
-            'categories_data': json.dumps([par_categorie.get(code, 0) for code, _ in Signalement.CATEGORIES]),
-            'categories_couleurs': json.dumps([Signalement.CATEGORIE_STYLE[code][0] for code, _ in Signalement.CATEGORIES]),
-            'signalements_recents': signalements.select_related('village')[:6],
-        })
-
-    return render(request, 'dashboard/commune.html', context)
-
-
-@login_required
-def _render_dashboard_campus(request, dossier=None):
-    """
-    Tableau de bord pour un Campus ou Espace Universitaire (V2).
-    Affiche les KPIs fonciers, l'occupation et la capacité constructible.
-    """
-    dossier = dossier or getattr(request, 'active_dossier', None)
-    # KPIs fonciers — le Campus est la seule référence de superficie totale,
-    # il n'est jamais compté comme un espace ordinaire.
-    campus = Campus.objects.first()
-    superficie_totale   = campus.superficie if campus else 0
-    superficie_occupee  = campus.superficie_occupee if campus else 0    # bâtiments + terrains sportifs + espaces verts + voiries
-    superficie_reservee = campus.superficie_reservee if campus else 0   # sous-espaces de type Réservé (non occupés)
-    superficie_libre    = campus.superficie_libre if campus else 0      # campus − occupée − réservée
-    taux_occupation     = campus.taux_occupation if campus else 0       # occupée / campus × 100
-
-    def _pct_campus(val):
-        return round(val / superficie_totale * 100, 1) if superficie_totale else 0
-    pct_libre    = _pct_campus(superficie_libre)
-    pct_reservee = _pct_campus(superficie_reservee)
-
-    # Détail de l'occupation — mêmes couches et même géométrie campus que
-    # Campus.superficie_occupee, pour que le compte affiché reste toujours
-    # cohérent avec la superficie occupée annoncée.
-    if campus and campus.geometrie:
-        nb_batiments_occ       = Batiment.objects.filter(geometrie__intersects=campus.geometrie).count()
-        nb_terrains_sportifs   = Terrain.objects.filter(geometrie__intersects=campus.geometrie, type_terrain__icontains='sport').count()
-        nb_espaces_verts_occ   = EspaceVert.objects.filter(geometrie__intersects=campus.geometrie).count()
-        nb_voiries_occ         = Voirie.objects.filter(geometrie__intersects=campus.geometrie).count()
+    # ── Superficie globale du territoire ──
+    superficie_totale = 0.0
+    if dossier.superficie_m2:
+        superficie_totale = float(dossier.superficie_m2)
+    elif dossier.emprise:
+        try:
+            srid = getattr(dossier, 'srid_projection', 32628) or 32628
+            superficie_totale = float(dossier.emprise.transform(srid, clone=True).area)
+        except Exception:
+            superficie_totale = float(zs_qs.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
     else:
-        nb_batiments_occ = nb_terrains_sportifs = nb_espaces_verts_occ = nb_voiries_occ = 0
+        superficie_totale = float(zs_qs.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+
+    # ── Bâti & Recensement ──
+    total_batiments = ub_qs.count()
+    nb_habitees = ub_qs.filter(statut_occupation=UniteBatie.OCCUPATION_HABITEE).count()
+    nb_non_habitees = max(0, total_batiments - nb_habitees)
+    superficie_batie = float(ub_qs.aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+    superficie_occupee = superficie_batie
+    taux_occupation = round(superficie_occupee / superficie_totale * 100, 1) if superficie_totale else 0
+    taux_habitation = round(nb_habitees / total_batiments * 100, 1) if total_batiments else 0
+
+    # ── Subdivisions spatiales ──
+    total_zones = zs_qs.count()
+    superficie_reservee = float(zs_qs.filter(type_zone=ZoneSecteur.TYPE_ESPACE_RESERVE).aggregate(s=Sum('superficie_m2'))['s'] or 0.0)
+    superficie_libre = max(0.0, superficie_totale - superficie_occupee - superficie_reservee) if superficie_totale else 0.0
+    nb_espaces_libres = zs_qs.filter(type_zone=ZoneSecteur.TYPE_ESPACE_LIBRE).count()
+
+    # ── Réseaux & Linéaires ──
+    reseaux_agg = rl_qs.aggregate(nb=Count('id'), longueur=Sum('longueur_metres'))
+    total_reseaux = reseaux_agg['nb'] or 0
+    longueur_reseaux_km = round((reseaux_agg['longueur'] or 0) / 1000, 2)
+
+    # ── Top Subdivisions avec bâti ──
+    zones_top = zs_qs.annotate(
+        nb_batiments=Count('unites_baties'),
+        nb_habitees=Count('unites_baties', filter=Q(unites_baties__statut_occupation=UniteBatie.OCCUPATION_HABITEE)),
+        surface_batie=Sum('unites_baties__superficie_m2'),
+    ).order_by('-nb_batiments', 'nom')[:12]
+
+    zones_labels = [z.nom for z in zones_top]
+    zones_data = [z.nb_batiments for z in zones_top]
+
+    # ── Capacité constructible & Urbanisme ──
+    has_urbanisme = modules.get('mod_urbanisme', True)
+    sup_constructible_totale = superficie_libre + (superficie_reservee * 0.5)
 
     def _sup_statut(statut):
-        return NouvelleConstruction.objects.filter(
-            statut=statut
-        ).aggregate(t=Sum('superficie_souhaitee'))['t'] or 0
+        return float(nc_base.filter(statut=statut).aggregate(t=Sum('superficie_souhaitee'))['t'] or 0)
 
-    sup_approuvee  = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
-    sup_en_cours   = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
-    sup_allouee    = sup_approuvee + sup_en_cours
-    superficie_prise = superficie_occupee
-
-    total_batiments = Batiment.objects.filter(est_actif=True).count()
-    total_orthophotos = Orthophoto.objects.count()
-    total_constructions = NouvelleConstruction.objects.count()
-    total_missions = Mission.objects.count()
-    missions_integrees = Mission.objects.filter(statut=Mission.STATUT_INTEGREE).count()
-
-    nb_espaces_libres  = Espace.objects.filter(type_espace=Espace.TYPE_LIBRE).count()
-    constructions_en_cours   = NouvelleConstruction.objects.filter(statut='en_cours').count()
-    constructions_approuvees = NouvelleConstruction.objects.filter(statut='approuvee').count()
-
-    # ── Bilan de la capacité constructible de l'université ──
-    espaces_actifs = list(Espace.objects.filter(
-        type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE]
-    ))
-    sup_constructible_totale = sum(
-        (e.superficie or 0) * (e.taux_occupation / 100)
-        for e in espaces_actifs
-    )
-
+    sup_approuvee = _sup_statut(NouvelleConstruction.STATUT_APPROUVE)
+    sup_en_cours = _sup_statut(NouvelleConstruction.STATUT_EN_COURS)
+    sup_allouee = sup_approuvee + sup_en_cours
     sup_constr_nette = max(0.0, sup_constructible_totale - sup_allouee)
 
     def _pct(val, total):
         return round(val / total * 100, 1) if total else 0
 
-    pct_alloue    = _pct(sup_allouee,   sup_constructible_totale)
+    pct_alloue = _pct(sup_allouee, sup_constructible_totale)
     pct_approuvee = _pct(sup_approuvee, sup_constructible_totale)
-    pct_en_cours  = _pct(sup_en_cours,  sup_constructible_totale)
-    nb_engagees   = NouvelleConstruction.objects.filter(
-        statut__in=NouvelleConstruction.STATUTS_ENGAGES
-    ).count()
+    pct_en_cours = _pct(sup_en_cours, sup_constructible_totale)
+    nb_engagees = nc_base.filter(statut__in=NouvelleConstruction.STATUTS_ENGAGES).count()
+    constructions_en_cours = nc_base.filter(statut='en_cours').count()
+    constructions_approuvees = nc_base.filter(statut='approuvee').count()
+    constructions_recentes = nc_base.select_related('demandeur').order_by('-date_demande')[:5]
 
-    # Données pour graphique répartition des espaces
-    chart_names = ['Espace libre', 'Espace occupé / alloué', 'Espace réservé']
-    chart_labels = [
-        Espace.COULEURS.get(Espace.TYPE_LIBRE, '#16A34A'),
-        Espace.COULEURS.get(Espace.TYPE_OCCUPE, '#DC2626'),
-        Espace.COULEURS.get(Espace.TYPE_RESERVE, '#F59E0B'),
-    ]
+    # ── Drones & Imagerie ──
+    has_drones = modules.get('mod_drones', True)
+    total_missions = mission_qs.count()
+    missions_integrees = mission_qs.filter(statut=Mission.STATUT_INTEGREE).count()
+    total_orthophotos = ortho_qs.count()
+    orthophotos_recentes = ortho_qs.order_by('-date_ajout')[:4]
+
+    # ── Signalements & Incidents ──
+    has_signalements = getattr(user, 'can_manage_signalements', False) or modules.get('mod_signalements', True)
+    signalements_context = {}
+    if has_signalements:
+        sig_qs = SignalementDommage.objects.filter(dossier=dossier)
+        agg_sig = sig_qs.aggregate(
+            total=Count('id'),
+            **{code: Count('id', filter=Q(statut=code)) for code, _ in SignalementDommage.STATUTS},
+        )
+        par_categorie = dict(sig_qs.values_list('categorie').annotate(n=Count('id')))
+        signalements_context = {
+            'sig_total': agg_sig['total'],
+            'sig_ouverts': agg_sig['total'] - (agg_sig.get(SignalementDommage.STATUT_RESOLU, 0)),
+            'sig_statuts': [
+                {'libelle': lib, 'nb': agg_sig.get(code, 0), 'couleur': '#6366F1',
+                 'pct': round(agg_sig.get(code, 0) / agg_sig['total'] * 100) if agg_sig['total'] else 0}
+                for code, lib in SignalementDommage.STATUTS
+            ],
+            'categories_labels': json.dumps([lib for code, lib in SignalementDommage.CATEGORIES], ensure_ascii=False),
+            'categories_data': json.dumps([par_categorie.get(code, 0) for code, _ in SignalementDommage.CATEGORIES]),
+            'categories_couleurs': json.dumps(['#EF4444' for _ in SignalementDommage.CATEGORIES]),
+            'signalements_recents': sig_qs.select_related('zone_secteur')[:6],
+        }
+
+    # ── Donut de répartition des surfaces ──
+    chart_names = ['Espace libre', 'Espace occupé / bâti', 'Espace réservé']
+    chart_colors = ['#16A34A', '#DC2626', '#F59E0B']
     chart_data = [
         round(superficie_libre / 10000, 2),
-        round(superficie_prise / 10000, 2),
+        round(superficie_occupee / 10000, 2),
         round(superficie_reservee / 10000, 2),
     ]
 
-    # Évolution constructions par année
+    # ── Évolution des constructions & chantiers ──
     from django.db.models.functions import ExtractYear
+    hc_base = HistoriqueConstruction.objects.filter(unite_batie__dossier=dossier)
     histo_annees = (
-        HistoriqueConstruction.objects
+        hc_base
         .annotate(annee=ExtractYear('date_debut'))
         .values('annee')
         .annotate(count=Count('id'))
@@ -233,70 +216,106 @@ def _render_dashboard_campus(request, dossier=None):
     evol_labels = [str(h['annee']) for h in histo_annees]
     evol_data = [h['count'] for h in histo_annees]
 
-    # Activités récentes — journal complet réservé à l'admin
-    activites = None
-    if request.user.is_admin:
-        activites = ActivityLog.objects.select_related('user').all()[:8]
+    batiments_recents = ub_qs.order_by('-date_creation')[:5]
 
-    # Résumé d'activités pour les utilisateurs non-admin
-    batiments_recents = Batiment.objects.order_by('-date_ajout')[:4]
-    orthophotos_recentes = Orthophoto.objects.order_by('-date_ajout')[:4]
-    constructions_recentes = NouvelleConstruction.objects.select_related(
-        'demandeur').order_by('-date_demande')[:5]
+    try:
+        from accounts.models import ActivityLog
+        activites = list(ActivityLog.objects.select_related('user').order_by('-timestamp')[:8])
+    except Exception:
+        activites = []
 
     context = {
         'dossier': dossier,
+        'modules': modules,
+        'has_urbanisme': has_urbanisme,
+        'has_drones': has_drones,
+        'has_signalements': has_signalements,
+
+        # Terminologie dynamique
+        'term_zone_singular': term_zone_singular,
+        'term_zone_plural': term_zone_plural,
+        'term_bati_singular': term_bati_singular,
+        'term_bati_plural': term_bati_plural,
+        'term_reseau_singular': term_reseau_singular,
+        'term_reseau_plural': term_reseau_plural,
+
+        # Superficies & Occupation
         'superficie_totale': round(superficie_totale / 10000, 2),
-        'superficie_occupee': round(superficie_prise / 10000, 2),
+        'superficie_totale_m2': round(superficie_totale),
+        'superficie_occupee': round(superficie_occupee / 10000, 2),
+        'superficie_batie_ha': round(superficie_batie / 10000, 2),
         'superficie_libre': round(superficie_libre / 10000, 2),
         'superficie_reservee': round(superficie_reservee / 10000, 2),
         'taux_occupation': taux_occupation,
-        'pct_libre': pct_libre,
-        'pct_reservee': pct_reservee,
-        'nb_batiments_occ':     nb_batiments_occ,
-        'nb_terrains_sportifs': nb_terrains_sportifs,
-        'nb_espaces_verts_occ': nb_espaces_verts_occ,
-        'nb_voiries_occ':       nb_voiries_occ,
-        'total_batiments': total_batiments,
-        'total_orthophotos': total_orthophotos,
-        'total_constructions': total_constructions,
-        'total_missions': total_missions,
-        'missions_integrees': missions_integrees,
-        'total_espaces': Espace.objects.count(),
-        'chart_labels': json.dumps(chart_names),
-        'chart_data': json.dumps(chart_data),
-        'chart_colors': json.dumps(chart_labels),
-        'evol_labels': json.dumps(evol_labels),
-        'evol_data': json.dumps(evol_data),
-        'activites': activites,
-        'batiments_recents': batiments_recents,
-        'orthophotos_recentes': orthophotos_recentes,
-        'constructions_recentes': constructions_recentes,
+        'taux_habitation': taux_habitation,
+        'pct_libre': round(superficie_libre / superficie_totale * 100, 1) if superficie_totale else 0,
+        'pct_reservee': round(superficie_reservee / superficie_totale * 100, 1) if superficie_totale else 0,
+
+        # Compteurs spatiaux
+        'total_zones': total_zones,
+        'total_espaces': total_zones,
         'nb_espaces_libres': nb_espaces_libres,
+        'total_batiments': total_batiments,
+        'nb_maisons': total_batiments,
+        'nb_habitees': nb_habitees,
+        'nb_non_habitees': nb_non_habitees,
+        'total_reseaux': total_reseaux,
+        'nb_pistes': total_reseaux,
+        'nb_voiries_occ': total_reseaux,
+        'longueur_reseaux_km': longueur_reseaux_km,
+        'longueur_pistes_km': longueur_reseaux_km,
+
+        # Données de répartition par subdivision
+        'zones_top': zones_top,
+        'villages': zones_top,
+        'zones_labels': json.dumps(zones_labels, ensure_ascii=False),
+        'zones_data': json.dumps(zones_data),
+        'villages_labels': json.dumps(zones_labels, ensure_ascii=False),
+        'villages_data': json.dumps(zones_data),
+        'maisons_json': json.dumps([nb_habitees, nb_non_habitees]),
+
+        # Capacité constructible (Urbanisme)
+        'sup_constructible_totale': round(sup_constructible_totale),
+        'sup_constructible_totale_ha': round(sup_constructible_totale / 10000, 2),
+        'sup_allouee': round(sup_allouee),
+        'sup_allouee_ha': round(sup_allouee / 10000, 2),
+        'sup_approuvee': round(sup_approuvee),
+        'sup_en_cours': round(sup_en_cours),
+        'sup_constr_nette': round(sup_constr_nette),
+        'sup_constr_nette_ha': round(sup_constr_nette / 10000, 2),
+        'pct_alloue': pct_alloue,
+        'pct_approuvee': pct_approuvee,
+        'pct_en_cours': pct_en_cours,
+        'nb_engagees': nb_engagees,
+        'total_constructions': nc_base.count(),
         'constructions_en_cours': constructions_en_cours,
         'constructions_approuvees': constructions_approuvees,
-        # Capacité constructible
-        'sup_constructible_totale':    round(sup_constructible_totale),
-        'sup_constructible_totale_ha': round(sup_constructible_totale / 10000, 2),
-        'sup_allouee':    round(sup_allouee),
-        'sup_allouee_ha': round(sup_allouee / 10000, 2),
-        'sup_approuvee':  round(sup_approuvee),
-        'sup_en_cours':   round(sup_en_cours),
-        'sup_constr_nette':    round(sup_constr_nette),
-        'sup_constr_nette_ha': round(sup_constr_nette / 10000, 2),
-        'pct_alloue':    pct_alloue,
-        'pct_approuvee': pct_approuvee,
-        'pct_en_cours':  pct_en_cours,
-        'nb_engagees':   nb_engagees,
+        'constructions_recentes': constructions_recentes,
+
+        # Drones
+        'total_missions': total_missions,
+        'missions_integrees': missions_integrees,
+        'total_orthophotos': total_orthophotos,
+        'orthophotos_recentes': orthophotos_recentes,
+
+        # Donut Chart & Graphiques
+        'chart_labels': json.dumps(chart_names),
+        'chart_data': json.dumps(chart_data),
+        'chart_colors': json.dumps(chart_colors),
+        'evol_labels': json.dumps(evol_labels),
+        'evol_data': json.dumps(evol_data),
+
+        # Activités et récents
+        'activites': activites,
+        'batiments_recents': batiments_recents,
+
+        # Compatibilité
+        'commune': dossier,
+        'campus': dossier,
     }
+    context.update(signalements_context)
+
     return render(request, 'dashboard/index.html', context)
 
 
-# Alias de rétrocompatibilité V1
-universite = _render_dashboard_campus
 
-
-def home(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard:index')
-    return redirect('accounts:login')

@@ -12,7 +12,7 @@ def suivi_travaux_list(request):
     suivis = SuiviTravaux.objects.select_related(
         'construction', 'maitre_ouvrage'
     ).order_by('-date_creation')
-    return render(request, 'territoire/suivi_travaux_list.html', {'suivis': suivis})
+    return render(request, 'territoire/suivi_travaux/list.html', {'suivis': suivis})
 
 
 @login_required
@@ -24,6 +24,6 @@ def suivi_travaux_update(request, pk):
         form.save()
         messages.success(request, f'Suivi des travaux « {suivi.construction.nom_projet} » mis à jour.')
         return redirect('territoire:suivi_travaux')
-    return render(request, 'territoire/suivi_travaux_form.html', {
+    return render(request, 'territoire/suivi_travaux/form.html', {
         'form': form, 'suivi': suivi,
     })

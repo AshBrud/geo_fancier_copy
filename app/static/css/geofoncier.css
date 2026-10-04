@@ -32,3 +32,6 @@
 
 /* 9. Constructions & Aide à la Décision : stepper, faisabilité, scoring, options géographiques */
 @import url("urbanisme.css");
+
+/* 10. Plan Directeur d'Urbanisme : indicateurs d'occupation du sol, jauges et statistiques */
+@import url("pdu.css");

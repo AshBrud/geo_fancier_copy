@@ -25,6 +25,16 @@ class TimeStampedModel(models.Model):
         ordering = ['-date_creation']
 
     @property
+    def created_at(self):
+        """Alias pour date_creation."""
+        return self.date_creation
+
+    @property
+    def updated_at(self):
+        """Alias pour date_modification."""
+        return self.date_modification
+
+    @property
     def formatted_date_creation(self) -> str:
         """Retourne la date de création au format lisible JJ/MM/AAAA HH:MM dans le fuseau actif."""
         if not self.date_creation:

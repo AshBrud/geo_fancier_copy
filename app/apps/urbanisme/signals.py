@@ -2,7 +2,7 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
 from .models import NouvelleConstruction
-from territoire.models import Espace
+from dossiers.models import ZoneSecteur
 
 # Statuts qui réduisent la superficie affichée comme disponible (engagement formel)
 _STATUTS_ENGAGES = NouvelleConstruction.STATUTS_ENGAGES
@@ -28,13 +28,7 @@ def construction_pre_save(sender, instance, **kwargs):
 @receiver(post_save, sender=NouvelleConstruction)
 def construction_post_save(sender, instance, created, **kwargs):
     """
-    Recalcule le type (LIBRE/OCCUPE) des espaces fonciers concernés
-    à chaque changement de statut d'une construction.
-
-    Deux niveaux :
-    - Approuvée + En cours + Terminée → réduit la superficie affichée comme disponible.
-    - En cours + Terminée uniquement  → peut marquer l'espace comme OCCUPÉ si la
-      superficie constructible est entièrement consommée par des travaux réels.
+    Recalcule l'état des zones territoriales concernées à chaque changement de statut.
     """
     ancien = getattr(instance, '_ancien_statut', None)
     nouveau = instance.statut
@@ -42,40 +36,36 @@ def construction_post_save(sender, instance, created, **kwargs):
     if ancien == nouveau:
         return
 
-    # Collecter tous les espaces concernés (sans doublons)
-    espaces_pks = set()
+    # Collecter toutes les zones concernées (sans doublons)
+    zones_pks = set()
 
-    # 1. Via la FK directe (espace sélectionné depuis la liste)
-    if instance.espace_souhaitee_id:
-        espaces_pks.add(instance.espace_souhaitee_id)
+    # 1. Via la FK directe
+    if instance.zone_secteur_id:
+        zones_pks.add(instance.zone_secteur_id)
 
-    # 2. Via l'intersection géométrique (zone dessinée ou convex_hull de l'espace)
+    # 2. Via l'intersection géométrique
     if instance.zone_souhaitee:
-        espaces_pks.update(
-            Espace.objects.filter(
+        zones_pks.update(
+            ZoneSecteur.objects.filter(
                 geometrie__intersects=instance.zone_souhaitee,
-                type_espace__in=[Espace.TYPE_LIBRE, Espace.TYPE_OCCUPE],
+                type_zone__in=[ZoneSecteur.TYPE_ESPACE_LIBRE, ZoneSecteur.TYPE_SECTEUR_CAMPUS, ZoneSecteur.TYPE_ZONE_ACTIVITE],
             ).values_list('pk', flat=True)
         )
 
     # Création automatique du suivi dès qu'une construction est approuvée
     if (nouveau == NouvelleConstruction.STATUT_APPROUVE
             and ancien != NouvelleConstruction.STATUT_APPROUVE):
-        from territoire.models import SuiviTravaux
+        from apps.territoire.models.models_suivi_travaux import SuiviTravaux
         SuiviTravaux.objects.get_or_create(
             construction=instance,
             defaults={'maitre_ouvrage': instance.demandeur},
         )
 
-    for espace in Espace.objects.filter(pk__in=espaces_pks):
-        _recalculer_espace(espace)
 
-
-def _pks_constructions(espace, statuts):
+def _pks_constructions(zone, statuts):
     """
     Retourne l'ensemble des PKs des constructions dans les statuts donnés
-    qui concernent cet espace (via FK directe OU intersection géométrique).
-    Déduplique automatiquement via un set.
+    qui concernent cette zone (via FK directe OU intersection géométrique).
     """
     pks = set()
 
@@ -83,59 +73,18 @@ def _pks_constructions(espace, statuts):
     pks.update(
         NouvelleConstruction.objects.filter(
             statut__in=statuts,
-            espace_souhaitee=espace,
+            zone_secteur=zone,
         ).values_list('pk', flat=True)
     )
 
     # Via intersection géométrique
-    if espace.geometrie:
+    if zone.geometrie:
         pks.update(
             NouvelleConstruction.objects.filter(
                 statut__in=statuts,
                 zone_souhaitee__isnull=False,
-                zone_souhaitee__intersects=espace.geometrie,
+                zone_souhaitee__intersects=zone.geometrie,
             ).values_list('pk', flat=True)
         )
 
     return pks
-
-
-def _recalculer_espace(espace):
-    """
-    Recalcule et met à jour le type de l'espace (LIBRE / OCCUPE).
-
-    Règles :
-    - Si la superficie constructible est entièrement consommée par des constructions
-      physiquement en cours ou terminées → OCCUPE.
-    - Dans tous les autres cas → LIBRE (annulations ou simples approbations libèrent l'espace).
-    - Les espaces de type RESERVE ne sont jamais modifiés automatiquement.
-    """
-    if espace.type_espace == Espace.TYPE_RESERVE:
-        return
-
-    sup_brute = espace.superficie or 0
-    sup_constructible = sup_brute * (espace.taux_occupation / 100)
-
-    if sup_constructible <= 0:
-        return
-
-    # Superficies des constructions physiquement actives (en cours + terminées)
-    pks_effectifs = _pks_constructions(espace, _STATUTS_EFFECTIFS)
-    sup_effective = sum(
-        c.superficie_souhaitee or 0
-        for c in NouvelleConstruction.objects.filter(pk__in=pks_effectifs)
-    ) if pks_effectifs else 0.0
-
-    # Superficie nette restante (tolérance de 1 m² pour les arrondis flottants)
-    sup_nette = max(0.0, sup_constructible - sup_effective)
-
-    if sup_nette < 1.0:
-        # Toute la superficie constructible est physiquement occupée (à 1 m² près)
-        if espace.type_espace != Espace.TYPE_OCCUPE:
-            espace.type_espace = Espace.TYPE_OCCUPE
-            espace.save()
-    else:
-        # De l'espace est encore disponible (ou libéré après annulation)
-        if espace.type_espace == Espace.TYPE_OCCUPE:
-            espace.type_espace = Espace.TYPE_LIBRE
-            espace.save()

@@ -52,12 +52,11 @@ class HistoriqueConstructionForm(forms.ModelForm):
     class Meta:
         model = HistoriqueConstruction
         fields = [
-            'batiment', 'unite_batie', 'type_travaux', 'date_debut', 'date_fin',
+            'unite_batie', 'type_travaux', 'date_debut', 'date_fin',
             'description', 'cout', 'maitre_ouvrage'
         ]
         labels = {
-            'batiment': 'Bâtiment concerné (Campus)',
-            'unite_batie': 'Unité bâtie concernée (V2)',
+            'unite_batie': 'Unité bâtie concernée',
             'type_travaux': 'Type de travaux',
             'date_debut': 'Date de début',
             'date_fin': 'Date de fin',
@@ -71,18 +70,14 @@ class HistoriqueConstructionForm(forms.ModelForm):
 
     def __init__(self, *args, dossier=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['batiment'].required = False
-        self.fields['unite_batie'].required = False
+        self.fields['unite_batie'].required = True
 
         if dossier:
             self.fields['unite_batie'].queryset = self.fields['unite_batie'].queryset.filter(dossier=dossier)
 
         self.helper = FormHelper()
         self.helper.layout = Layout(
-            Row(
-                Column('batiment', css_class='col-md-6'),
-                Column('unite_batie', css_class='col-md-6')
-            ),
+            'unite_batie',
             Row(
                 Column('type_travaux', css_class='col-md-6'),
                 Column('maitre_ouvrage', css_class='col-md-6')

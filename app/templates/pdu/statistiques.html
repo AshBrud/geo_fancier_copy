@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load dossier_tags %}
 {% block title %}Statistiques Foncières{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item active">Statistiques</li>
@@ -8,121 +9,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── KPI cards ─────────────────────────────────────────────────────── */
-.fon-kpi {
-  background:#fff; border-radius:14px; border:1px solid #e2e8f0;
-  padding:18px 20px; display:flex; align-items:center; gap:16px;
-  transition:all .22s; height:100%;
-}
-.fon-kpi:hover { box-shadow:0 6px 20px rgba(0,0,0,.09); transform:translateY(-2px); }
-.fon-kpi-icon {
-  width:50px; height:50px; border-radius:12px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:22px; flex-shrink:0;
-}
-.fon-kpi-val  { font-size:26px; font-weight:700; color:#1e293b; line-height:1; }
-.fon-kpi-lbl  { font-size:12px; color:#64748b; margin-top:3px; }
-.fon-kpi-foot { font-size:10.5px; color:#94a3b8; margin-top:5px; }
-
-/* ── Section labels ────────────────────────────────────────────────── */
-.stat-section-lbl {
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.9px; color:#94a3b8;
-  display:flex; align-items:center; gap:10px; margin-bottom:14px;
-}
-.stat-section-lbl::after { content:''; flex:1; height:1px; background:#f1f5f9; }
-
-/* ── Répartition rows ──────────────────────────────────────────────── */
-.rep-row {
-  display:grid; grid-template-columns:160px 1fr 140px;
-  align-items:center; gap:14px; padding:11px 0;
-  border-bottom:1px solid #f8fafc;
-}
-.rep-row:last-child { border-bottom:none; }
-.rep-type  { display:flex; align-items:center; gap:9px; }
-.rep-dot   { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
-.rep-name  { font-size:13px; font-weight:600; color:#374151; white-space:nowrap; }
-.rep-bar-wrap { background:#f1f5f9; border-radius:6px; height:8px; overflow:hidden; }
-.rep-bar  { height:100%; border-radius:6px; transition:width .7s cubic-bezier(.4,0,.2,1); }
-.rep-stats { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
-.rep-pct  { font-size:14px; font-weight:700; color:#1e293b; }
-.rep-ha   { font-size:11px; color:#64748b; }
-.rep-cnt  { font-size:10.5px; color:#94a3b8; }
-
-/* ── Chart legend ──────────────────────────────────────────────────── */
-.chart-legend { display:flex; flex-direction:column; gap:8px; margin-top:18px; }
-.legend-row   { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.legend-row-left { display:flex; align-items:center; gap:8px; }
-.legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.legend-lbl { font-size:12.5px; color:#374151; font-weight:500; }
-.legend-val { font-size:12px; font-weight:600; color:#1e293b; }
-
-/* ── Capacité tiles ────────────────────────────────────────────────── */
-.cap-tile {
-  border-radius:12px; padding:16px 18px;
-  display:flex; align-items:center; gap:14px;
-}
-.cap-tile-icon {
-  width:44px; height:44px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:20px; flex-shrink:0;
-}
-.cap-tile-val  { font-size:22px; font-weight:700; line-height:1; }
-.cap-tile-sub  { font-size:11px; color:#64748b; margin-top:3px; }
-.cap-tile-ha   { font-size:10px; color:#94a3b8; margin-top:2px; }
-
-/* ── Pipeline items ────────────────────────────────────────────────── */
-.pip-item {
-  border-radius:10px; padding:13px 16px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  border:1px solid #e2e8f0;
-}
-.pip-badge {
-  border-radius:20px; padding:3px 10px;
-  font-size:11.5px; font-weight:600; white-space:nowrap;
-}
-.pip-count { font-size:20px; font-weight:700; color:#1e293b; }
-.pip-info  { font-size:11px; color:#64748b; }
-.pip-pct   { font-size:11px; color:#94a3b8; }
-
-/* ── Type bars ─────────────────────────────────────────────────────── */
-.type-bar-row { padding:8px 0; border-bottom:1px solid #f8fafc; }
-.type-bar-row:last-child { border-bottom:none; }
-.type-bar-label { font-size:12.5px; font-weight:600; color:#374151; margin-bottom:4px; display:flex; justify-content:space-between; }
-.type-bar-wrap  { background:#f1f5f9; border-radius:6px; height:7px; overflow:hidden; }
-.type-bar       { height:100%; border-radius:6px; background:linear-gradient(90deg,#1E3A8A,#3b82f6); transition:width .7s; }
-
-/* ── Hist badge ────────────────────────────────────────────────────── */
-.hist-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  border-radius:20px; padding:3px 10px;
-  font-size:11.5px; font-weight:600;
-}
-.hist-construction { background:#eff6ff; color:#1d4ed8; }
-.hist-renovation   { background:#fef3c7; color:#d97706; }
-.hist-extension    { background:#dcfce7; color:#16a34a; }
-.hist-demolition   { background:#fee2e2; color:#dc2626; }
-
-/* ── Empty state ───────────────────────────────────────────────────── */
-.empty-state-sm { padding:32px 16px; text-align:center; color:#94a3b8; }
-.empty-state-sm i { font-size:30px; display:block; margin-bottom:8px; opacity:.4; }
-</style>
-{% endblock %}
-
 {% block content %}
 
 <!-- ===== EN-TÊTE ===== -->
 <div class="page-header">
   <div>
     <h1 class="page-title"><i class="bi bi-bar-chart-line"></i> Statistiques Foncières</h1>
-    <p class="page-description">Tableau de bord analytique sur l'occupation, la capacité constructible et l'évolution du foncier de l'UAD Bambey.</p>
+    <p class="page-description">Tableau de bord analytique sur l'occupation, la capacité constructible et l'évolution foncière de {{ active_dossier.nom|default:"l'espace territorial" }}.</p>
   </div>
 </div>
 
 <!-- ===== KPI ROW 1 ===== -->
-<div class="stat-section-lbl">Indicateurs clés du campus</div>
+<div class="stat-section-lbl">Indicateurs clés · {{ active_dossier.nom|default:"Territoire" }}</div>
 <div class="row g-3 mb-3">
 
   <div class="col-6 col-md-4 col-xl-2">
@@ -132,8 +30,8 @@
       </div>
       <div>
         <div class="fon-kpi-val">{{ total_superficie }}</div>
-        <div class="fon-kpi-lbl">Superficie campus (ha)</div>
-        <div class="fon-kpi-foot">520 000 m² UAD</div>
+        <div class="fon-kpi-lbl">Superficie totale (ha)</div>
+        <div class="fon-kpi-foot">{{ total_superficie_m2|floatformat:0 }} m²</div>
       </div>
     </div>
   </div>
@@ -145,7 +43,7 @@
       </div>
       <div>
         <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_libres }}</div>
-        <div class="fon-kpi-lbl">Espaces libres</div>
+        <div class="fon-kpi-lbl">{{ active_dossier|term:'zone_label,Espace'|capfirst }}s libres</div>
         <div class="fon-kpi-foot">{{ nb_occupes }} occupés · {{ nb_reserves }} réservés</div>
       </div>
     </div>
@@ -158,7 +56,7 @@
       </div>
       <div>
         <div class="fon-kpi-val" style="color:#D97706;">{{ batiments_actifs }}</div>
-        <div class="fon-kpi-lbl">Bâtiments actifs</div>
+        <div class="fon-kpi-lbl">{{ active_dossier|term:'bati_label,Bâtiment'|capfirst }}s actifs</div>
         <div class="fon-kpi-foot">{{ densite_bat }} bât/ha · {{ total_batiments }} total</div>
       </div>
     </div>
@@ -486,7 +384,7 @@
         </span>
       </div>
       <div class="table-responsive" style="max-height:280px; overflow-y:auto;">
-        <table class="table table-uad mb-0">
+        <table class="table mb-0">
           <thead>
             <tr>
               <th>Année</th>

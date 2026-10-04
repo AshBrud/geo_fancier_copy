@@ -149,7 +149,7 @@ def sync_batiments(path, source_crs=None, dry_run=False):
     Logique partagee entre la commande CLI `import_batiments_sig` et la vue web
     d'import. Retourne un dict {created, updated, skipped, errors}.
     """
-    from territoire.models import Batiment, FonctionBatiment
+    from dossiers.models import UniteBatie
 
     gdf = read_layer(path, source_crs=source_crs)
 
@@ -161,9 +161,6 @@ def sync_batiments(path, source_crs=None, dry_run=False):
     for index, row in gdf.iterrows():
         code = first_existing(row, ["code", "CODE", "fid", "FID", "id", "ID"])
         nom = first_existing(row, ["nom", "NOM", "name", "NAME", "libelle"], code)
-        fonction_nom = first_existing(
-            row, ["fonction", "FONCTION", "usage", "USAGE", "type", "TYPE"], ""
-        )
         description = first_existing(row, ["description", "DESCRIPTION", "desc"], "")
         etages = optional_int(first_existing(row, ["etages", "ETAGES", "niveaux", "NIVEAUX"], "1")) or 1
         annee_construction = optional_int(
@@ -182,22 +179,17 @@ def sync_batiments(path, source_crs=None, dry_run=False):
             continue
 
         if dry_run:
-            if Batiment.objects.filter(code=code).exists():
+            if UniteBatie.objects.filter(code=code).exists():
                 updated += 1
             else:
                 created += 1
             continue
 
-        fonction = None
-        if fonction_nom:
-            fonction, _created = FonctionBatiment.objects.get_or_create(nom=fonction_nom)
-
-        _obj, was_created = Batiment.objects.update_or_create(
+        _obj, was_created = UniteBatie.objects.update_or_create(
             code=code,
             defaults={
                 "nom": nom or code,
-                "fonction": fonction,
-                "etages": etages,
+                "nombre_niveaux": etages,
                 "annee_construction": annee_construction,
                 "description": description,
                 "est_actif": True,
