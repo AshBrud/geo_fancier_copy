@@ -23,6 +23,9 @@ def import_orthophoto(request, pk=None):
         ortho = form.save(commit=False)
         ortho.date_prise = _today.today()
         ortho.mission = mission
+        dossier = getattr(request, 'active_dossier', None) or (mission.dossier if mission else None)
+        if dossier and not ortho.dossier:
+            ortho.dossier = dossier
         ortho.save()
 
         ext = os.path.splitext(ortho.fichier.name)[1].lower()

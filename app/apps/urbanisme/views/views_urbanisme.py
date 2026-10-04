@@ -255,4 +255,4 @@ def historique_delete(request, pk):
         h.delete()
         messages.success(request, 'Entrée d\'historique supprimée.')
         return redirect('urbanisme:historique')
-    return render(request, 'urbanisme/constructions/generic_delete.html', {'obj': h})
+    return render(request, 'urbanisme/historique/confirm_delete.html', {'obj': h})

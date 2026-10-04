@@ -143,6 +143,7 @@ def users_list(request):
         'roles': CustomUser.CANONICAL_ROLES_CHOICES,
         'total_users': CustomUser.objects.count(),
         'nb_actifs': CustomUser.objects.filter(is_active=True).count(),
+        'nb_inactifs': CustomUser.objects.filter(is_active=False).count(),
         'nb_admins': CustomUser.objects.filter(role__in=[CustomUser.ROLE_ADMIN, 'admin']).count(),
         'nb_recents': CustomUser.objects.filter(last_login__gte=seuil_recent).count(),
         'is_super': is_super,

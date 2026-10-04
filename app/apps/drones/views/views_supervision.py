@@ -51,7 +51,8 @@ def perspectives(request):
 def supervision_donnees(request):
     """Endpoint JSON interrogé périodiquement (polling AJAX) par le Centre de
     supervision pour rafraîchir KPI, alertes et activité récente sans recharger la page."""
-    from apps.urbanisme.models import NouvelleConstruction
+    from django.db.models import Q
+    from urbanisme.models import NouvelleConstruction
     from dossiers.models import ZoneSecteur, UniteBatie, ReseauLineaire
 
     dossier = getattr(request, 'active_dossier', None)
@@ -59,7 +60,7 @@ def supervision_donnees(request):
     alertes = []
     nc_qs = NouvelleConstruction.objects.all()
     if dossier:
-        nc_qs = nc_qs.filter(zone_secteur__dossier=dossier)
+        nc_qs = nc_qs.filter(Q(dossier=dossier) | Q(zone_secteur__dossier=dossier)).distinct()
 
     for c in nc_qs.filter(statut=NouvelleConstruction.STATUT_EN_COURS).order_by('-date_demande')[:5]:
         alertes.append({

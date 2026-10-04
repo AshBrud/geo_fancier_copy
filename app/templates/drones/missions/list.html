@@ -10,48 +10,8 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="/static/css/slideover.css">
-<style>
-.drone-kpi-band {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px;
-}
-@media (max-width: 992px) { .drone-kpi-band { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 576px) { .drone-kpi-band { grid-template-columns: repeat(2, 1fr); } }
-.dkpi {
-  background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;
-  padding: 16px 18px; display: flex; align-items: center; gap: 14px;
-  transition: box-shadow .2s, transform .2s;
-}
-.dkpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
-.dkpi-icon {
-  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
-}
-.dkpi-val { font-size: 22px; font-weight: 800; color: #1e293b; line-height: 1; }
-.dkpi-lbl { font-size: 11.5px; color: #64748b; margin-top: 3px; }
-
-.mission-row {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 14px 16px; margin-bottom: 10px; transition: box-shadow .2s, background-color .15s ease-in-out;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  cursor: pointer;
-}
-.mission-row:hover { box-shadow: 0 6px 18px rgba(0,0,0,.07); background-color: #f8fafc; }
-.mission-icon {
-  width: 42px; height: 42px; border-radius: 10px; background: #eef2ff; color: #4338ca;
-  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
-}
-.mission-info { flex: 1; min-width: 180px; }
-.mission-name { font-weight: 700; font-size: 14px; color: #1e293b; }
-.mission-meta { font-size: 11.5px; color: #64748b; }
-.mission-stats { display: flex; gap: 14px; font-size: 12px; color: #475569; }
-#coverage-map { height: 280px; border-radius: 10px; }
-.perspectives-callout {
-  background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;
-  padding: 12px 14px; font-size: 12.5px; color: #64748b; display: flex; align-items: center; gap: 10px;
-}
-</style>
 {% endblock %}
+
 
 {% block content %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -79,35 +39,150 @@
   </div>
 </div>
 
-<!-- ── KPI Band ── -->
-<div class="drone-kpi-band">
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#eef2ff;"><i class="bi bi-airplane-fill" style="color:#4338ca;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ nb_missions }}</div>
-      <div class="dkpi-lbl">Missions totales</div>
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
+
+  <!-- 1. Missions Totales (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Missions Totales</span>
+      <i class="bi bi-airplane kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_missions }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Vols planifiés
+      </span>
     </div>
   </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#eff6ff;"><i class="bi bi-images" style="color:#1E3A8A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ total_orthophotos }}</div>
-      <div class="dkpi-lbl">Orthophotos</div>
+
+  <!-- 2. Orthophotos (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Orthophotos</span>
+      <i class="bi bi-images kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_orthophotos }}</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        Produites
+      </span>
     </div>
   </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-map" style="color:#16A34A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ surface_ha }} ha</div>
-      <div class="dkpi-lbl">Surface couverte</div>
+
+  <!-- 3. Surface Couverte (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Surface Couverte</span>
+      <i class="bi bi-map kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ surface_ha }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Cartographiée
+      </span>
     </div>
   </div>
-  <div class="dkpi">
-    <div class="dkpi-icon" style="background:#f0fdf4;"><i class="bi bi-patch-check-fill" style="color:#16A34A;"></i></div>
-    <div>
-      <div class="dkpi-val">{{ nb_validees }}</div>
-      <div class="dkpi-lbl">Orthophotos validées</div>
+
+  <!-- 4. Validées (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Validées</span>
+      <i class="bi bi-patch-check kpi-card__icon"></i>
     </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_validees }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        Conformes
+      </span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex flex-wrap align-items-center gap-2 m-0 w-100" id="filterDronesDesktop">
+    
+    <!-- Champ de recherche épuré avec icône intégrée -->
+    <div class="filter-search-wrapper">
+      <i class="bi bi-search filter-search-icon"></i>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm filter-search-input"
+             placeholder="Rechercher une mission, un opérateur, un drone..." autocomplete="off">
+      {% if q %}
+      <button type="button" class="filter-search-clear" title="Effacer la recherche">
+        <i class="bi bi-x"></i>
+      </button>
+      {% endif %}
+    </div>
+
+    <select name="statut" class="form-select form-select-sm" style="max-width: 200px;">
+      <option value="">Tous les statuts</option>
+      {% for code, label in statuts %}
+      <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    {% if q or statut %}
+    <a href="{% url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- ===== BOUTON FLOTTANT FILTRES (Mobile uniquement) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDronesFilters" aria-controls="offcanvasDronesFilters">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or statut %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== TIROIR DE FILTRES OFFCANVAS (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasDronesFilters" aria-labelledby="offcanvasDronesFiltersLabel" style="height: auto; max-height: 85vh;">
+  <div class="offcanvas-header border-bottom py-3">
+    <h5 class="offcanvas-title fs-6 fw-bold text-dark d-flex align-items-center gap-2" id="offcanvasDronesFiltersLabel">
+      <i class="bi bi-funnel-fill text-primary"></i> Filtrer les missions drones
+    </h5>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-4">
+    <form method="get" class="d-flex flex-column gap-3" id="filterDronesMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Recherche textuelle</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Mission, opérateur, drone..." value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Statut du vol</label>
+        <select name="statut" class="form-select">
+          <option value="">Tous les statuts</option>
+          {% for code, label in statuts %}
+          <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm py-2">
+          <i class="bi bi-check-lg me-1"></i> Appliquer les filtres
+        </button>
+        {% if q or statut %}
+        <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary py-2">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </a>
+        {% endif %}
+      </div>
+    </form>
   </div>
 </div>
 
@@ -115,21 +190,6 @@
 
   <!-- ── Liste des missions ── -->
   <div class="col-lg-8">
-
-    <form method="get" class="mb-3 d-flex gap-2">
-      <input type="text" name="q" value="{{ q }}" class="form-control"
-             placeholder="Rechercher une mission, un opérateur, un drone...">
-      <select name="statut" class="form-select" style="max-width:200px;" onchange="this.form.submit()">
-        <option value="">Tous les statuts</option>
-        {% for code, label in statuts %}
-        <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <button class="btn btn-primary px-4" type="submit"><i class="bi bi-search"></i></button>
-      {% if q or statut %}
-      <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
-      {% endif %}
-    </form>
 
     <div id="missions-container">
       {% if page_obj.object_list %}
@@ -291,6 +351,7 @@
 
 {% block extra_js %}
 <script src="/static/js/slideover.js"></script>
+<script src="/static/js/filter_manager.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   // Bind du SlideOver latéral sur les lignes de mission
@@ -393,6 +454,13 @@ document.addEventListener('DOMContentLoaded', function () {
   } catch (err) {
     console.warn("Carte couverture non initialisée :", err);
   }
+
+  // Initialisation du contrôleur réactif de filtres
+  FilterManager.init({
+    desktopFormSelector: '#filterDronesDesktop',
+    mobileFormSelector: '#filterDronesMobile',
+    debounceMs: 400
+  });
 });
 </script>
 {% endblock %}

@@ -55,7 +55,7 @@ def construction_post_save(sender, instance, created, **kwargs):
     # Création automatique du suivi dès qu'une construction est approuvée
     if (nouveau == NouvelleConstruction.STATUT_APPROUVE
             and ancien != NouvelleConstruction.STATUT_APPROUVE):
-        from apps.territoire.models.models_suivi_travaux import SuiviTravaux
+        from territoire.models.models_suivi_travaux import SuiviTravaux
         SuiviTravaux.objects.get_or_create(
             construction=instance,
             defaults={'maitre_ouvrage': instance.demandeur},

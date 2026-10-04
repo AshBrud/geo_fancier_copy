@@ -10,89 +10,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── Bandeau héro ──────────────────────────────────────────────────── */
-.espace-hero {
-  border-radius: 14px;
-  padding: 24px 28px;
-  margin-bottom: 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.2);
-}
-.espace-hero-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  background: rgba(255,255,255,.2);
-  flex-shrink: 0;
-}
-.espace-hero-code {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .8px;
-  text-transform: uppercase;
-  background: rgba(255,255,255,.2);
-  border-radius: 20px;
-  padding: 2px 10px;
-  display: inline-block;
-  margin-bottom: 6px;
-}
-.espace-hero-nom { font-size: 22px; font-weight: 800; margin: 0; line-height: 1.1; }
-.espace-hero-sub { font-size: 13px; opacity: .85; margin-top: 4px; }
 
-/* ── KPI tiles ─────────────────────────────────────────────────────── */
-.kpi-tile {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  padding: 16px 18px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.kpi-tile-lbl { font-size: 11.5px; color: #64748b; margin-bottom: 4px; }
-.kpi-tile-val { font-size: 22px; font-weight: 700; color: #1e293b; line-height: 1; }
-.kpi-tile-sub { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
-
-/* ── Info list ─────────────────────────────────────────────────────── */
-.info-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f8fafc;
-  font-size: 13px;
-}
-.info-row:last-child { border-bottom: none; }
-.info-row-lbl { color: #64748b; min-width: 130px; flex-shrink: 0; font-size: 12px; }
-.info-row-val { color: #1e293b; font-weight: 500; }
-
-.sec-lbl {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .9px;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  margin-top: 24px;
-}
-.sec-lbl::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
-</style>
-{% endblock %}
 
 {% block content %}
 
@@ -128,36 +46,65 @@
   </div>
 </div>
 
-<!-- ===== KPI TILES ===== -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="kpi-tile">
-      <div class="kpi-tile-lbl"><i class="bi bi-rulers me-1 text-primary"></i>Superficie brute</div>
-      <div class="kpi-tile-val">{{ stats.superficie_ha|floatformat:2 }} ha</div>
-      <div class="kpi-tile-sub">{{ zone.superficie_m2|default:0|floatformat:0 }} m² calculés</div>
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
+
+  <!-- 1. Superficie Brute (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Superficie Brute</span>
+      <i class="bi bi-map kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.superficie_ha|floatformat:2 }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        {{ zone.superficie_m2|default:0|floatformat:0 }} m²
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-tile">
-      <div class="kpi-tile-lbl"><i class="bi bi-buildings-fill me-1 text-success"></i>Unités bâties recensées</div>
-      <div class="kpi-tile-val text-success">{{ stats.total_unites_baties }}</div>
-      <div class="kpi-tile-sub">{{ stats.nb_occupes }} habitées · {{ stats.nb_vacants }} vacantes</div>
+
+  <!-- 2. Unités Bâties (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Unités Bâties</span>
+      <i class="bi bi-buildings kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.total_unites_baties }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        {{ stats.nb_occupes }} habitées
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-tile">
-      <div class="kpi-tile-lbl"><i class="bi bi-pie-chart-fill me-1 text-warning"></i>Emprise au sol bâtie</div>
-      <div class="kpi-tile-val text-warning">{{ stats.surface_batie_m2|floatformat:0 }} m²</div>
-      <div class="kpi-tile-sub">Surface d'emprise cumulée</div>
+
+  <!-- 3. Emprise au Sol (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Emprise au Sol</span>
+      <i class="bi bi-bounding-box-circles kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.surface_batie_m2|floatformat:0 }} m²</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        Cumulée
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="kpi-tile">
-      <div class="kpi-tile-lbl"><i class="bi bi-speedometer2 me-1 text-info"></i>Taux d'emprise moyen</div>
-      <div class="kpi-tile-val text-info">{{ stats.taux_emprise_pct }}%</div>
-      <div class="kpi-tile-sub">Ratio emprise bâtie / zone</div>
+
+  <!-- 4. Taux d'Emprise (Ambre Warning) -->
+  <div class="kpi-card kpi-card--warning">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Taux d'Emprise</span>
+      <i class="bi bi-speedometer2 kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.taux_emprise_pct }}%</span>
+      <span class="kpi-card__badge kpi-card__badge--warning">
+        Ratio foncier
+      </span>
     </div>
   </div>
+
 </div>
 
 <!-- ===== CARTE + INFOS ===== -->

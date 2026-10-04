@@ -8,71 +8,7 @@
 <li class="breadcrumb-item active">Unités Bâties & Concessions</li>
 {% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="/static/css/slideover.css">
-<style>
-/* ===== KPI FONCIER ===== */
-.fon-kpi {
-  background: #fff; border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 16px 18px;
-  display: flex; align-items: center; gap: 14px;
-  transition: all .22s; height: 100%;
-}
-.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
-.fon-kpi-icon {
-  width: 46px; height: 46px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-}
-.fon-kpi-body { min-width: 0; }
-.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
-.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; white-space: nowrap; }
-.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
 
-/* ===== BARRE TABLE ===== */
-.table-card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
-}
-.table-card-title {
-  font-size: 14px; font-weight: 700; color: #1e293b;
-  display: flex; align-items: center; gap: 8px; white-space: nowrap;
-}
-.table-card-title .count-pill {
-  font-size: 11px; background: #f1f5f9; color: #64748b;
-  border-radius: 20px; padding: 2px 8px; font-weight: 600;
-}
-.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
-
-/* ===== BÂTIMENT ROW ===== */
-.bat-nom { font-size: 13.5px; font-weight: 600; color: #1e293b; }
-.bat-code {
-  background: #f8fafc; border: 1px solid #e2e8f0;
-  border-radius: 5px; padding: 2px 8px;
-  font-size: 11.5px; color: #475569; font-family: monospace;
-}
-.etages-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #f1f5f9; border-radius: 6px;
-  padding: 2px 8px; font-size: 11.5px; color: #374151; font-weight: 600;
-}
-
-/* ===== EMPTY STATE ===== */
-.empty-state { padding: 48px 24px; text-align: center; color: #94a3b8; }
-.empty-state i { font-size: 42px; display: block; margin-bottom: 10px; opacity: .45; }
-.empty-state p { margin: 0; font-size: 13.5px; }
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-.clickable-row:hover {
-  background-color: #f8fafc !important;
-}
-</style>
-{% endblock %}
 
 {% block content %}
 
@@ -104,90 +40,92 @@
   {% endif %}
 </div>
 
-<!-- ===== KPI ===== -->
-<div class="row g-3 mb-4">
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-buildings-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val">{{ stats.total }}</div>
-        <div class="fon-kpi-lbl">Total unités bâties</div>
-        <div class="fon-kpi-foot">Recensées dans le workspace</div>
-      </div>
+  <!-- 1. Total Édifices (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Total Édifices</span>
+      <i class="bi bi-buildings kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.total }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Recensés
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-check-circle-fill" style="color:#16A34A;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ stats.nb_occupes }}</div>
-        <div class="fon-kpi-lbl">Occupées / Habitées</div>
-        <div class="fon-kpi-foot">Taux d'occupation : {{ stats.taux_occupation_pct }}%</div>
-      </div>
+  <!-- 2. Occupés / Habités (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Occupés / Habités</span>
+      <i class="bi bi-check2-circle kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.nb_occupes }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        <i class="bi bi-pie-chart-fill"></i> {{ stats.taux_occupation_pct }}%
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#e0f2fe;">
-        <i class="bi bi-rulers" style="color:#0891b2;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#0891b2; font-size:20px;">{{ stats.surface_totale_m2|floatformat:0 }} m²</div>
-        <div class="fon-kpi-lbl">Emprise bâtie totale</div>
-        <div class="fon-kpi-foot">Moyenne : {{ stats.surface_moyenne_m2|floatformat:0 }} m² / édifice</div>
-      </div>
+  <!-- 3. Emprise Bâtie (Cyan Info / Technique) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Emprise Totale</span>
+      <i class="bi bi-bounding-box-circles kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.surface_totale_m2|floatformat:0 }} m²</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        Moy. {{ stats.surface_moyenne_m2|floatformat:0 }} m²
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fef3c7;">
-        <i class="bi bi-clock-history" style="color:#D97706;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#D97706;">{{ stats.nb_en_construction }}</div>
-        <div class="fon-kpi-lbl">En construction</div>
-        <div class="fon-kpi-foot">{{ stats.nb_vacants }} vacantes · {{ stats.nb_ruines }} ruines</div>
-      </div>
+  <!-- 4. En Chantier / Vacants (Ambre Warning) -->
+  <div class="kpi-card kpi-card--warning">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">En Chantier</span>
+      <i class="bi bi-cone-striped kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.nb_en_construction }}</span>
+      <span class="kpi-card__badge kpi-card__badge--warning">
+        {{ stats.nb_vacants }} vacants
+      </span>
     </div>
   </div>
 
 </div>
 
-<!-- ===== TABLE CARD ===== -->
-<div class="card border-0 shadow-sm rounded-4">
-
-  <!-- En-tête avec filtres combinés -->
-  <div class="table-card-header">
-    <div class="table-card-title">
-      <i class="bi bi-table text-primary"></i>
-      Inventaire des édifices
-      <span class="count-pill">{{ page_obj.paginator.count }}</span>
-    </div>
-    <form method="get" class="filter-bar" id="filterForm">
-      <div class="input-group input-group-sm" style="width:200px;">
-        <span class="input-group-text bg-white border-end-0">
-          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
-        </span>
-        <input type="text" name="q" class="form-control border-start-0 ps-0"
-               placeholder="Nom ou code…" value="{{ q }}" style="font-size:12.5px;">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex align-items-center justify-content-between flex-wrap gap-2 m-0" id="filterFormDesktop">
+    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+      
+      <!-- Champ de recherche épuré avec icône intégrée -->
+      <div class="filter-search-wrapper">
+        <i class="bi bi-search filter-search-icon"></i>
+        <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+               placeholder="Nom ou code…" value="{{ q }}" autocomplete="off">
+        {% if q %}
+        <button type="button" class="filter-search-clear" title="Effacer la recherche">
+          <i class="bi bi-x"></i>
+        </button>
+        {% endif %}
       </div>
 
-      <select name="type_bati" class="form-select form-select-sm" style="width:150px; font-size:12.5px;" onchange="this.form.submit()">
+      <select name="type_bati" class="form-select form-select-sm" style="width: 160px;">
         <option value="">Tous les usages</option>
         {% for t_key, t_label in types_bati %}
         <option value="{{ t_key }}" {% if type_bati == t_key %}selected{% endif %}>{{ t_label }}</option>
         {% endfor %}
       </select>
 
-      <select name="statut_occupation" class="form-select form-select-sm" style="width:150px; font-size:12.5px;" onchange="this.form.submit()">
+      <select name="statut_occupation" class="form-select form-select-sm" style="width: 160px;">
         <option value="">Tous les statuts</option>
         {% for s_key, s_label in statuts_occupation %}
         <option value="{{ s_key }}" {% if statut_occupation == s_key %}selected{% endif %}>{{ s_label }}</option>
@@ -195,7 +133,7 @@
       </select>
 
       {% if zones %}
-      <select name="zone_id" class="form-select form-select-sm" style="width:150px; font-size:12.5px;" onchange="this.form.submit()">
+      <select name="zone_id" class="form-select form-select-sm" style="width: 160px;">
         <option value="">Toutes les zones</option>
         {% for z in zones %}
         <option value="{{ z.pk }}" {% if zone_id == z.pk %}selected{% endif %}>{{ z.nom }}</option>
@@ -203,14 +141,103 @@
       </select>
       {% endif %}
 
-      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
       {% if q or type_bati or statut_occupation or zone_id %}
-      <a href="{% url 'territoire:batiments' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-x-lg"></i>
+      <a href="{% url 'territoire:batiments' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser tous les filtres">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
       </a>
       {% endif %}
+    </div>
+    <div class="text-muted small">
+      <strong class="text-dark">{{ page_obj.paginator.count }}</strong> unité{{ page_obj.paginator.count|pluralize }}
+    </div>
+  </form>
+</div>
+
+<!-- ===== FAB MOBILE FILTRE (Bottom-Left) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn btn-primary fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasBatimentsFilters" aria-label="Filtres">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or type_bati or statut_occupation or zone_id %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== OFFCANVAS SLIDEOVER FILTRES (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasBatimentsFilters" style="max-height: 85vh;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-bold">
+      <i class="bi bi-funnel text-primary"></i> Filtrer les édifices
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="d-flex flex-column gap-3" id="filterFormMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Recherche par désignation ou code</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom ou code…" value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted">Usage / Typologie</label>
+        <select name="type_bati" class="form-select">
+          <option value="">Tous les usages</option>
+          {% for t_key, t_label in types_bati %}
+          <option value="{{ t_key }}" {% if type_bati == t_key %}selected{% endif %}>{{ t_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted">Statut d'occupation</label>
+        <select name="statut_occupation" class="form-select">
+          <option value="">Tous les statuts</option>
+          {% for s_key, s_label in statuts_occupation %}
+          <option value="{{ s_key }}" {% if statut_occupation == s_key %}selected{% endif %}>{{ s_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if zones %}
+      <div>
+        <label class="form-label small fw-semibold text-muted">Subdivision spatiale</label>
+        <select name="zone_id" class="form-select">
+          <option value="">Toutes les zones</option>
+          {% for z in zones %}
+          <option value="{{ z.pk }}" {% if zone_id == z.pk %}selected{% endif %}>{{ z.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Appliquer les filtres</button>
+        {% if q or type_bati or statut_occupation or zone_id %}
+        <a href="{% url 'territoire:batiments' %}" class="btn btn-outline-secondary">Effacer</a>
+        {% endif %}
+      </div>
     </form>
   </div>
+</div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+
+  <!-- En-tête de la table épuré -->
+  <div class="card-header bg-white d-flex align-items-center justify-content-between py-3 px-4 border-bottom">
+    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+      <i class="bi bi-buildings text-primary"></i>
+      Inventaire des édifices
+    </div>
+    <span class="badge bg-light text-secondary border">
+      Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+    </span>
+  </div>
+
 
   <!-- Tableau -->
   <div class="table-responsive">
@@ -435,6 +462,7 @@
 
 {% block extra_js %}
 <script src="/static/js/slideover.js"></script>
+<script src="/static/js/filter_manager.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   SlideOver.bindTable('#table-batiments', function (row) {
@@ -513,6 +541,13 @@ document.addEventListener('DOMContentLoaded', function () {
       bodyHtml: bodyHtml,
       footerHtml: footerHtml
     };
+  });
+
+  // Initialisation du contrôleur réactif de filtres
+  FilterManager.init({
+    desktopFormSelector: '#filterFormDesktop',
+    mobileFormSelector: '#filterFormMobile',
+    debounceMs: 400
   });
 });
 </script>

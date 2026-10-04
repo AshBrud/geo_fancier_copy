@@ -20,11 +20,12 @@ def mission_list(request):
     """Hub des missions de vol drone avec modale de création directe et SlideOver latéral."""
     q = request.GET.get('q', '').strip()
     statut = request.GET.get('statut', '').strip()
+    dossier = getattr(request, 'active_dossier', None)
 
-    qs = get_missions_queryset(q=q, statut=statut)
+    qs = get_missions_queryset(q=q, statut=statut, dossier=dossier)
     page_obj = Paginator(qs, 15).get_page(request.GET.get('page'))
-    kpis = get_mission_kpis()
-    coverage_geojson = get_coverage_geojson()
+    kpis = get_mission_kpis(dossier=dossier)
+    coverage_geojson = get_coverage_geojson(dossier=dossier)
     has_geodata = coverage_geojson != '{"type": "FeatureCollection", "features": []}'
 
     creation_form = MissionForm()
@@ -50,7 +51,11 @@ def mission_create(request):
     """Création d'une nouvelle mission (par modale ou page dédiée)."""
     form = MissionForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        mission = form.save()
+        mission = form.save(commit=False)
+        dossier = getattr(request, 'active_dossier', None)
+        if dossier and not mission.dossier:
+            mission.dossier = dossier
+        mission.save()
         messages.success(request, f'Mission « {mission.nom} » créée avec succès.')
         return redirect('drones:missions')
     return render(request, 'drones/missions/form.html', {'form': form, 'action': 'Nouvelle mission'})

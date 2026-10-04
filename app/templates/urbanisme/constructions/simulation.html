@@ -472,7 +472,11 @@
   ESPACES_DATA.forEach(function(e) { espaceMap[e.id] = e; });
 
   /* ---- Carte ---- */
-  var map = initCampusMap('construction-map', { hideLayerControl: false });
+  var map = initCampusMap('construction-map', {
+    center: [{{ active_dossier.centre_carte.y|default:14.696 }}, {{ active_dossier.centre_carte.x|default:-16.477 }}],
+    zoom: {{ active_dossier.zoom_defaut|default:15 }},
+    hideLayerControl: false
+  });
   loadEspaces(map);
   loadBatiments(map);
   loadPriorityOrthophoto(map);

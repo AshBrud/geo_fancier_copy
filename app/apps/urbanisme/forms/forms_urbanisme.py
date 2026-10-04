@@ -17,6 +17,7 @@ class NouvelleConstructionForm(forms.ModelForm):
 
     def __init__(self, *args, dossier=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.dossier = dossier
         if dossier:
             self.fields['zone_secteur'].queryset = self.fields['zone_secteur'].queryset.filter(dossier=dossier)
         else:
@@ -41,10 +42,17 @@ class NouvelleConstructionForm(forms.ModelForm):
             return superficie
         if superficie <= 0:
             raise forms.ValidationError("La superficie souhaitée doit être supérieure à 0 m².")
-        if superficie > 520000:
+
+        max_sup = getattr(self.dossier, 'superficie_m2', None) if self.dossier else None
+        if not max_sup and self.dossier and getattr(self.dossier, 'superficie_ha', None):
+            max_sup = self.dossier.superficie_ha * 10000
+
+        if max_sup and superficie > max_sup:
             raise forms.ValidationError(
-                "La superficie souhaitée ne peut pas dépasser 520 000 m² (52 ha, superficie du campus UAD)."
+                f"La superficie souhaitée ({superficie:,.0f} m²) ne peut pas dépasser l'emprise totale du territoire ({max_sup:,.0f} m²)."
             )
+        elif not max_sup and superficie > 100_000_000:
+            raise forms.ValidationError("La superficie souhaitée dépasse le seuil maximal autorisé (10 000 ha).")
         return superficie
 
 

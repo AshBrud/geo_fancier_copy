@@ -152,6 +152,16 @@ class ZoneSecteur(TimeStampedModel):
         return round(self.superficie_m2 / 1_000_000, 2) if self.superficie_m2 else 0.0
 
     @property
+    def superficie(self) -> float:
+        """Alias pour superficie_m2."""
+        return self.superficie_m2 or 0.0
+
+    @property
+    def taux_occupation(self) -> float:
+        """Taux d'occupation réglementaire par défaut (40%)."""
+        return 40.0
+
+    @property
     def couleur(self) -> str:
         return self.COULEURS_ZONE.get(self.type_zone, '#2563EB')
 

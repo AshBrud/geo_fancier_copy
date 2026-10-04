@@ -15,34 +15,98 @@
   {% endif %}
 </div>
 
-<div class="card mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-center">
-      <div class="col-md-3">
-        <select name="annee" class="form-select form-select-sm">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex align-items-center justify-content-between flex-wrap gap-2 m-0" id="filterHistoriqueDesktop">
+    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+      <select name="annee" class="form-select form-select-sm" style="width: 170px;">
+        <option value="">Toutes les années</option>
+        {% for a in annees %}
+        <option value="{{ a.year }}" {% if annee == a.year|stringformat:"s" %}selected{% endif %}>{{ a.year }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="type" class="form-select form-select-sm" style="width: 170px;">
+        <option value="">Tous les types</option>
+        {% for t_key, t_label in types %}
+        <option value="{{ t_key }}" {% if type_travaux == t_key %}selected{% endif %}>{{ t_label }}</option>
+        {% endfor %}
+      </select>
+
+      {% if annee or type_travaux %}
+      <a href="{% url 'urbanisme:historique' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+      </a>
+      {% endif %}
+    </div>
+    <div class="text-muted small">
+      <strong class="text-dark">{{ page_obj.paginator.count|default:page_obj|length }}</strong> enregistrement{{ page_obj|length|pluralize }}
+    </div>
+  </form>
+</div>
+
+<!-- ===== FAB MOBILE FILTRE (Bottom-Left) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn btn-primary fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasHistoriqueFilters" aria-label="Filtres">
+    <i class="bi bi-funnel-fill"></i>
+    {% if annee or type_travaux %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== OFFCANVAS SLIDEOVER FILTRES (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasHistoriqueFilters" style="max-height: 80vh;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-bold">
+      <i class="bi bi-funnel text-primary"></i> Filtrer les travaux
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="d-flex flex-column gap-3" id="filterHistoriqueMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Année de réalisation</label>
+        <select name="annee" class="form-select">
           <option value="">Toutes les années</option>
-          {% for a in annees %}<option value="{{ a.year }}" {% if annee == a.year|stringformat:"s" %}selected{% endif %}>{{ a.year }}</option>{% endfor %}
+          {% for a in annees %}
+          <option value="{{ a.year }}" {% if annee == a.year|stringformat:"s" %}selected{% endif %}>{{ a.year }}</option>
+          {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
-        <select name="type" class="form-select form-select-sm">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Nature des travaux</label>
+        <select name="type" class="form-select">
           <option value="">Tous les types</option>
           {% for t_key, t_label in types %}
           <option value="{{ t_key }}" {% if type_travaux == t_key %}selected{% endif %}>{{ t_label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
-        {% if user.is_domaine_foncier %}
-        <a href="{% url 'urbanisme:historique' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Appliquer</button>
+        {% if annee or type_travaux %}
+        <a href="{% url 'urbanisme:historique' %}" class="btn btn-outline-secondary">Effacer</a>
         {% endif %}
       </div>
     </form>
   </div>
 </div>
 
-<div class="card">
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="table-card-header d-flex justify-content-between align-items-center">
+    <div class="table-card-title m-0">
+      <i class="bi bi-clock-history text-primary me-2"></i>
+      <span>Registre des réalisations</span>
+      <span class="count-pill ms-2">{{ page_obj.paginator.count|default:page_obj|length }}</span>
+    </div>
+    {% if annee or type_travaux %}
+    <span class="badge bg-light text-primary border small d-none d-sm-inline-flex align-items-center gap-1">
+      <i class="bi bi-funnel-fill"></i> Filtres actifs
+    </span>
+    {% endif %}
+  </div>
   <div class="card-body p-0">
     <table class="table table-uad mb-0">
       <thead>
@@ -53,10 +117,19 @@
         {% for h in page_obj %}
         <tr>
           <td>
+            {% if h.unite_batie %}
+            <a href="{% url 'territoire:batiment_detail' h.unite_batie.pk %}" class="fw-semibold text-decoration-none text-primary">
+              {{ h.unite_batie.nom }}
+            </a>
+            <small class="text-muted d-block">{{ h.unite_batie.code }}</small>
+            {% elif h.batiment %}
             <a href="{% url 'territoire:batiment_detail' h.batiment.pk %}" class="fw-semibold text-decoration-none text-primary">
               {{ h.batiment.nom }}
             </a>
             <small class="text-muted d-block">{{ h.batiment.code }}</small>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
           </td>
           <td>
             <span class="badge {% if h.type_travaux == 'construction' %}bg-primary{% elif h.type_travaux == 'renovation' %}bg-info{% elif h.type_travaux == 'extension' %}bg-success{% else %}bg-danger{% endif %}">
@@ -85,4 +158,17 @@
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/filter_manager.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  FilterManager.init({
+    desktopFormSelector: '#filterHistoriqueDesktop',
+    mobileFormSelector: '#filterHistoriqueMobile',
+    debounceMs: 400
+  });
+});
+</script>
 {% endblock %}

@@ -35,3 +35,15 @@
 
 /* 10. Plan Directeur d'Urbanisme : indicateurs d'occupation du sol, jauges et statistiques */
 @import url("pdu.css");
+
+/* 11. Territoire & SIG : héros, tuiles KPI, table-cards, formulaires géographiques */
+@import url("territoire.css");
+
+/* 12. Tiroirs latéraux réactifs : Alpine.js slideover & offcanvas */
+@import url("slideover.css");
+
+/* 13. Recherche & Navigation Géomatique : autocomplete, hero search, filtres de recherche */
+@import url("search.css");
+
+/* 14. Tableau de Bord & Indicateurs Territoriaux : bannière, KPIs pro, jauges, timeline */
+@import url("dashboard.css");

@@ -7,29 +7,8 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<style>
-.step-list { display: flex; flex-direction: column; gap: 0; }
-.step-item {
-  display: flex; gap: 14px; padding: 14px 4px; border-bottom: 1px solid #f1f5f9;
-}
-.step-item:last-child { border-bottom: none; }
-.step-num {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; background: #e2e8f0; color: #64748b;
-}
-.step-item.done .step-num { background: #16A34A; color: #fff; }
-.step-item.active .step-num { background: #1E3A8A; color: #fff; }
-.step-title { font-weight: 700; font-size: 13.5px; color: #1e293b; }
-.step-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
-.step-body { flex: 1; }
-.photo-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-top: 8px; }
-.photo-mini-grid img { width: 100%; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; }
-#mini-map { height: 220px; border-radius: 10px; }
-.meta-table td { padding: 3px 8px; font-size: 12.5px; }
-.meta-table td:first-child { color: #64748b; }
-</style>
 {% endblock %}
+
 
 {% block content %}
 <div class="page-header">

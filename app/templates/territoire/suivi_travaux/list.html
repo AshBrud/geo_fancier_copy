@@ -10,90 +10,168 @@
   </div>
 </div>
 
-<!-- KPIs -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div style="width:44px;height:44px;border-radius:12px;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#64748b;">
-          <i class="bi bi-list-check"></i>
-        </div>
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ total }}</div>
-          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Total projets</div>
-        </div>
-      </div>
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
+
+  <!-- 1. Total Projets (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Total Projets</span>
+      <i class="bi bi-clipboard2-check kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Chantiers
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div style="width:44px;height:44px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#6b7280;">
-          <i class="bi bi-hourglass"></i>
-        </div>
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_non_demarre }}</div>
-          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Non démarrés</div>
-        </div>
-      </div>
+
+  <!-- 2. Non Démarrés (Ardoise Neutre) -->
+  <div class="kpi-card kpi-card--neutral">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Non Démarrés</span>
+      <i class="bi bi-hourglass kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_non_demarre }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        En attente
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div style="width:44px;height:44px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#0891b2;">
-          <i class="bi bi-arrow-repeat"></i>
-        </div>
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_en_cours }}</div>
-          <div style="font-size:11.5px;color:#64748b;font-weight:500;">En cours</div>
-        </div>
-      </div>
+
+  <!-- 3. En Cours (Ambre Warning) -->
+  <div class="kpi-card kpi-card--warning">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">En Cours</span>
+      <i class="bi bi-arrow-repeat kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_en_cours }}</span>
+      <span class="kpi-card__badge kpi-card__badge--warning">
+        Actifs
+      </span>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div style="width:44px;height:44px;border-radius:12px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#16a34a;">
-          <i class="bi bi-check-circle-fill"></i>
-        </div>
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">{{ nb_termine }}</div>
-          <div style="font-size:11.5px;color:#64748b;font-weight:500;">Terminés</div>
-        </div>
-      </div>
+
+  <!-- 4. Terminés (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Terminés</span>
+      <i class="bi bi-check2-circle kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_termine }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        Livrés
+      </span>
     </div>
   </div>
+
 </div>
 
-<!-- Filtres -->
-<div class="card mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-center">
-      <div class="col-md-5">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Nom du projet..." value="{{ q }}">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex align-items-center justify-content-between flex-wrap gap-2 m-0" id="filterTravauxDesktop">
+    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+      
+      <!-- Champ de recherche épuré avec icône intégrée -->
+      <div class="filter-search-wrapper">
+        <i class="bi bi-search filter-search-icon"></i>
+        <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+               placeholder="Nom du projet..." value="{{ q }}" autocomplete="off">
+        {% if q %}
+        <button type="button" class="filter-search-clear" title="Effacer la recherche">
+          <i class="bi bi-x"></i>
+        </button>
+        {% endif %}
+      </div>
+
+      <select name="statut" class="form-select form-select-sm" style="width: 170px;">
+        <option value="">Tous les statuts</option>
+        {% for s_key, s_label in statuts %}
+        <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
+        {% endfor %}
+      </select>
+
+      {% if q or statut %}
+      <a href="{% url 'territoire:suivi_travaux' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+      </a>
+      {% endif %}
+    </div>
+    <div class="text-muted small">
+      <strong class="text-dark">{{ total }}</strong> projet{{ total|pluralize }}
+    </div>
+  </form>
+</div>
+
+<!-- ===== FAB MOBILE FILTRE (Bottom-Left) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn btn-primary fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTravauxFilters" aria-label="Filtres">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or statut %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== OFFCANVAS SLIDEOVER FILTRES (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasTravauxFilters" style="max-height: 80vh;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-bold">
+      <i class="bi bi-funnel text-primary"></i> Filtrer les chantiers
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="d-flex flex-column gap-3" id="filterTravauxMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Nom du projet</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom du projet..." value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
         </div>
       </div>
-      <div class="col-md-3">
-        <select name="statut" class="form-select form-select-sm">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Statut des travaux</label>
+        <select name="statut" class="form-select">
           <option value="">Tous les statuts</option>
           {% for s_key, s_label in statuts %}
           <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
-        <a href="{% url 'territoire:suivi_travaux' %}" class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Appliquer</button>
+        {% if q or statut %}
+        <a href="{% url 'territoire:suivi_travaux' %}" class="btn btn-outline-secondary">Effacer</a>
+        {% endif %}
       </div>
     </form>
   </div>
 </div>
 
-<!-- Table -->
-<div class="card">
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="table-card-header d-flex justify-content-between align-items-center">
+    <div class="table-card-title m-0">
+      <i class="bi bi-clipboard2-check text-primary me-2"></i>
+      <span>Chantiers & Interventions</span>
+      <span class="count-pill ms-2">{{ total }}</span>
+    </div>
+    {% if q or statut %}
+    <span class="badge bg-light text-primary border small d-none d-sm-inline-flex align-items-center gap-1">
+      <i class="bi bi-funnel-fill"></i> Filtres actifs
+    </span>
+    {% endif %}
+  </div>
   <div class="card-body p-0">
     <table class="table table-uad mb-0">
       <thead>
@@ -171,4 +249,17 @@
   </ul>
 </nav>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/filter_manager.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  FilterManager.init({
+    desktopFormSelector: '#filterTravauxDesktop',
+    mobileFormSelector: '#filterTravauxMobile',
+    debounceMs: 400
+  });
+});
+</script>
 {% endblock %}

@@ -56,7 +56,7 @@ def reseaux_lineaires_list(request):
         'reseaux_geojson': reseaux_geojson,
         'active_dossier': dossier,
     }
-    return render(request, 'territoire/voiries/list.html', context)
+    return render(request, 'territoire/reseaux/list.html', context)
 
 
 @login_required
@@ -73,7 +73,7 @@ def reseau_lineaire_detail(request, pk):
         'geom_json': geom_json,
         'active_dossier': dossier,
     }
-    return render(request, 'territoire/voiries/detail.html', context)
+    return render(request, 'territoire/reseaux/detail.html', context)
 
 
 @login_required
@@ -87,11 +87,12 @@ def reseau_lineaire_create(request):
         reseau = form.save(commit=False)
         if dossier and not reseau.dossier_id:
             reseau.dossier = dossier
+        zone = reseau.zone_secteur
         reseau.save()
         messages.success(request, f"Tronçon « {reseau.nom or reseau.code} » enregistré ({reseau.longueur_km} km).")
         return redirect('territoire:reseaux')
 
-    return render(request, 'territoire/voiries/form.html', {
+    return render(request, 'territoire/reseaux/form.html', {
         'form': form,
         'action': 'Créer un tronçon de réseau linéaire',
         'active_dossier': dossier,
@@ -111,7 +112,7 @@ def reseau_lineaire_update(request, pk):
         messages.success(request, f"Tronçon « {reseau.nom or reseau.code} » mis à jour.")
         return redirect('territoire:reseau_detail', pk=reseau.pk)
 
-    return render(request, 'territoire/voiries/form.html', {
+    return render(request, 'territoire/reseaux/form.html', {
         'form': form,
         'obj': reseau,
         'action': f"Modifier {reseau.nom or reseau.code}",

@@ -8,59 +8,7 @@
 <li class="breadcrumb-item active">Réseaux Linéaires & Voies</li>
 {% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="/static/css/slideover.css">
-<style>
-/* ===== KPI FONCIER ===== */
-.fon-kpi {
-  background: #fff; border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  padding: 16px 18px;
-  display: flex; align-items: center; gap: 14px;
-  transition: all .22s; height: 100%;
-}
-.fon-kpi:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
-.fon-kpi-icon {
-  width: 46px; height: 46px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-}
-.fon-kpi-body { min-width: 0; }
-.fon-kpi-val  { font-size: 24px; font-weight: 700; color: #1e293b; line-height: 1; }
-.fon-kpi-lbl  { font-size: 12px; color: #64748b; margin-top: 3px; white-space: nowrap; }
-.fon-kpi-foot { font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
 
-/* ===== BARRE TABLE ===== */
-.table-card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
-}
-.table-card-title {
-  font-size: 14px; font-weight: 700; color: #1e293b;
-  display: flex; align-items: center; gap: 8px; white-space: nowrap;
-}
-.table-card-title .count-pill {
-  font-size: 11px; background: #f1f5f9; color: #64748b;
-  border-radius: 20px; padding: 2px 8px; font-weight: 600;
-}
-.filter-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
-
-.voie-code {
-  background: #f8fafc; border: 1px solid #e2e8f0;
-  border-radius: 5px; padding: 2px 8px;
-  font-size: 11.5px; color: #475569; font-family: monospace;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-.clickable-row:hover {
-  background-color: #f8fafc !important;
-}
-</style>
-{% endblock %}
 
 {% block content %}
 
@@ -78,93 +26,168 @@
     <h1 class="page-title mb-1"><i class="bi bi-signpost-split text-primary me-2"></i> Réseaux Linéaires & Voies</h1>
     <p class="page-description text-muted mb-0">Réseau viaire, routes bitumées, pistes rurales, allées piétonnes et linéaires SIG métriques.</p>
   </div>
-  {% if user.is_domaine_foncier or user.is_admin %}
-  <div class="d-flex gap-2">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'territoire:cartographie' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-map"></i>
+      <span class="d-none d-sm-inline">Vue cartographique</span>
+    </a>
+    {% if user.is_domaine_foncier or user.is_admin %}
     <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-voie-create">
       <i class="bi bi-plus-lg"></i>
       <span>Nouveau Tronçon</span>
     </button>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
-<!-- ===== KPI ===== -->
-<div class="row g-3 mb-4">
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
 
-  <div class="col-6 col-md-4">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-signpost-split-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val">{{ stats.total_troncons }}</div>
-        <div class="fon-kpi-lbl">Tronçons inventoriés</div>
-        <div class="fon-kpi-foot">Segments cartographiés</div>
-      </div>
+  <!-- 1. Tronçons Inventoriés (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Tronçons</span>
+      <i class="bi bi-signpost-split kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.total_troncons }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Inventoriés
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-speedometer" style="color:#16A34A;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ stats.longueur_totale_km }} km</div>
-        <div class="fon-kpi-lbl">Linéaire total cumulé</div>
-        <div class="fon-kpi-foot">{{ stats.longueur_totale_m|floatformat:0 }} mètres linéaires</div>
-      </div>
+  <!-- 2. Linéaire Cumulé (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Linéaire Cumulé</span>
+      <i class="bi bi-rulers kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ stats.longueur_totale_km }} km</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        {{ stats.longueur_totale_m|floatformat:0 }} m
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fef3c7;">
-        <i class="bi bi-compass" style="color:#D97706;"></i>
-      </div>
-      <div class="fon-kpi-body">
-        <div class="fon-kpi-val" style="color:#D97706;">UTM métrique</div>
-        <div class="fon-kpi-lbl">Projection de calcul</div>
-        <div class="fon-kpi-foot">Précision SIG certifiée</div>
-      </div>
+  <!-- 3. Projection Spatiale (Violet Gouvernance/SIG) -->
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Projection Spatiale</span>
+      <i class="bi bi-compass kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">UTM métrique</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Certifiée
+      </span>
     </div>
   </div>
 
+</div>
+
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex flex-wrap align-items-center gap-2 m-0 w-100" id="filterReseauxDesktop">
+    
+    <!-- Champ de recherche épuré avec icône intégrée -->
+    <div class="filter-search-wrapper">
+      <i class="bi bi-search filter-search-icon"></i>
+      <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+             placeholder="Nom ou code…" value="{{ q }}" autocomplete="off">
+      {% if q %}
+      <button type="button" class="filter-search-clear" title="Effacer la recherche">
+        <i class="bi bi-x"></i>
+      </button>
+      {% endif %}
+    </div>
+
+    <select name="type_voie" class="form-select form-select-sm" style="max-width: 170px;">
+      <option value="">Toutes les voies</option>
+      {% for t_key, t_label in types_voie %}
+      <option value="{{ t_key }}" {% if type_voie == t_key %}selected{% endif %}>{{ t_label }}</option>
+      {% endfor %}
+    </select>
+
+    {% if q or type_voie %}
+    <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- ===== BOUTON FLOTTANT FILTRES (Mobile uniquement) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasReseauxFilters" aria-controls="offcanvasReseauxFilters">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or type_voie %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== TIROIR DE FILTRES OFFCANVAS (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasReseauxFilters" aria-labelledby="offcanvasReseauxFiltersLabel" style="height: auto; max-height: 85vh;">
+  <div class="offcanvas-header border-bottom py-3">
+    <h5 class="offcanvas-title fs-6 fw-bold text-dark d-flex align-items-center gap-2" id="offcanvasReseauxFiltersLabel">
+      <i class="bi bi-funnel-fill text-primary"></i> Filtrer les voies & réseaux
+    </h5>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-4">
+    <form method="get" class="d-flex flex-column gap-3" id="filterReseauxMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Recherche textuelle</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom ou code du tronçon..." value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Type de voie</label>
+        <select name="type_voie" class="form-select">
+          <option value="">Toutes les voies</option>
+          {% for t_key, t_label in types_voie %}
+          <option value="{{ t_key }}" {% if type_voie == t_key %}selected{% endif %}>{{ t_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm py-2">
+          <i class="bi bi-check-lg me-1"></i> Appliquer les filtres
+        </button>
+        {% if q or type_voie %}
+        <a href="{% url 'territoire:reseaux' %}" class="btn btn-outline-secondary py-2">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- ===== TABLE CARD ===== -->
 <div class="card border-0 shadow-sm rounded-4">
 
-  <!-- En-tête avec filtres -->
-  <div class="table-card-header">
-    <div class="table-card-title">
-      <i class="bi bi-table text-primary"></i>
-      Inventaire des tronçons
-      <span class="count-pill">{{ page_obj.paginator.count }}</span>
+  <!-- En-tête épuré -->
+  <div class="table-card-header d-flex justify-content-between align-items-center">
+    <div class="table-card-title m-0">
+      <i class="bi bi-table text-primary me-2"></i>
+      <span>Inventaire des tronçons</span>
+      <span class="count-pill ms-2">{{ page_obj.paginator.count }}</span>
     </div>
-    <form method="get" class="filter-bar">
-      <div class="input-group input-group-sm" style="width:220px;">
-        <span class="input-group-text bg-white border-end-0">
-          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
-        </span>
-        <input type="text" name="q" class="form-control border-start-0 ps-0"
-               placeholder="Nom ou code…" value="{{ q }}" style="font-size:12.5px;">
-      </div>
-
-      <select name="type_voie" class="form-select form-select-sm" style="width:160px; font-size:12.5px;" onchange="this.form.submit()">
-        <option value="">Toutes les voies</option>
-        {% for t_key, t_label in types_voie %}
-        <option value="{{ t_key }}" {% if type_voie == t_key %}selected{% endif %}>{{ t_label }}</option>
-        {% endfor %}
-      </select>
-
-      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
-      {% if q or type_voie %}
-      <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-x-lg"></i>
-      </a>
-      {% endif %}
-    </form>
+    {% if q or type_voie %}
+    <span class="badge bg-light text-primary border small d-none d-sm-inline-flex align-items-center gap-1">
+      <i class="bi bi-funnel-fill"></i> Filtres actifs
+    </span>
+    {% endif %}
   </div>
 
   <!-- Tableau -->
@@ -337,6 +360,7 @@
 
 {% block extra_js %}
 <script src="/static/js/slideover.js"></script>
+<script src="/static/js/filter_manager.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   SlideOver.bindTable('#table-voiries', function (row) {
@@ -400,6 +424,13 @@ document.addEventListener('DOMContentLoaded', function () {
       bodyHtml: bodyHtml,
       footerHtml: footerHtml
     };
+  });
+
+  // Initialisation du contrôleur réactif de filtres
+  FilterManager.init({
+    desktopFormSelector: '#filterReseauxDesktop',
+    mobileFormSelector: '#filterReseauxMobile',
+    debounceMs: 400
   });
 });
 </script>

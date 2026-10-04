@@ -21,88 +21,90 @@
 
 <!-- ===== KPI ROW 1 ===== -->
 <div class="stat-section-lbl">Indicateurs clés · {{ active_dossier.nom|default:"Territoire" }}</div>
-<div class="row g-3 mb-3">
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-map-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val">{{ total_superficie }}</div>
-        <div class="fon-kpi-lbl">Superficie totale (ha)</div>
-        <div class="fon-kpi-foot">{{ total_superficie_m2|floatformat:0 }} m²</div>
-      </div>
+  <!-- 1. Superficie Totale (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Superficie Totale</span>
+      <i class="bi bi-map kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_superficie }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        {{ total_superficie_m2|floatformat:0 }} m²
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-grid-3x3-gap-fill" style="color:#16A34A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_libres }}</div>
-        <div class="fon-kpi-lbl">{{ active_dossier|term:'zone_label,Espace'|capfirst }}s libres</div>
-        <div class="fon-kpi-foot">{{ nb_occupes }} occupés · {{ nb_reserves }} réservés</div>
-      </div>
+  <!-- 2. Espaces Libres (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">{{ active_dossier|term:'zone_label,Espace'|capfirst }}s Libres</span>
+      <i class="bi bi-grid-3x3-gap kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_libres }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        {{ nb_occupes }} occupés
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fef3c7;">
-        <i class="bi bi-buildings-fill" style="color:#D97706;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#D97706;">{{ batiments_actifs }}</div>
-        <div class="fon-kpi-lbl">{{ active_dossier|term:'bati_label,Bâtiment'|capfirst }}s actifs</div>
-        <div class="fon-kpi-foot">{{ densite_bat }} bât/ha · {{ total_batiments }} total</div>
-      </div>
+  <!-- 3. Bâtiments Actifs (Ambre Warning) -->
+  <div class="kpi-card kpi-card--warning">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">{{ active_dossier|term:'bati_label,Bâtiment'|capfirst }}s Actifs</span>
+      <i class="bi bi-buildings kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ batiments_actifs }}</span>
+      <span class="kpi-card__badge kpi-card__badge--warning">
+        {{ densite_bat }} bât/ha
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#cffafe;">
-        <i class="bi bi-rulers" style="color:#0e7490;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#0e7490;">{{ sup_constructible_totale_ha }}</div>
-        <div class="fon-kpi-lbl">Constructible (ha)</div>
-        <div class="fon-kpi-foot">Taux moy. {{ taux_moy_occupation }}%</div>
-      </div>
+  <!-- 4. Constructible Brut (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Constructible</span>
+      <i class="bi bi-rulers kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ sup_constructible_totale_ha }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Moy. {{ taux_moy_occupation }}%
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon"
-           style="background:{% if pct_engagee_nc < 60 %}#dcfce7{% elif pct_engagee_nc < 85 %}#fef3c7{% else %}#fee2e2{% endif %};">
-        <i class="bi bi-check2-circle"
-           style="color:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val"
-             style="color:{% if pct_engagee_nc < 60 %}#16a34a{% elif pct_engagee_nc < 85 %}#d97706{% else %}#dc2626{% endif %};">
-          {{ sup_nette_nc|floatformat:0 }} m²
-        </div>
-        <div class="fon-kpi-lbl">Constructible nette</div>
-        <div class="fon-kpi-foot">{{ pct_engagee_nc }}% déjà engagé</div>
-      </div>
+  <!-- 5. Constructible Nette (Variable selon taux d'engagement) -->
+  <div class="kpi-card {% if pct_engagee_nc < 60 %}kpi-card--secondary{% elif pct_engagee_nc < 85 %}kpi-card--warning{% else %}kpi-card--danger{% endif %}">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Surface Nette</span>
+      <i class="bi bi-check2-circle kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ sup_nette_nc|floatformat:0 }} m²</span>
+      <span class="kpi-card__badge {% if pct_engagee_nc < 60 %}kpi-card__badge--success{% elif pct_engagee_nc < 85 %}kpi-card__badge--warning{% else %}kpi-card__badge--danger{% endif %}">
+        {{ pct_engagee_nc }}% engagé
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl-2">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#ede9fe;">
-        <i class="bi bi-clipboard2-data-fill" style="color:#7c3aed;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#7c3aed;">{{ total_constructions }}</div>
-        <div class="fon-kpi-lbl">Demandes de construction</div>
-        <div class="fon-kpi-foot">Toutes années confondues</div>
-      </div>
+  <!-- 6. Demandes de Construction (Violet Gouvernance) -->
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Demandes Bâti</span>
+      <i class="bi bi-clipboard2-data kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_constructions }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Historique
+      </span>
     </div>
   </div>
 

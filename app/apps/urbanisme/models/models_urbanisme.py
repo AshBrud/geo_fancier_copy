@@ -147,3 +147,8 @@ class HistoriqueConstruction(TimeStampedModel):
     def __str__(self):
         cible = self.unite_batie.nom if self.unite_batie else "Bâti"
         return f"{cible} - {self.get_type_travaux_display()} ({self.date_debut.year})"
+
+    @property
+    def batiment(self):
+        """Alias pour unite_batie."""
+        return self.unite_batie

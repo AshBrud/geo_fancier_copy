@@ -8,55 +8,140 @@
 {% endblock %}
 
 {% block content %}
-<!-- En-tête de page standardisé -->
-<div class="page-header d-flex justify-content-between align-items-center mb-4">
+<!-- ===== EN-TÊTE DE PAGE ===== -->
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
-    <h1 class="page-title"><i class="bi bi-building-gear text-primary"></i> Projets d'Implantation & Constructions</h1>
-    <p class="page-description">Supervision, instruction et faisabilité des projets fonciers sur {{ active_dossier.nom }}.</p>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+        <i class="bi bi-geo-alt me-1"></i>{{ active_dossier.nom|default:"Territoire" }}
+      </span>
+      <span class="badge bg-light text-secondary border" style="font-size: 11px;">
+        {{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|pluralize }}
+      </span>
+    </div>
+    <h1 class="page-title mb-1"><i class="bi bi-building-gear text-primary me-2"></i> Projets d'Implantation & Constructions</h1>
+    <p class="page-description text-muted mb-0">Supervision, instruction spatiale et faisabilité des projets d'aménagement sur {{ active_dossier.nom }}.</p>
   </div>
-  <div class="d-flex gap-2">
-    <a href="{% url 'urbanisme:nouvelle' %}" class="btn btn-outline-primary">
-      <i class="bi bi-compass me-1"></i> Étude spatiale guidée
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'urbanisme:nouvelle' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-compass"></i>
+      <span class="d-none d-sm-inline">Étude spatiale guidée</span>
     </a>
-    <button type="button" class="btn btn-primary px-3" data-bs-toggle="modal" data-bs-target="#modal-nouveau-projet">
-      <i class="bi bi-plus-lg me-1"></i> Nouveau Projet
+    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-nouveau-projet">
+      <i class="bi bi-plus-lg"></i>
+      <span>Nouveau Projet</span>
     </button>
   </div>
 </div>
 
-<!-- Filtres de recherche -->
-<div class="card border-0 shadow-sm mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-center">
-      <div class="col-md-5">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Rechercher par nom de projet..." value="{{ q }}">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex flex-wrap align-items-center gap-2 m-0 w-100" id="filterUrbanismeDesktop">
+    
+    <!-- Champ de recherche épuré avec icône intégrée -->
+    <div class="filter-search-wrapper">
+      <i class="bi bi-search filter-search-icon"></i>
+      <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+             placeholder="Nom du projet d'urbanisme..." value="{{ q }}" autocomplete="off">
+      {% if q %}
+      <button type="button" class="filter-search-clear" title="Effacer la recherche">
+        <i class="bi bi-x"></i>
+      </button>
+      {% endif %}
+    </div>
+
+    <select name="statut" class="form-select form-select-sm" style="max-width: 220px;">
+      <option value="">Tous les statuts d'instruction</option>
+      {% for s_key, s_label in statuts %}
+      <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
+      {% endfor %}
+    </select>
+
+    {% if q or statut %}
+    <a href="." class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+    </a>
+    {% endif %}
+
+    <div class="ms-auto text-muted small d-none d-lg-flex align-items-center gap-1">
+      <i class="bi bi-info-circle text-primary"></i>
+      <span>Cliquez sur une ligne pour le tiroir détaillé</span>
+    </div>
+  </form>
+</div>
+
+<!-- ===== BOUTON FLOTTANT FILTRES (Mobile uniquement) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasUrbanismeFilters" aria-controls="offcanvasUrbanismeFilters">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or statut %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== TIROIR DE FILTRES OFFCANVAS (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasUrbanismeFilters" aria-labelledby="offcanvasUrbanismeFiltersLabel" style="height: auto; max-height: 85vh;">
+  <div class="offcanvas-header border-bottom py-3">
+    <h5 class="offcanvas-title fs-6 fw-bold text-dark d-flex align-items-center gap-2" id="offcanvasUrbanismeFiltersLabel">
+      <i class="bi bi-funnel-fill text-primary"></i> Filtrer les projets d'urbanisme
+    </h5>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-4">
+    <form method="get" class="d-flex flex-column gap-3" id="filterUrbanismeMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Recherche textuelle</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom du projet d'urbanisme..." value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
         </div>
       </div>
-      <div class="col-md-3">
-        <select name="statut" class="form-select form-select-sm">
+      <div>
+        <label class="form-label small fw-semibold text-muted mb-1">Statut d'instruction</label>
+        <select name="statut" class="form-select">
           <option value="">Tous les statuts d'instruction</option>
           {% for s_key, s_label in statuts %}
           <option value="{{ s_key }}" {% if statut == s_key %}selected{% endif %}>{{ s_label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm py-2">
+          <i class="bi bi-check-lg me-1"></i> Appliquer les filtres
+        </button>
         {% if q or statut %}
-        <a href="." class="btn btn-sm btn-outline-secondary ms-1">Réinitialiser</a>
+        <a href="." class="btn btn-outline-secondary py-2">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </a>
         {% endif %}
-      </div>
-      <div class="col-auto ms-auto text-muted small">
-        <i class="bi bi-info-circle me-1"></i> Cliquez sur une ligne pour ouvrir sa fiche détaillée
       </div>
     </form>
   </div>
 </div>
 
-<!-- Tableau épuré des Projets (Lignes cliquables avec SlideOver) -->
-<div class="card border-0 shadow-sm">
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+
+  <!-- En-tête épuré -->
+  <div class="table-card-header d-flex justify-content-between align-items-center">
+    <div class="table-card-title m-0">
+      <i class="bi bi-table text-primary me-2"></i>
+      <span>Dossiers d'instruction</span>
+      <span class="count-pill ms-2">{{ page_obj.paginator.count }}</span>
+    </div>
+    {% if q or statut %}
+    <span class="badge bg-light text-primary border small d-none d-sm-inline-flex align-items-center gap-1">
+      <i class="bi bi-funnel-fill"></i> Filtres actifs
+    </span>
+    {% endif %}
+  </div>
+
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover table-compact mb-0" id="table-constructions">
@@ -193,6 +278,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/slideover.js"></script>
+<script src="/static/js/filter_manager.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   // Liaison de la table au contrôleur SlideOver
@@ -267,6 +354,13 @@ document.addEventListener('DOMContentLoaded', function () {
       bodyHtml: bodyHtml,
       footerHtml: footerHtml
     };
+  });
+
+  // Initialisation du contrôleur réactif de filtres
+  FilterManager.init({
+    desktopFormSelector: '#filterUrbanismeDesktop',
+    mobileFormSelector: '#filterUrbanismeMobile',
+    debounceMs: 400
   });
 });
 </script>

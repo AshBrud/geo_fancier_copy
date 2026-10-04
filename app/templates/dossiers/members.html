@@ -40,94 +40,167 @@
   </div>
 </div>
 
-<!-- ===== KPI ROW ===== -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-people-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val">{{ total_members }}</div>
-        <div class="fon-kpi-lbl">Membres affectés</div>
-        <div class="fon-kpi-foot">Total sur ce dossier</div>
-      </div>
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
+
+  <!-- 1. Membres Affectés (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Membres Affectés</span>
+      <i class="bi bi-people kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_members }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Équipe locale
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fee2e2;">
-        <i class="bi bi-shield-fill" style="color:#DC2626;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#DC2626;">{{ nb_admins }}</div>
-        <div class="fon-kpi-lbl">Administrateurs</div>
-        <div class="fon-kpi-foot">Gestion complète du territoire</div>
-      </div>
+  <!-- 2. Administrateurs (Violet Gouvernance) -->
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Administrateurs</span>
+      <i class="bi bi-shield-lock kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_admins }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Gestion totale
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-geo-alt-fill" style="color:#16A34A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_operateurs }}</div>
-        <div class="fon-kpi-lbl">Opérateurs SIG</div>
-        <div class="fon-kpi-foot">Saisie & enquêtes foncières</div>
-      </div>
+  <!-- 3. Opérateurs SIG (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Opérateurs SIG</span>
+      <i class="bi bi-geo-alt kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_operateurs }}</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        Enquêtes terrain
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fef3c7;">
-        <i class="bi bi-eye-fill" style="color:#D97706;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#D97706;">{{ nb_observateurs }}</div>
-        <div class="fon-kpi-lbl">Observateurs</div>
-        <div class="fon-kpi-foot">Consultation & lecture seule</div>
-      </div>
+  <!-- 4. Observateurs (Ardoise Neutre) -->
+  <div class="kpi-card kpi-card--neutral">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Observateurs</span>
+      <i class="bi bi-eye kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_observateurs }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Lecture seule
+      </span>
     </div>
   </div>
+
 </div>
 
-<!-- ===== TABLE CARD ===== -->
-<div class="card">
-  <!-- En-tête avec filtres -->
-  <div class="table-card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div class="table-card-title">
-      <i class="bi bi-person-lines-fill text-primary"></i>
-      Membres du Dossier
-      <span class="count-pill">{{ memberships.count }} membre{{ memberships.count|pluralize }}</span>
-    </div>
-
-    <form method="get" class="filter-bar d-flex align-items-center gap-2">
-      <div class="input-group input-group-sm" style="width:220px;">
-        <span class="input-group-text bg-white border-end-0">
-          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
-        </span>
-        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Nom, email, identifiant…"
-          value="{{ q }}" style="font-size:12.5px;">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex align-items-center justify-content-between flex-wrap gap-2 m-0" id="filterMembersDesktop">
+    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+      
+      <!-- Champ de recherche épuré avec icône intégrée -->
+      <div class="filter-search-wrapper" style="max-width: 260px;">
+        <i class="bi bi-search filter-search-icon"></i>
+        <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+               placeholder="Nom, email, identifiant…" value="{{ q }}" autocomplete="off">
+        {% if q %}
+        <button type="button" class="filter-search-clear" title="Effacer la recherche">
+          <i class="bi bi-x"></i>
+        </button>
+        {% endif %}
       </div>
 
-      <select name="role" class="form-select form-select-sm" style="width:170px; font-size:12.5px;">
+      <select name="role" class="form-select form-select-sm" style="width: 170px;">
         <option value="">Tous les rôles</option>
         {% for key, label in roles %}
         <option value="{{ key }}" {% if role_filter == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
 
-      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
       {% if q or role_filter %}
-      <a href="/{{ dossier.slug }}/membres/" class="btn btn-sm btn-outline-secondary" title="Réinitialiser les filtres">
-        <i class="bi bi-x-lg"></i>
+      <a href="/{{ dossier.slug }}/membres/" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
       </a>
       {% endif %}
+    </div>
+    <div class="text-muted small">
+      <strong class="text-dark">{{ memberships.count }}</strong> membre{{ memberships.count|pluralize }}
+    </div>
+  </form>
+</div>
+
+<!-- ===== FAB MOBILE FILTRE (Bottom-Left) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn btn-primary fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMembersFilters" aria-label="Filtres">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or role_filter %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== TIROIR DE FILTRES OFFCANVAS (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasMembersFilters" style="max-height: 80vh;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-bold">
+      <i class="bi bi-funnel text-primary"></i> Filtrer les membres
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="d-flex flex-column gap-3" id="filterMembersMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Recherche libre</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom, email, identifiant…" value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted">Rôle territorial</label>
+        <select name="role" class="form-select">
+          <option value="">Tous les rôles</option>
+          {% for key, label in roles %}
+          <option value="{{ key }}" {% if role_filter == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Appliquer</button>
+        {% if q or role_filter %}
+        <a href="/{{ dossier.slug }}/membres/" class="btn btn-outline-secondary">Effacer</a>
+        {% endif %}
+      </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="table-card-header d-flex justify-content-between align-items-center">
+    <div class="table-card-title m-0">
+      <i class="bi bi-person-lines-fill text-primary me-2"></i>
+      <span>Membres du Dossier</span>
+      <span class="count-pill ms-2">{{ memberships.count }}</span>
+    </div>
+    {% if q or role_filter %}
+    <span class="badge bg-light text-primary border small d-none d-sm-inline-flex align-items-center gap-1">
+      <i class="bi bi-funnel-fill"></i> Filtres actifs
+    </span>
+    {% endif %}
   </div>
 
   <!-- Tableau -->
@@ -367,6 +440,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/filter_manager.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (typeof SlideOver === 'undefined') return;
@@ -487,6 +561,13 @@
         bodyHtml: bodyHtml,
         footerHtml: footerHtml
       };
+    });
+
+    // Initialisation du contrôleur réactif de filtres
+    FilterManager.init({
+      desktopFormSelector: '#filterMembersDesktop',
+      mobileFormSelector: '#filterMembersMobile',
+      debounceMs: 400
     });
   });
 </script>

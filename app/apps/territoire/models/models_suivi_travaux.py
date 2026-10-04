@@ -43,6 +43,7 @@ class SuiviTravaux(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = 'territoire'
         verbose_name = 'Suivi des travaux'
         verbose_name_plural = 'Suivis des travaux'
         ordering = ['-date_creation']

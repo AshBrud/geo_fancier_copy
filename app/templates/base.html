@@ -262,7 +262,8 @@
     </header>
 
     <!-- Contenu principal -->
-    <main class="page-content">
+    <main class="page-content {% block page_content_class %}{% endblock %}">
+
       {% if messages %}
       {% for msg in messages %}
       <div class="alert alert-{{ msg.tags }} alert-dismissible fade show rounded-3 mb-3" role="alert">

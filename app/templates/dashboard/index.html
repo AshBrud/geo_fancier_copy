@@ -6,9 +6,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 {% endblock %}
 
-{% block extra_css %}
-{% include 'dashboard/_styles.html' %}
-{% endblock %}
 
 {% block content %}
 
@@ -55,102 +52,104 @@
 
 <!-- ===== INDICATEURS CLÉS ===== -->
 <div class="dash-section-lbl">Indicateurs clés du territoire</div>
-<div class="row g-3 mb-4">
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
 
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#eff6ff;color:#1E3A8A;">
-        <i class="bi bi-map-fill"></i>
-      </div>
-      <div class="kpi-pro-val">{{ superficie_totale }}</div>
-      <div class="kpi-pro-lbl">Superficie totale (ha)</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-geo-alt-fill text-primary"></i> Emprise territoriale
-      </div>
+  <!-- 1. Superficie Totale (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Superficie Totale</span>
+      <i class="bi bi-map kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ superficie_totale }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Territoire
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#fff1f2;color:#dc2626;">
-        <i class="bi bi-layer-backward"></i>
-      </div>
-      <div class="kpi-pro-val" style="color:#dc2626;">{{ superficie_occupee }}</div>
-      <div class="kpi-pro-lbl">Superficie bâtie / occupée (ha)</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-circle-fill text-danger" style="font-size:8px;"></i>
-        {{ taux_occupation }}% du territoire
-      </div>
+  <!-- 2. Superficie Bâtie / Occupée (Rose Alerte/Attention) -->
+  <div class="kpi-card kpi-card--danger">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Emprise Bâtie</span>
+      <i class="bi bi-layer-backward kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ superficie_occupee }} ha</span>
+      <span class="kpi-card__badge kpi-card__badge--danger">
+        {{ taux_occupation }}% occupé
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#f0fdf4;color:#16A34A;">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
-      </div>
-      <div class="kpi-pro-val" style="color:#16A34A;">{{ total_zones }}</div>
-      <div class="kpi-pro-lbl">{{ term_zone_plural }}</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-circle-fill text-success" style="font-size:8px;"></i>
-        {{ total_batiments }} {{ term_bati_plural|lower }} recensé{{ total_batiments|pluralize }}
-      </div>
+  <!-- 3. Subdivisions Spatiales (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">{{ term_zone_plural }}</span>
+      <i class="bi bi-grid-3x3-gap kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_zones }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        {{ total_batiments }} {{ term_bati_plural|lower }}
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#fffbeb;color:#d97706;">
-        <i class="bi bi-building"></i>
-      </div>
-      <div class="kpi-pro-val">
-        {{ total_batiments }}
-      </div>
-      <div class="kpi-pro-lbl">{{ term_bati_plural }}</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-check-circle-fill text-success" style="font-size:8px;"></i>
-        {{ nb_habitees }} occupé{{ nb_habitees|pluralize }} · {{ taux_habitation }}%
-      </div>
+  <!-- 4. Recensement Bâti (Ambre Warning) -->
+  <div class="kpi-card kpi-card--warning">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">{{ term_bati_plural }}</span>
+      <i class="bi bi-buildings kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_batiments }}</span>
+      <span class="kpi-card__badge kpi-card__badge--warning">
+        {{ taux_habitation }}% habité
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#ecfeff;color:#0891b2;">
-        <i class="bi bi-signpost-split-fill"></i>
-      </div>
-      <div class="kpi-pro-val">{{ longueur_reseaux_km }}</div>
-      <div class="kpi-pro-lbl">{{ term_reseau_plural }} (km)</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-compass text-info"></i> {{ total_reseaux }} tronçon{{ total_reseaux|pluralize }}
-      </div>
+  <!-- 5. Réseaux Linéaires (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">{{ term_reseau_plural }}</span>
+      <i class="bi bi-signpost-split kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ longueur_reseaux_km }} km</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        {{ total_reseaux }} tronçon{{ total_reseaux|pluralize }}
+      </span>
     </div>
   </div>
 
+  <!-- 6. Signalements ou Drones selon les modules actifs -->
   {% if has_signalements and sig_total is not None %}
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#fff1f2;color:#E11D48;">
-        <i class="bi bi-megaphone-fill"></i>
-      </div>
-      <div class="kpi-pro-val" style="color:#E11D48;">{{ sig_ouverts }}</div>
-      <div class="kpi-pro-lbl">Signalements à traiter</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-list-check"></i> {{ sig_total }} signalement{{ sig_total|pluralize }} au total
-      </div>
+  <div class="kpi-card kpi-card--danger">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Signalements</span>
+      <i class="bi bi-megaphone kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ sig_ouverts }}</span>
+      <span class="kpi-card__badge kpi-card__badge--danger">
+        {{ sig_total }} total
+      </span>
     </div>
   </div>
   {% elif has_drones %}
-  <div class="col-6 col-md-4 col-xl">
-    <div class="kpi-pro">
-      <div class="kpi-pro-icon" style="background:#eef2ff;color:#4338ca;">
-        <i class="bi bi-airplane-fill"></i>
-      </div>
-      <div class="kpi-pro-val">{{ total_missions }}</div>
-      <div class="kpi-pro-lbl">Missions Drones</div>
-      <div class="kpi-pro-foot">
-        <i class="bi bi-check-circle-fill text-success"></i>{{ missions_integrees }} intégrée{{ missions_integrees|pluralize }} · {{ total_orthophotos }} orthophoto{{ total_orthophotos|pluralize }}
-      </div>
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Missions Drones</span>
+      <i class="bi bi-airplane kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_missions }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        {{ total_orthophotos }} photo{{ total_orthophotos|pluralize }}
+      </span>
     </div>
   </div>
   {% endif %}

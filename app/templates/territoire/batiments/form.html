@@ -9,71 +9,8 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-<style>
-.form-hero {
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  border-radius: 16px;
-  padding: 24px 28px;
-  margin-bottom: 24px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-.form-hero-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  flex-shrink: 0;
-}
-.form-card {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-.form-card-hdr {
-  padding: 14px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.form-card-body {
-  padding: 20px;
-}
-#draw-map {
-  height: 520px;
-  border-radius: 0 0 12px 12px;
-}
-#surface-badge {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  display: none;
-  align-items: center;
-  gap: 5px;
-}
-#surface-badge.visible {
-  display: inline-flex;
-}
-</style>
 {% endblock %}
+
 
 {% block content %}
 <div class="form-hero">

@@ -5,13 +5,20 @@
 {% block content %}
 
 <!-- ===== EN-TÊTE ===== -->
-<div class="page-header d-flex justify-content-between align-items-center mb-4">
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
-    <h1 class="page-title"><i class="bi bi-people"></i> Gestion des Utilisateurs & Rôles RBAC</h1>
-    <p class="page-description text-muted">Gouvernance institutionnelle des comptes, habilitations décentralisées et
-      délégations territoriales.</p>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+        <i class="bi bi-shield-check me-1"></i>Gouvernance RBAC
+      </span>
+      <span class="badge bg-light text-secondary border" style="font-size: 11px;">
+        {{ total_users }} utilisateur{{ total_users|pluralize }}
+      </span>
+    </div>
+    <h1 class="page-title mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Gestion des Utilisateurs & Rôles</h1>
+    <p class="page-description text-muted mb-0">Gouvernance institutionnelle des comptes, habilitations décentralisées et délégations territoriales.</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex align-items-center gap-2">
     <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm"
       data-bs-toggle="modal" data-bs-target="#modalRolesPermissions">
       <i class="bi bi-shield-lock-fill"></i>
@@ -25,99 +32,180 @@
   </div>
 </div>
 
-<!-- ===== KPI ROW ===== -->
-<div class="row g-3 mb-4">
+<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<div class="kpi-row-scroll">
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#eff6ff;">
-        <i class="bi bi-people-fill" style="color:#1E3A8A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val">{{ total_users }}</div>
-        <div class="fon-kpi-lbl">Total utilisateurs</div>
-        <div class="fon-kpi-foot">Tous rôles confondus</div>
-      </div>
+  <!-- 1. Total Utilisateurs (Bleu Primaire) -->
+  <div class="kpi-card kpi-card--primary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Total Utilisateurs</span>
+      <i class="bi bi-people kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ total_users }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Comptes
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#dcfce7;">
-        <i class="bi bi-person-check-fill" style="color:#16A34A;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#16A34A;">{{ nb_actifs }}</div>
-        <div class="fon-kpi-lbl">Comptes actifs</div>
-        <div class="fon-kpi-foot">{{ total_users|add:"-"|add:nb_actifs }} inactif{{
-          total_users|add:"-"|add:nb_actifs|pluralize }}</div>
-      </div>
+  <!-- 2. Comptes Actifs (Vert Secondaire) -->
+  <div class="kpi-card kpi-card--secondary">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Comptes Actifs</span>
+      <i class="bi bi-person-check kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_actifs }}</span>
+      <span class="kpi-card__badge kpi-card__badge--success">
+        {{ nb_inactifs }} inactif{{ nb_inactifs|pluralize }}
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fee2e2;">
-        <i class="bi bi-shield-fill" style="color:#DC2626;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#DC2626;">{{ nb_admins }}</div>
-        <div class="fon-kpi-lbl">Administrateurs</div>
-        <div class="fon-kpi-foot">Accès complet au système</div>
-      </div>
+  <!-- 3. Administrateurs (Violet Gouvernance) -->
+  <div class="kpi-card kpi-card--purple">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Administrateurs</span>
+      <i class="bi bi-shield-lock kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_admins }}</span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">
+        Accès complet
+      </span>
     </div>
   </div>
 
-  <div class="col-6 col-md-3">
-    <div class="fon-kpi">
-      <div class="fon-kpi-icon" style="background:#fef3c7;">
-        <i class="bi bi-clock-history" style="color:#D97706;"></i>
-      </div>
-      <div>
-        <div class="fon-kpi-val" style="color:#D97706;">{{ nb_recents }}</div>
-        <div class="fon-kpi-lbl">Actifs ce mois</div>
-        <div class="fon-kpi-foot">Connexion dans les 30 jours</div>
-      </div>
+  <!-- 4. Actifs ce mois (Cyan Info) -->
+  <div class="kpi-card kpi-card--info">
+    <div class="kpi-card__header">
+      <span class="kpi-card__label">Actifs Ce Mois</span>
+      <i class="bi bi-clock-history kpi-card__icon"></i>
+    </div>
+    <div class="kpi-card__body">
+      <span class="kpi-card__value">{{ nb_recents }}</span>
+      <span class="kpi-card__badge kpi-card__badge--info">
+        30 derniers jours
+      </span>
     </div>
   </div>
 
 </div>
 
-<!-- ===== TABLE CARD ===== -->
-<div class="card">
-
-  <!-- En-tête avec filtres -->
-  <div class="table-card-header">
-    <div class="table-card-title">
-      <i class="bi bi-person-lines-fill text-primary"></i>
-      Liste des utilisateurs
-      <span class="count-pill">{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}</span>
-    </div>
-    <form method="get" class="filter-bar">
-      <div class="input-group input-group-sm" style="width:210px;">
-        <span class="input-group-text bg-white border-end-0">
-          <i class="bi bi-search text-muted" style="font-size:11px;"></i>
-        </span>
-        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Nom, prénom, email…"
-          value="{{ q }}" style="font-size:12.5px;">
+<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<div class="filter-bar-sticky d-none d-md-block">
+  <form method="get" class="d-flex align-items-center justify-content-between flex-wrap gap-2 m-0" id="filterUsersDesktop">
+    <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+      
+      <!-- Champ de recherche épuré avec icône intégrée -->
+      <div class="filter-search-wrapper" style="max-width: 250px;">
+        <i class="bi bi-search filter-search-icon"></i>
+        <input type="text" name="q" class="form-control form-control-sm filter-search-input"
+               placeholder="Nom, prénom, email…" value="{{ q }}" autocomplete="off">
+        {% if q %}
+        <button type="button" class="filter-search-clear" title="Effacer la recherche">
+          <i class="bi bi-x"></i>
+        </button>
+        {% endif %}
       </div>
-      <select name="role" class="form-select form-select-sm" style="width:170px; font-size:12.5px;">
+
+      <select name="role" class="form-select form-select-sm" style="width: 170px;">
         <option value="">Tous les rôles</option>
         {% for key, label in roles %}
         <option value="{{ key }}" {% if role_filter == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <select name="statut" class="form-select form-select-sm" style="width:120px; font-size:12.5px;">
-        <option value="">Statut</option>
+
+      <select name="statut" class="form-select form-select-sm" style="width: 130px;">
+        <option value="">Tous statuts</option>
         <option value="actif" {% if statut_filter == 'actif' %}selected{% endif %}>Actif</option>
         <option value="inactif" {% if statut_filter == 'inactif' %}selected{% endif %}>Inactif</option>
       </select>
-      <button type="submit" class="btn btn-sm btn-primary px-3">Filtrer</button>
-      <a href="{% url 'accounts:users' %}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-x-lg"></i>
+
+      {% if q or role_filter or statut_filter %}
+      <a href="{% url 'accounts:users' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
       </a>
+      {% endif %}
+    </div>
+    <div class="text-muted small">
+      <strong class="text-dark">{{ page_obj.paginator.count }}</strong> résultat{{ page_obj.paginator.count|pluralize }}
+    </div>
+  </form>
+</div>
+
+<!-- ===== FAB MOBILE FILTRE (Bottom-Left) ===== -->
+<div class="fab-filter-mobile d-md-none">
+  <button type="button" class="btn btn-primary fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasUsersFilters" aria-label="Filtres">
+    <i class="bi bi-funnel-fill"></i>
+    {% if q or role_filter or statut_filter %}
+    <span class="badge-filter-count">!</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ===== OFFCANVAS SLIDEOVER FILTRES (Mobile) ===== -->
+<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasUsersFilters" style="max-height: 80vh;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-bold">
+      <i class="bi bi-funnel text-primary"></i> Filtrer les utilisateurs
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="d-flex flex-column gap-3" id="filterUsersMobile">
+      <div>
+        <label class="form-label small fw-semibold text-muted">Recherche libre</label>
+        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="q" class="form-control filter-search-input" placeholder="Nom, prénom, email…" value="{{ q }}">
+          {% if q %}
+          <button type="button" class="filter-search-clear" title="Effacer la recherche">
+            <i class="bi bi-x"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted">Rôle RBAC</label>
+        <select name="role" class="form-select">
+          <option value="">Tous les rôles</option>
+          {% for key, label in roles %}
+          <option value="{{ key }}" {% if role_filter == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label small fw-semibold text-muted">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="">Tous statuts</option>
+          <option value="actif" {% if statut_filter == 'actif' %}selected{% endif %}>Actif</option>
+          <option value="inactif" {% if statut_filter == 'inactif' %}selected{% endif %}>Inactif</option>
+        </select>
+      </div>
+      <div class="d-flex gap-2 pt-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Appliquer</button>
+        {% if q or role_filter or statut_filter %}
+        <a href="{% url 'accounts:users' %}" class="btn btn-outline-secondary">Effacer</a>
+        {% endif %}
+      </div>
     </form>
   </div>
+</div>
+
+<!-- ===== TABLE CARD ===== -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-header bg-white d-flex align-items-center justify-content-between py-3 px-4 border-bottom">
+    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+      <i class="bi bi-person-lines-fill text-primary"></i>
+      Répertoire des utilisateurs
+    </div>
+    <span class="badge bg-light text-secondary border">
+      Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+    </span>
+  </div>
+
 
   <!-- Tableau -->
   <div class="table-responsive">
@@ -341,10 +429,18 @@
 <!-- Formulaire caché pour CSRF dans les actions du SlideOver -->
 <form id="csrfTokenHolder" style="display:none;">{% csrf_token %}</form>
 
+<script src="/static/js/filter_manager.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = document.querySelector('#csrfTokenHolder [name=csrfmiddlewaretoken]')?.value || '';
     const isSuperOperator = {{ is_super|yesno:"true,false" }};
+
+    // Initialisation du contrôleur réactif de filtres
+    FilterManager.init({
+      desktopFormSelector: '#filterUsersDesktop',
+      mobileFormSelector: '#filterUsersMobile',
+      debounceMs: 400
+    });
 
     // Liaison de l'inspection SlideOver sur le tableau des utilisateurs
     SlideOver.bindTable('#table-users', function (row) {

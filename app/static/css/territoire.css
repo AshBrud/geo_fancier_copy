@@ -1,0 +1,509 @@
+/* ==============================================================================
+   GéoFoncier V2 — Module Territoire & SIG (territoire.css)
+   Subdivisions Spatiales (ZoneSecteur), Recensement Bâti (UniteBatie),
+   Réseaux Linéaires (ReseauLineaire) & Chantiers (SuiviTravaux).
+   ============================================================================== */
+
+/* ── 1. BANDEAUX HÉROS (FICHES DÉTAILLÉES & ÉDITION) ───────────────────────── */
+.territoire-hero,
+.bat-hero,
+.espace-hero,
+.voie-hero,
+.form-hero {
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15);
+}
+
+.territoire-hero-icon,
+.bat-hero-icon,
+.espace-hero-icon,
+.voie-hero-icon,
+.form-hero-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.form-hero-icon {
+  width: 52px;
+  height: 52px;
+  font-size: 24px;
+  border-radius: 12px;
+}
+
+.territoire-hero-code,
+.bat-hero-code,
+.espace-hero-code,
+.voie-hero-code {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2px 10px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.territoire-hero-nom,
+.bat-hero-nom,
+.espace-hero-nom,
+.voie-hero-nom {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.territoire-hero-sub,
+.bat-hero-sub,
+.espace-hero-sub,
+.voie-hero-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 4px;
+  color: #fff;
+}
+
+/* ── 2. CARTES ET TUILES KPI ──────────────────────────────────────────────── */
+.fon-kpi {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.22s ease-in-out;
+  height: 100%;
+}
+
+.fon-kpi:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.fon-kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.fon-kpi-body {
+  min-width: 0;
+}
+
+.fon-kpi-val {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.fon-kpi-lbl {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.fon-kpi-foot {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.kpi-tile {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 18px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kpi-tile-lbl {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.kpi-tile-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.kpi-tile-sub {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* ── 3. TABLE CARD, LIGNES ET FILTRES ─────────────────────────────────────── */
+.table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.table-card-title .count-pill {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bat-nom,
+.zone-nom,
+.voie-nom {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.bat-code,
+.zone-code,
+.voie-code {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  color: #475569;
+  font-family: monospace;
+}
+
+.etages-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.clickable-row:hover {
+  background-color: #f8fafc !important;
+}
+
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty-state i {
+  font-size: 42px;
+  display: block;
+  margin-bottom: 10px;
+  opacity: 0.45;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+/* ── 4. LISTES D'INFORMATIONS & DÉTAILS ───────────────────────────────────── */
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 13px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row-lbl {
+  color: #64748b;
+  min-width: 140px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.info-row-val {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.sec-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  margin-top: 24px;
+}
+
+.sec-lbl::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f1f5f9;
+}
+
+/* ── 5. FORMULAIRES & CONTENEURS CARTOGRAPHIQUES ───────────────────────────── */
+.form-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.form-card-hdr {
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-card-body {
+  padding: 20px;
+}
+
+#draw-map {
+  height: 520px;
+  border-radius: 0 0 12px 12px;
+}
+
+#surface-badge,
+#length-badge {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  gap: 5px;
+}
+
+#surface-badge.visible,
+#length-badge.visible {
+  display: inline-flex;
+}
+
+
+
+/* ── 6. BOÎTE DE SUPPRESSION (CONFIRM DELETE) ────────────────────────────── */
+.del-box {
+  max-width: 480px;
+  margin: 40px auto 0;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #fecaca;
+  box-shadow: 0 4px 24px rgba(220, 38, 38, 0.1);
+  overflow: hidden;
+}
+
+.del-hdr {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  padding: 28px 24px 22px;
+  text-align: center;
+  border-bottom: 1px solid #fecaca;
+}
+
+.del-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #dc2626;
+  margin: 0 auto 14px;
+}
+
+.del-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 5px;
+}
+
+.del-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.del-body {
+  padding: 22px 24px;
+}
+
+.del-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.del-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+.del-warn i {
+  color: #dc2626;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.del-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── 7. LIGNES DE ZONES, SUPERFICIES & CAPACITÉS ───────────────────────────── */
+.tr-libre td:first-child {
+  border-left: 3px solid #16A34A;
+}
+
+.tr-occupe td:first-child {
+  border-left: 3px solid #DC2626;
+}
+
+.tr-reserve td:first-child {
+  border-left: 3px solid #F59E0B;
+}
+
+.tr-route td:first-child {
+  border-left: 3px solid #6B7280;
+}
+
+.sup-val {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sup-ha {
+  font-size: 10.5px;
+  color: #94a3b8;
+  display: block;
+  margin-top: 1px;
+}
+
+.cap-bar-wrap {
+  background: #f1f5f9;
+  border-radius: 4px;
+  height: 5px;
+  margin-top: 4px;
+  overflow: hidden;
+  min-width: 90px;
+}
+
+.cap-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cap-success {
+  background: #16a34a;
+}
+
+.cap-warning {
+  background: #d97706;
+}
+
+.cap-danger {
+  background: #dc2626;
+}
+

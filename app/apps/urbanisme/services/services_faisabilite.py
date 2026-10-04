@@ -554,19 +554,21 @@ def recommander_emplacements_implantation(type_construction, superficie_requise,
         if taux_conflit <= 0.05:
             raisons.append("Aucun conflit spatial détecté dans la zone.")
 
-        sup_constructible = (espace.superficie or 0) * (espace.taux_occupation / 100)
+        taux_occ = getattr(espace, 'taux_occupation', 40.0) or 40.0
+        sup = getattr(espace, 'superficie_m2', None) or getattr(espace, 'superficie', 0.0) or 0.0
+        sup_constructible = sup * (taux_occ / 100)
         sup_deja_allouee = calculer_superficie_allouee_espace(espace)
         projected = sup_deja_allouee + superficie_requise
         if sup_constructible > 0:
             if projected <= sup_constructible:
                 score_urbanisme = 10.0
-                raisons.append(f"Respecte le taux d'occupation réglementaire ({espace.taux_occupation:.0f}%).")
+                raisons.append(f"Respecte le taux d'occupation réglementaire ({taux_occ:.0f}%).")
             else:
                 depassement = (projected - sup_constructible) / sup_constructible
                 score_urbanisme = max(0.0, 10 * (1 - depassement))
                 contraintes.append(
                     f"Dépasse la capacité constructible réglementaire de l'espace "
-                    f"({espace.taux_occupation:.0f}% max)."
+                    f"({taux_occ:.0f}% max)."
                 )
         else:
             score_urbanisme = 0.0

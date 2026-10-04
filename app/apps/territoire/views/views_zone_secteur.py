@@ -65,7 +65,7 @@ def zones_secteurs_list(request):
         'zones_geojson': zones_geojson,
         'active_dossier': dossier,
     }
-    return render(request, 'territoire/espaces/list.html', context)
+    return render(request, 'territoire/zones/list.html', context)
 
 
 @login_required
@@ -86,7 +86,7 @@ def zone_secteur_detail(request, pk):
         'geom_json': geom_json,
         'active_dossier': dossier,
     }
-    return render(request, 'territoire/espaces/detail.html', context)
+    return render(request, 'territoire/zones/detail.html', context)
 
 
 @login_required
@@ -104,7 +104,7 @@ def zone_secteur_create(request):
         messages.success(request, f"Zone « {zone.nom} » enregistrée avec succès ({zone.code}).")
         return redirect('territoire:zones')
 
-    return render(request, 'territoire/espaces/form.html', {
+    return render(request, 'territoire/zones/form.html', {
         'form': form,
         'action': 'Créer une subdivision',
         'active_dossier': dossier,
@@ -124,7 +124,7 @@ def zone_secteur_update(request, pk):
         messages.success(request, f"Subdivision « {zone.nom} » mise à jour avec succès.")
         return redirect('territoire:zone_detail', pk=zone.pk)
 
-    return render(request, 'territoire/espaces/form.html', {
+    return render(request, 'territoire/zones/form.html', {
         'form': form,
         'obj': zone,
         'action': f"Modifier {zone.nom}",
