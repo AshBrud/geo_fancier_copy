@@ -6,6 +6,11 @@
 <li class="breadcrumb-item active">Espaces & Zones</li>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+{% endblock %}
+
 
 
 {% block content %}
@@ -22,7 +27,7 @@
       </span>
     </div>
     <h1 class="page-title mb-1"><i class="bi bi-grid-3x3-gap text-primary me-2"></i> Espaces & Subdivisions Foncières</h1>
-    <p class="page-description text-muted mb-0">Zonages d'aménagement, délimitations du campus, réserves foncières et secteurs cadastraux.</p>
+    <p class="page-description text-muted mb-0">Zonages d'aménagement, délimitations territoriales, réserves foncières et secteurs cadastraux.</p>
   </div>
   <div class="d-flex align-items-center gap-2">
     <a href="{% url 'territoire:cartographie' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm">
@@ -447,6 +452,23 @@
             <div>Cette zone sera rattachée au territoire actif <strong>{{ active_dossier.nom }}</strong>. La superficie UTM 28N/29N sera calculée automatiquement lors de l'enregistrement.</div>
           </div>
 
+          <!-- Widget Sélecteur d'Emprise Immersif Plein Écran -->
+          <div class="emprise-picker-widget" id="empriseWidgetZone">
+            <div class="emprise-picker-widget-left">
+              <div class="emprise-picker-icon">
+                <i class="bi bi-bounding-box"></i>
+              </div>
+              <div>
+                <div class="emprise-picker-label">Emprise spatiale (SIG WGS 84)</div>
+                <div class="emprise-picker-status" id="empriseStatusZone">Aucun tracé cartographique</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" id="btnOpenMapPickerZone">
+              <i class="bi bi-map"></i>
+              <span id="empriseBtnTextZone">Tracer sur la carte</span>
+            </button>
+          </div>
+
           {% crispy form %}
         </div>
 
@@ -462,9 +484,13 @@
 </div>
 {% endif %}
 
+{% include 'components/modal_map_picker.html' %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="/static/js/map_picker.js"></script>
 <script src="/static/js/slideover.js"></script>
 <script src="/static/js/filter_manager.js"></script>
 <script>
@@ -562,6 +588,31 @@ document.addEventListener('DOMContentLoaded', function () {
     mobileFormSelector: '#filterFormMobile',
     debounceMs: 400
   });
+
+  // Ouverture automatique de la modale de création si demandée dans l'URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('action') === 'create' || window.location.hash === '#create') {
+    const modalEl = document.getElementById('modal-espace-create');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  // Connexion du sélecteur cartographique immersif plein écran
+  const btnPickerZone = document.getElementById('btnOpenMapPickerZone');
+  if (btnPickerZone) {
+    btnPickerZone.addEventListener('click', function () {
+      const input = document.getElementById('id_geometrie_zone');
+      MapPicker.open({
+        title: "Emprise de la Subdivision",
+        targetInputId: "id_geometrie_zone",
+        statusElementId: "empriseStatusZone",
+        widgetElementId: "empriseWidgetZone",
+        buttonTextElementId: "empriseBtnTextZone",
+        initialGeoJson: input ? input.value : null
+      });
+    });
+  }
 });
 </script>
 {% endblock %}

@@ -5,153 +5,118 @@
 <li class="breadcrumb-item active">{{ zone.nom }}</li>
 {% endblock %}
 
-{% block extra_js_vendor %}
+{% block page_content_class %}page-content-carto{% endblock %}
+
+{% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
-
-
 
 {% block content %}
 
-<!-- ===== HERO HEADER ===== -->
-<div class="espace-hero">
-  <div class="espace-hero-icon">
-    <i class="bi bi-bounding-box"></i>
-  </div>
-  <div style="flex:1;">
-    <div class="espace-hero-code">{{ zone.code|default:"ZONE NON CODIFIÉE" }}</div>
-    <h1 class="espace-hero-nom">{{ zone.nom }}</h1>
-    <p class="espace-hero-sub">
-      {{ zone.get_type_zone_display }} · {{ zone.get_statut_display }}
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-bounding-box"></i> {{ zone.nom }}</h1>
+    <p class="page-description mb-0">
+      <code>{{ zone.code|default:"ZONE NON CODIFIÉE" }}</code> · {{ zone.get_type_zone_display }} · {{ zone.get_statut_display }}
       {% if zone.superficie_ha %} · {{ zone.superficie_ha|floatformat:2 }} ha ({{ zone.superficie_m2|floatformat:0 }} m²){% endif %}
-      {% if active_dossier %} · Territoire {{ active_dossier.nom }}{% endif %}
+      {% if active_dossier %} · Territoire : <strong>{{ active_dossier.nom }}</strong>{% endif %}
     </p>
   </div>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="carto-header-actions">
     {% if user.is_domaine_foncier or user.is_admin %}
-    <a href="{% url 'territoire:zone_update' zone.pk %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.25); color:#fff; border:1px solid rgba(255,255,255,.4);">
-      <i class="bi bi-pencil me-1"></i>Modifier
-    </a>
-    <a href="{% url 'territoire:zone_delete' zone.pk %}" class="btn btn-sm"
-       style="background:rgba(220,38,38,.4); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:zone_delete' zone.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cette subdivision ?');">
       <i class="bi bi-trash me-1"></i>Supprimer
     </a>
     {% endif %}
-    <a href="{% url 'territoire:zones' %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:zones' %}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Retour
     </a>
   </div>
 </div>
 
-<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
-<div class="kpi-row-scroll">
+<!-- ===== LAYOUT SPLIT-SCREEN PLEIN ÉCRAN (0 SCROLL GLOBAL) ===== -->
+<div class="detail-layout-split">
 
-  <!-- 1. Superficie Brute (Bleu Primaire) -->
-  <div class="kpi-card kpi-card--primary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Superficie Brute</span>
-      <i class="bi bi-map kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ stats.superficie_ha|floatformat:2 }} ha</span>
-      <span class="kpi-card__badge kpi-card__badge--info">
-        {{ zone.superficie_m2|default:0|floatformat:0 }} m²
-      </span>
-    </div>
-  </div>
+  <!-- Volet Gauche : Métadonnées, KPIs et Bâti Associé (Scroll interne) -->
+  <div class="detail-sidebar-panel" style="width: 500px; max-width: 48%;">
 
-  <!-- 2. Unités Bâties (Vert Secondaire) -->
-  <div class="kpi-card kpi-card--secondary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Unités Bâties</span>
-      <i class="bi bi-buildings kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ stats.total_unites_baties }}</span>
-      <span class="kpi-card__badge kpi-card__badge--success">
-        {{ stats.nb_occupes }} habitées
-      </span>
-    </div>
-  </div>
+    <!-- KPIs (Ruban horizontal scrollable à cartes fixes) -->
+    <div class="kpi-row-scroll mb-0">
 
-  <!-- 3. Emprise au Sol (Cyan Info) -->
-  <div class="kpi-card kpi-card--info">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Emprise au Sol</span>
-      <i class="bi bi-bounding-box-circles kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ stats.surface_batie_m2|floatformat:0 }} m²</span>
-      <span class="kpi-card__badge kpi-card__badge--info">
-        Cumulée
-      </span>
-    </div>
-  </div>
-
-  <!-- 4. Taux d'Emprise (Ambre Warning) -->
-  <div class="kpi-card kpi-card--warning">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Taux d'Emprise</span>
-      <i class="bi bi-speedometer2 kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ stats.taux_emprise_pct }}%</span>
-      <span class="kpi-card__badge kpi-card__badge--warning">
-        Ratio foncier
-      </span>
-    </div>
-  </div>
-
-</div>
-
-<!-- ===== CARTE + INFOS ===== -->
-<div class="row g-4 mb-4">
-
-  <!-- Carte Leaflet -->
-  <div class="col-lg-7">
-    <div class="card h-100" style="overflow:hidden; border-radius:10px;">
-      <div style="padding:12px 16px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
-                  display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:#374151;">
-        <i class="bi bi-map-fill text-primary"></i>
-        Emprise spatiale (WGS 84 / UTM métrique)
-        {% if zone.geometrie %}
-        <span class="ms-auto badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:11px;">
-          MultiPolygone SIG
-        </span>
-        {% endif %}
+      <!-- 1. Superficie Brute -->
+      <div class="kpi-card kpi-card--primary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Superficie Brute</span>
+          <i class="bi bi-map kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ stats.superficie_ha|floatformat:2 }} ha</span>
+          <span class="kpi-card__badge kpi-card__badge--info">
+            {{ zone.superficie_m2|default:0|floatformat:0 }} m²
+          </span>
+        </div>
       </div>
-      <div id="detailMap" style="height:380px;"></div>
-    </div>
-  </div>
 
-  <!-- Fiche info -->
-  <div class="col-lg-5">
-    <div class="card h-100">
-      <div class="card-header">
-        <i class="bi bi-card-list me-2 text-primary"></i>Caractéristiques administratives & SIG
+      <!-- 2. Unités Bâties -->
+      <div class="kpi-card kpi-card--secondary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Unités Bâties</span>
+          <i class="bi bi-buildings kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ stats.total_unites_baties }}</span>
+          <span class="kpi-card__badge kpi-card__badge--success">
+            {{ stats.nb_occupes }} habitées
+          </span>
+        </div>
       </div>
-      <div class="card-body">
 
+      <!-- 3. Emprise au Sol -->
+      <div class="kpi-card kpi-card--info">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Emprise au Sol</span>
+          <i class="bi bi-bounding-box-circles kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ stats.surface_batie_m2|floatformat:0 }} m²</span>
+          <span class="kpi-card__badge kpi-card__badge--info">
+            Cumulée
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Taux d'Emprise -->
+      <div class="kpi-card kpi-card--warning">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Taux d'Emprise</span>
+          <i class="bi bi-speedometer2 kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ stats.taux_emprise_pct }}%</span>
+          <span class="kpi-card__badge kpi-card__badge--warning">
+            Ratio foncier
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fiche descriptive & caractéristiques -->
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-light py-2.5 px-3 fw-bold text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-card-list text-primary"></i>
+        <span>Caractéristiques administratives &amp; SIG</span>
+      </div>
+      <div class="card-body p-3">
         <div class="info-row">
           <span class="info-row-lbl">Code zone</span>
-          <span class="info-row-val">
-            <code style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px;
-                         padding:2px 8px; font-size:12px;">{{ zone.code|default:"—" }}</code>
-          </span>
+          <span class="info-row-val"><code>{{ zone.code|default:"—" }}</code></span>
         </div>
-
         <div class="info-row">
           <span class="info-row-lbl">Nature / Zonage</span>
-          <span class="info-row-val">
-            <span class="badge bg-light text-dark border">
-              {{ zone.get_type_zone_display }}
-            </span>
-          </span>
+          <span class="info-row-val"><span class="badge bg-light text-dark border">{{ zone.get_type_zone_display }}</span></span>
         </div>
-
         <div class="info-row">
           <span class="info-row-lbl">Statut opérationnel</span>
           <span class="info-row-val">
@@ -164,151 +129,156 @@
             {% endif %}
           </span>
         </div>
-
         <div class="info-row">
           <span class="info-row-lbl">Superficie</span>
           <span class="info-row-val">{{ zone.superficie_ha|floatformat:2 }} ha ({{ zone.superficie_m2|floatformat:0 }} m²)</span>
         </div>
-
         {% if zone.population_estimee %}
         <div class="info-row">
           <span class="info-row-lbl">Population estimée</span>
           <span class="info-row-val">{{ zone.population_estimee }} habitants</span>
         </div>
         {% endif %}
-
         <div class="info-row">
           <span class="info-row-lbl">Référent local</span>
           <span class="info-row-val">{{ zone.responsable_nom|default:"Non assigné" }}</span>
         </div>
-
         {% if zone.responsable_telephone %}
         <div class="info-row">
           <span class="info-row-lbl">Téléphone contact</span>
           <span class="info-row-val">{{ zone.responsable_telephone }}</span>
         </div>
         {% endif %}
-
         {% if zone.description %}
         <div class="info-row">
           <span class="info-row-lbl">Description</span>
-          <span class="info-row-val" style="white-space:pre-line; font-size:12.5px;">{{ zone.description }}</span>
+          <span class="info-row-val text-muted small" style="white-space:pre-line;">{{ zone.description }}</span>
         </div>
         {% endif %}
-
         <div class="info-row">
           <span class="info-row-lbl">Enregistré le</span>
-          <span class="info-row-val">{{ zone.date_creation|date:"d/m/Y à H:i" }}</span>
+          <span class="info-row-val text-muted small">{{ zone.date_creation|date:"d/m/Y à H:i" }}</span>
         </div>
-
-        <div class="info-row">
-          <span class="info-row-lbl">Dernière mise à jour</span>
-          <span class="info-row-val">{{ zone.date_modification|date:"d/m/Y à H:i" }}</span>
-        </div>
-
       </div>
     </div>
-  </div>
 
-</div>
-
-<!-- ===== UNITÉS BÂTIES / BÂTIMENTS ASSOCIÉS ===== -->
-<div class="sec-lbl">Unités Bâties dans cette Subdivision</div>
-<div class="card mb-4">
-  <div class="card-header d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-buildings me-2 text-primary"></i>Recensement du bâti rattaché</span>
-    <span class="badge bg-light text-dark border">{{ unites_baties|length }} unité{{ unites_baties|length|pluralize }}</span>
-  </div>
-  {% if unites_baties %}
-  <div class="table-responsive">
-    <table class="table table-uad mb-0">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Désignation</th>
-          <th>Typologie / Usage</th>
-          <th>Statut occupation</th>
-          <th>Superficie</th>
-          <th>Niveaux</th>
-          <th class="text-center">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for bat in unites_baties %}
-        <tr>
-          <td>
-            <code style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:5px;
-                         padding:2px 8px; font-size:11.5px; color:#475569;">{{ bat.code|default:"—" }}</code>
-          </td>
-          <td style="font-weight:600; font-size:13px;">{{ bat.nom }}</td>
-          <td style="font-size:12px; color:#64748b;">{{ bat.get_type_batiment_display|default:bat.usage_actuel|default:"—" }}</td>
-          <td>
-            <span class="badge bg-light text-dark border" style="font-size:11px;">
-              {{ bat.get_statut_occupation_display|default:"Non spécifié" }}
-            </span>
-          </td>
-          <td>
-            {% if bat.superficie_m2 %}
-            <span style="font-weight:600;">{{ bat.superficie_m2|floatformat:0 }} m²</span>
-            {% else %}—{% endif %}
-          </td>
-          <td>
-            <span class="badge bg-secondary-subtle text-secondary" style="font-size:11px;">
-              {{ bat.nombre_niveaux|default:1 }} niv.
-            </span>
-          </td>
-          <td class="text-center">
-            <a href="{% url 'territoire:batiment_detail' bat.pk %}"
-               class="btn btn-icon btn-outline-primary btn-sm"
-               data-bs-toggle="tooltip" title="Consulter l'unité bâtie">
-              <i class="bi bi-arrow-right"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="card-body">
-    <div class="text-center py-4 text-muted">
-      <i class="bi bi-building-add fs-1 text-secondary opacity-50 mb-2"></i>
-      <p class="mb-0">Aucune unité bâtie n'est encore localisée dans cette subdivision spatiale.</p>
+    <!-- Table du bâti rattaché -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div class="card-header bg-light py-2.5 px-3 d-flex align-items-center justify-content-between">
+        <span class="fw-bold text-dark"><i class="bi bi-buildings me-2 text-primary"></i>Bâti rattaché</span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ unites_baties|length }} unité{{ unites_baties|length|pluralize }}</span>
+      </div>
+      {% if unites_baties %}
+      <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0" style="font-size: 12.5px;">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>Code</th>
+              <th>Désignation</th>
+              <th>Statut</th>
+              <th>Surface</th>
+              <th class="text-end">Fiche</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bat in unites_baties %}
+            <tr>
+              <td><code>{{ bat.code|default:"—" }}</code></td>
+              <td class="fw-semibold">{{ bat.nom }}</td>
+              <td><span class="badge bg-light text-dark border">{{ bat.get_statut_occupation_display|default:"—" }}</span></td>
+              <td>{{ bat.superficie_m2|default:0|floatformat:0 }} m²</td>
+              <td class="text-end">
+                <a href="{% url 'territoire:batiment_detail' bat.pk %}" class="btn btn-xs btn-outline-primary" title="Voir l'unité bâtie">
+                  <i class="bi bi-arrow-right"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-3 text-muted small">
+        Aucune unité bâtie n'est encore localisée dans cette subdivision.
+      </div>
+      {% endif %}
     </div>
-  </div>
-  {% endif %}
-</div>
 
+  </div><!-- /detail-sidebar-panel -->
+
+  <!-- Volet Droit : Carte Immersive SIG (100% Hauteur/Largeur) -->
+  <div class="detail-map-panel">
+    <div id="zone-map"></div>
+    <div class="detail-map-legend">
+      <i class="bi bi-bounding-box text-primary me-1"></i> Périmètre subdivision WGS 84
+    </div>
+  </div><!-- /detail-map-panel -->
+
+</div><!-- /detail-layout-split -->
+
+{% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  /* Initialisation de la carte Leaflet */
-  var map = L.map('detailMap').setView([14.6928, -17.4467], 14);
+  var map = L.map('zone-map', { zoomControl: false }).setView([14.6928, -17.4467], 14);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
   }).addTo(map);
+
+  var satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
+
+  L.control.layers(
+    { 'Plan OSM': osm, 'Satellite': satellite },
+    {},
+    { position: 'topright', collapsed: true }
+  ).addTo(map);
 
   var geomJson = {{ geom_json|safe }};
   if (geomJson) {
-    var layer = L.geoJSON(geomJson, {
-      style: {
-        color: '#1e3a8a',
-        fillColor: '#3b82f6',
-        fillOpacity: 0.35,
-        weight: 2.5
-      }
-    }).addTo(map);
-
-    layer.bindPopup('<strong>{{ zone.nom|escapejs }}</strong><br>{{ zone.get_type_zone_display|escapejs }}');
-
     try {
-      map.fitBounds(layer.getBounds(), { padding: [25, 25] });
-    } catch(e) {}
+      var layer = L.geoJSON(geomJson, {
+        style: {
+          color: '#1e3a8a',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.35,
+          weight: 3
+        }
+      }).addTo(map);
+
+      layer.bindPopup('<strong>{{ zone.nom|escapejs }}</strong><br>{{ zone.get_type_zone_display|escapejs }}');
+
+      var bounds = layer.getBounds();
+      if (bounds && bounds.isValid && bounds.isValid()) {
+        setTimeout(function () {
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+        }, 150);
+      }
+    } catch(e) {
+      console.warn('Erreur géométrie subdivision:', e);
+    }
   }
+
+  function invalidate() {
+    if (map) map.invalidateSize();
+  }
+  setTimeout(invalidate, 150);
+  setTimeout(invalidate, 400);
+  window.addEventListener('resize', invalidate);
 });
 </script>
 {% endblock %}

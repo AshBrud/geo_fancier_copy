@@ -105,6 +105,9 @@ def unite_batie_create(request):
         messages.success(request, f"Unité bâtie « {unite.nom or unite.code} » enregistrée avec succès.")
         return redirect('territoire:batiments')
 
+    if request.method == 'GET':
+        return redirect(reverse('territoire:batiments') + '?action=create')
+
     return render(request, 'territoire/batiments/form.html', {
         'form': form,
         'action': 'Recenser un bâtiment / concession',
@@ -125,12 +128,7 @@ def unite_batie_update(request, pk):
         messages.success(request, f"Unité bâtie « {unite.nom or unite.code} » mise à jour avec succès.")
         return redirect('territoire:batiment_detail', pk=unite.pk)
 
-    return render(request, 'territoire/batiments/form.html', {
-        'form': form,
-        'obj': unite,
-        'action': f"Modifier {unite.nom or unite.code}",
-        'active_dossier': dossier,
-    })
+    return redirect('territoire:batiment_detail', pk=unite.pk)
 
 
 @login_required

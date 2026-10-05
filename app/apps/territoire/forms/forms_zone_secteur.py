@@ -13,7 +13,7 @@ from .forms_common import GEO_WIDGET_ATTRS, to_multipolygon
 
 class ZoneSecteurForm(forms.ModelForm):
     geometrie = GeoFormField(
-        widget=forms.Textarea(attrs=GEO_WIDGET_ATTRS),
+        widget=forms.HiddenInput(attrs={'id': 'id_geometrie_zone'}),
         label='Emprise spatiale (GeoJSON WGS 84)',
         required=True,
     )
@@ -46,10 +46,6 @@ class ZoneSecteurForm(forms.ModelForm):
             ),
             'description',
             'geometrie',
-            ButtonHolder(
-                Submit('submit', 'Enregistrer la zone', css_class='btn btn-primary'),
-                Button('cancel', 'Annuler', css_class='btn btn-secondary ms-2', data_bs_dismiss='modal'),
-            )
         )
 
     class Meta:

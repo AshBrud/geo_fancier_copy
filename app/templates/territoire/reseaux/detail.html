@@ -5,113 +5,109 @@
 <li class="breadcrumb-item active">{{ reseau.nom|default:reseau.code }}</li>
 {% endblock %}
 
+{% block page_content_class %}page-content-carto{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
-
 {% block content %}
 
-<!-- ===== BANDEAU HÉRO ===== -->
-<div class="voie-hero">
-  <div class="voie-hero-icon">
-    <i class="bi bi-signpost-split"></i>
-  </div>
-  <div style="flex:1;">
-    <div class="voie-hero-code">{{ reseau.code }}</div>
-    <h1 class="h3 fw-bold mb-1">{{ reseau.nom|default:reseau.get_type_voie_display }}</h1>
-    <p class="mb-0 opacity-85 small">
-      {{ reseau.get_type_voie_display }} · Longueur : <strong>{{ reseau.longueur_km }} km</strong> ({{ reseau.longueur_metres|floatformat:0 }} m)
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-signpost-split"></i> {{ reseau.nom|default:reseau.code }}</h1>
+    <p class="page-description mb-0">
+      <code>{{ reseau.code }}</code> · {{ reseau.get_type_voie_display }} · Longueur : <strong>{{ reseau.longueur_km }} km</strong> ({{ reseau.longueur_metres|floatformat:0 }} m)
       · Territoire : <strong>{{ active_dossier.nom }}</strong>
     </p>
   </div>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="carto-header-actions">
     {% if user.is_domaine_foncier or user.is_admin %}
-    <a href="{% url 'territoire:reseau_update' reseau.pk %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.25); color:#fff; border:1px solid rgba(255,255,255,.4);">
-      <i class="bi bi-pencil me-1"></i>Modifier
-    </a>
-    <a href="{% url 'territoire:reseau_delete' reseau.pk %}" class="btn btn-sm"
-       style="background:rgba(220,38,38,.4); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:reseau_delete' reseau.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de ce réseau linéaire ?');">
       <i class="bi bi-trash me-1"></i>Supprimer
     </a>
     {% endif %}
-    <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:reseaux' %}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Retour
     </a>
   </div>
 </div>
 
-<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
-<div class="kpi-row-scroll">
+<!-- ===== LAYOUT SPLIT-SCREEN PLEIN ÉCRAN (0 SCROLL GLOBAL) ===== -->
+<div class="detail-layout-split">
 
-  <!-- 1. Longueur Totale (Bleu Primaire) -->
-  <div class="kpi-card kpi-card--primary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Longueur Totale</span>
-      <i class="bi bi-speedometer kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ reseau.longueur_km }} km</span>
-      <span class="kpi-card__badge kpi-card__badge--info">
-        {{ reseau.longueur_metres|floatformat:0 }} m
-      </span>
-    </div>
-  </div>
+  <!-- Volet Gauche : Métadonnées, KPIs et Fiche Descriptive (Scroll interne) -->
+  <div class="detail-sidebar-panel">
 
-  <!-- 2. Largeur Déclarée (Cyan Info) -->
-  <div class="kpi-card kpi-card--info">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Largeur Moyenne</span>
-      <i class="bi bi-arrows-expand kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{% if reseau.largeur_estimee_m %}{{ reseau.largeur_estimee_m }} m{% else %}—{% endif %}</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Chaussée
-      </span>
-    </div>
-  </div>
+    <!-- KPIs (Ruban horizontal scrollable à cartes fixes) -->
+    <div class="kpi-row-scroll mb-0">
 
-  <!-- 3. Nature de la Voie (Violet Gouvernance) -->
-  <div class="kpi-card kpi-card--purple">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Classification</span>
-      <i class="bi bi-signpost kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value" style="font-size: 18px;">{{ reseau.get_type_voie_display }}</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Réseau
-      </span>
-    </div>
-  </div>
-
-  <!-- 4. Praticabilité (Vert Secondaire) -->
-  <div class="kpi-card kpi-card--secondary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Praticabilité</span>
-      <i class="bi bi-activity kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value" style="font-size: 18px;">{{ reseau.etat_chaussee|default:"—" }}</span>
-      <span class="kpi-card__badge kpi-card__badge--success">
-        Surface
-      </span>
-    </div>
-  </div>
-
-</div>
-
-<div class="row g-4">
-  <!-- Colonne Gauche : Fiche Descriptive -->
-  <div class="col-lg-5">
-    <div class="card border-0 shadow-sm rounded-4 h-100">
-      <div class="card-header bg-light py-3 px-4 fw-bold text-dark">
-        <i class="bi bi-card-list me-2 text-primary"></i>Fiche Technique & Identification
+      <!-- 1. Longueur Totale -->
+      <div class="kpi-card kpi-card--primary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Longueur Totale</span>
+          <i class="bi bi-speedometer kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ reseau.longueur_km }} km</span>
+          <span class="kpi-card__badge kpi-card__badge--info">
+            {{ reseau.longueur_metres|floatformat:0 }} m
+          </span>
+        </div>
       </div>
-      <div class="card-body p-4">
+
+      <!-- 2. Largeur Moyenne -->
+      <div class="kpi-card kpi-card--info">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Largeur Moyenne</span>
+          <i class="bi bi-arrows-expand kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{% if reseau.largeur_estimee_m %}{{ reseau.largeur_estimee_m }} m{% else %}—{% endif %}</span>
+          <span class="kpi-card__badge kpi-card__badge--neutral">
+            Chaussée
+          </span>
+        </div>
+      </div>
+
+      <!-- 3. Classification -->
+      <div class="kpi-card kpi-card--purple">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Classification</span>
+          <i class="bi bi-signpost kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value" style="font-size: 18px;">{{ reseau.get_type_voie_display }}</span>
+          <span class="kpi-card__badge kpi-card__badge--neutral">
+            Réseau
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Praticabilité -->
+      <div class="kpi-card kpi-card--secondary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Praticabilité</span>
+          <i class="bi bi-activity kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value" style="font-size: 18px;">{{ reseau.etat_chaussee|default:"—" }}</span>
+          <span class="kpi-card__badge kpi-card__badge--success">
+            Surface
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fiche Technique & Identification -->
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-light py-2.5 px-3 fw-bold text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-card-list text-primary"></i>
+        <span>Fiche Technique &amp; Identification</span>
+      </div>
+      <div class="card-body p-3">
         <div class="info-row">
           <span class="info-row-lbl">Code identifiant</span>
           <span class="info-row-val"><code>{{ reseau.code }}</code></span>
@@ -148,53 +144,81 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Colonne Droite : Carte Leaflet Tracé -->
-  <div class="col-lg-7">
-    <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-      <div class="card-header bg-light py-3 px-4 d-flex justify-content-between align-items-center">
-        <span class="fw-bold text-dark"><i class="bi bi-map-fill me-2 text-primary"></i>Tracé cartographique (LineString SIG)</span>
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">WGS 84</span>
-      </div>
-      <div id="detail-map" style="height: 440px;"></div>
+  </div><!-- /detail-sidebar-panel -->
+
+  <!-- Volet Droit : Carte Immersive SIG (100% Hauteur/Largeur) -->
+  <div class="detail-map-panel">
+    <div id="reseau-map"></div>
+    <div class="detail-map-legend">
+      <i class="bi bi-signpost-split text-primary me-1"></i> Tracé LineString WGS 84
     </div>
-  </div>
-</div>
+  </div><!-- /detail-map-panel -->
+
+</div><!-- /detail-layout-split -->
 
 {% endblock %}
 
 {% block extra_js_vendor %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  var map = L.map('detail-map').setView([14.6928, -17.4467], 15);
+  var map = L.map('reseau-map', { zoomControl: false }).setView([14.6928, -17.4467], 15);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
   }).addTo(map);
+
+  var satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
+
+  L.control.layers(
+    { 'Plan OSM': osm, 'Satellite': satellite },
+    {},
+    { position: 'topright', collapsed: true }
+  ).addTo(map);
 
   var geomJson = {{ geom_json|safe }};
   if (geomJson) {
-    var layer = L.geoJSON(geomJson, {
-      style: {
-        color: '{{ reseau.couleur }}',
-        weight: 4,
-        opacity: 0.85
-      }
-    }).addTo(map);
-
-    layer.bindPopup('<strong>{{ reseau.nom|default:reseau.code|escapejs }}</strong><br>{{ reseau.get_type_voie_display|escapejs }} ({{ reseau.longueur_km }} km)');
-
     try {
-      map.fitBounds(layer.getBounds(), { padding: [30, 30] });
-    } catch(e) {}
+      var layer = L.geoJSON(geomJson, {
+        style: {
+          color: '{{ reseau.couleur|default:"#1e3a8a" }}',
+          weight: 5,
+          opacity: 0.9
+        }
+      }).addTo(map);
+
+      layer.bindPopup('<strong>{{ reseau.nom|default:reseau.code|escapejs }}</strong><br>{{ reseau.get_type_voie_display|escapejs }} ({{ reseau.longueur_km }} km)');
+
+      var bounds = layer.getBounds();
+      if (bounds && bounds.isValid && bounds.isValid()) {
+        setTimeout(function () {
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+        }, 150);
+      }
+    } catch(e) {
+      console.warn('Erreur tracé réseau linéaire:', e);
+    }
   }
+
+  function invalidate() {
+    if (map) map.invalidateSize();
+  }
+  setTimeout(invalidate, 150);
+  setTimeout(invalidate, 400);
+  window.addEventListener('resize', invalidate);
 });
 </script>
 {% endblock %}

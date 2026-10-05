@@ -13,7 +13,7 @@ from .forms_common import GEO_WIDGET_ATTRS, to_multipolygon
 
 class UniteBatieForm(forms.ModelForm):
     geometrie = GeoFormField(
-        widget=forms.Textarea(attrs=GEO_WIDGET_ATTRS),
+        widget=forms.HiddenInput(attrs={'id': 'id_geometrie_batiment'}),
         label='Emprise au sol (GeoJSON WGS 84)',
         required=True,
     )
@@ -53,10 +53,6 @@ class UniteBatieForm(forms.ModelForm):
             ),
             'description',
             'geometrie',
-            ButtonHolder(
-                Submit('submit', 'Enregistrer l\'unité bâtie', css_class='btn btn-primary'),
-                Button('cancel', 'Annuler', css_class='btn btn-secondary ms-2', data_bs_dismiss='modal'),
-            )
         )
 
     class Meta:

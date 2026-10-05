@@ -1,54 +1,102 @@
 {% extends 'base.html' %}
-{% block title %}{{ mission.nom }}{% endblock %}
+{% block title %}{{ mission.nom }} · Mission Drone{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
 <li class="breadcrumb-item active">{{ mission.nom }}</li>
 {% endblock %}
 
+{% block page_content_class %}page-content-carto{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
-
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title"><i class="bi bi-airplane me-2"></i>{{ mission.nom }}</h1>
-    <p class="page-description">
-      <span class="badge bg-{{ mission.badge_couleur }}">{{ mission.get_statut_display }}</span>
-      · {{ mission.date_vol|date:"d/m/Y" }}
-      {% if mission.operateur %}· {{ mission.operateur }}{% endif %}
+
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-airplane"></i> {{ mission.nom }}</h1>
+    <p class="page-description mb-0">
+      <span class="badge bg-{{ mission.badge_couleur }} me-1">{{ mission.get_statut_display }}</span>
+      · Vol du {{ mission.date_vol|date:"d/m/Y" }}
+      {% if mission.operateur %} · Opérateur : <strong>{{ mission.operateur }}</strong>{% endif %}
+      {% if active_dossier %} · Territoire : <strong>{{ active_dossier.nom }}</strong>{% endif %}
     </p>
   </div>
-  <div class="d-flex gap-2">
-    <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-outline-secondary btn-sm">
+  <div class="carto-header-actions">
+    <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-primary">
       <i class="bi bi-pencil me-1"></i>Modifier
     </a>
-    <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary btn-sm">
+    <a href="{% url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Retour
     </a>
   </div>
 </div>
 
-<div class="row g-4">
+<!-- ===== LAYOUT SPLIT-SCREEN PLEIN ÉCRAN (0 SCROLL GLOBAL) ===== -->
+<div class="detail-layout-split">
 
-  <!-- ── Colonne principale : workflow ── -->
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-diagram-3 text-primary me-2"></i>Chaîne de production cartographique</div>
-      <div class="card-body">
+  <!-- Volet Gauche : Chaîne de production & Paramètres (Scroll interne) -->
+  <div class="detail-sidebar-panel" style="width: 520px; max-width: 50%;">
+
+    <!-- Carte Paramètres du vol -->
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-light py-2.5 px-3 fw-bold text-dark d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clipboard-data text-primary me-2"></i>Paramètres du vol</span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ mission.get_statut_display }}</span>
+      </div>
+      <div class="card-body p-3">
+        <div class="info-row">
+          <span class="info-row-lbl">Opérateur</span>
+          <span class="info-row-val">{{ mission.operateur|default:"—" }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-lbl">Drone utilisé</span>
+          <span class="info-row-val">{{ mission.drone_utilise|default:"—" }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-lbl">Altitude de vol</span>
+          <span class="info-row-val">{% if mission.altitude %}{{ mission.altitude }} m{% else %}—{% endif %}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-lbl">Durée de mission</span>
+          <span class="info-row-val">{% if mission.duree_minutes %}{{ mission.duree_minutes }} min{% else %}—{% endif %}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-row-lbl">Superficie couverte</span>
+          <span class="info-row-val">
+            {% if orthophoto.superficie_ha %}{{ orthophoto.superficie_ha }} ha
+            {% elif mission.superficie_prevue %}{{ mission.superficie_prevue }} ha (prévue)
+            {% else %}—{% endif %}
+          </span>
+        </div>
+        {% if mission.notes %}
+        <div class="info-row">
+          <span class="info-row-lbl">Notes &amp; Consignes</span>
+          <span class="info-row-val text-muted small" style="white-space: pre-line;">{{ mission.notes }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Chaîne de production cartographique -->
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-light py-2.5 px-3 fw-bold text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-diagram-3 text-primary"></i>
+        <span>Chaîne de production photogrammétrique</span>
+      </div>
+      <div class="card-body p-3">
         <div class="step-list">
 
           <!-- 1. Mission créée -->
           <div class="step-item done">
             <div class="step-num"><i class="bi bi-check-lg"></i></div>
             <div class="step-body">
-              <div class="step-title">Mission créée</div>
+              <div class="step-title">Mission planifiée</div>
               <div class="step-desc">
                 Vol du {{ mission.date_vol|date:"d/m/Y" }}
                 {% if mission.drone_utilise %}avec {{ mission.drone_utilise }}{% endif %}
-                {% if mission.altitude %}· altitude {{ mission.altitude }} m{% endif %}
-                {% if mission.duree_minutes %}· durée {{ mission.duree_minutes }} min{% endif %}
               </div>
             </div>
           </div>
@@ -61,15 +109,15 @@
             <div class="step-body">
               <div class="step-title">Photos importées</div>
               <div class="step-desc">
-                {% if mission.nb_photos > 0 %}{{ mission.nb_photos }} photo{{ mission.nb_photos|pluralize }} importée{{ mission.nb_photos|pluralize }}
+                {% if mission.nb_photos > 0 %}{{ mission.nb_photos }} cliché{{ mission.nb_photos|pluralize }} importé{{ mission.nb_photos|pluralize }}
                 {% else %}Aucune photo importée pour le moment{% endif %}
               </div>
-              <a href="{% url 'drones:mission_photos_import' mission.pk %}" class="btn btn-sm btn-outline-primary mt-2">
+              <a href="{% url 'drones:mission_photos_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
                 <i class="bi bi-cloud-upload me-1"></i>Importer des photos
               </a>
               {% if photos %}
-              <div class="photo-mini-grid">
-                {% for p in photos|slice:":8" %}
+              <div class="photo-mini-grid mt-2">
+                {% for p in photos|slice:":6" %}
                 <img src="{{ p.image.url }}" alt="{{ p.nom }}" title="{{ p.nom }}">
                 {% endfor %}
               </div>
@@ -83,14 +131,14 @@
               {% if mission.statut == 'traitement' or mission.statut == 'traitee' or mission.statut == 'integree' %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}
             </div>
             <div class="step-body">
-              <div class="step-title">Traitement photogrammétrique</div>
+              <div class="step-title">Traitement WebODM</div>
               <div class="step-desc">
-                Traitement externe des photos via WebODM (ou équivalent) pour produire l'orthomosaïque GeoTIFF.
+                Traitement photogrammétrique externe des photos pour calculer l'orthomosaïque GeoTIFF.
               </div>
               {% if mission.statut == 'attente' and mission.nb_photos > 0 %}
-              <form method="post" action="{% url 'drones:mission_marquer_traitement' mission.pk %}" class="mt-2">
+              <form method="post" action="{% url 'drones:mission_marquer_traitement' mission.pk %}" class="mt-1">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-warning">
+                <button type="submit" class="btn btn-xs btn-outline-warning">
                   <i class="bi bi-arrow-repeat me-1"></i>Marquer en traitement
                 </button>
               </form>
@@ -104,58 +152,43 @@
               {% if orthophoto %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}
             </div>
             <div class="step-body">
-              <div class="step-title">Orthophoto importée &amp; métadonnées extraites</div>
+              <div class="step-title">Orthophoto &amp; Métadonnées</div>
               {% if orthophoto %}
               <div class="step-desc">{{ orthophoto.nom }}</div>
-              <table class="meta-table mt-1">
-                <tr><td>Résolution</td><td>{{ orthophoto.resolution|default:"—" }} cm/px</td></tr>
-                <tr><td>Dimensions</td><td>{{ orthophoto.largeur_px|default:"—" }} × {{ orthophoto.hauteur_px|default:"—" }} px</td></tr>
-                <tr><td>Système de projection</td><td>{{ orthophoto.systeme_proj|default:"—" }}</td></tr>
-                <tr><td>Superficie mesurée</td><td>{{ orthophoto.superficie_ha|default:"—" }} ha</td></tr>
+              <table class="table table-sm table-borderless small mb-1 mt-1" style="font-size: 11.5px;">
+                <tr><td class="text-muted p-0">Résolution :</td><td class="p-0 fw-semibold">{{ orthophoto.resolution|default:"—" }} cm/px</td></tr>
+                <tr><td class="text-muted p-0">Dimensions :</td><td class="p-0 fw-semibold">{{ orthophoto.largeur_px|default:"—" }} × {{ orthophoto.hauteur_px|default:"—" }} px</td></tr>
+                <tr><td class="text-muted p-0">Projection :</td><td class="p-0 fw-semibold">{{ orthophoto.systeme_proj|default:"—" }}</td></tr>
+                <tr><td class="text-muted p-0">Superficie :</td><td class="p-0 fw-semibold">{{ orthophoto.superficie_ha|default:"—" }} ha</td></tr>
               </table>
-              <a href="{% url 'drones:orthophoto_delete' orthophoto.pk %}" class="btn btn-sm btn-outline-danger mt-2">
+              <a href="{% url 'drones:orthophoto_delete' orthophoto.pk %}" class="btn btn-xs btn-outline-danger mt-1">
                 <i class="bi bi-trash me-1"></i>Supprimer l'orthophoto
               </a>
               {% else %}
               <div class="step-desc">Aucune orthophoto importée pour le moment.</div>
-              <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}" class="btn btn-sm btn-outline-primary mt-2">
+              <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
                 <i class="bi bi-cloud-upload me-1"></i>Importer l'orthophoto
               </a>
               {% endif %}
             </div>
           </div>
 
-          <!-- 5. Couverture affichée -->
-          <div class="step-item {% if orthophoto.emprise %}done{% endif %}">
-            <div class="step-num">
-              {% if orthophoto.emprise %}<i class="bi bi-check-lg"></i>{% else %}5{% endif %}
-            </div>
-            <div class="step-body">
-              <div class="step-title">Couverture affichée</div>
-              {% if orthophoto.emprise %}
-              <div id="mini-map" class="mt-2"></div>
-              {% else %}
-              <div class="step-desc">L'emprise géographique apparaîtra ici une fois l'orthophoto importée.</div>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- 6. Validation -->
+          <!-- 5. Validation -->
           <div class="step-item {% if orthophoto.valide %}done{% elif orthophoto %}active{% endif %}">
             <div class="step-num">
-              {% if orthophoto.valide %}<i class="bi bi-check-lg"></i>{% else %}6{% endif %}
+              {% if orthophoto.valide %}<i class="bi bi-check-lg"></i>{% else %}5{% endif %}
             </div>
             <div class="step-body">
-              <div class="step-title">Validation</div>
+              <div class="step-title">Validation de conformité</div>
               {% if orthophoto.valide %}
               <div class="step-desc">
                 Validée par {{ orthophoto.validateur|default:"—" }} le {{ orthophoto.date_validation|date:"d/m/Y H:i" }}
               </div>
               {% elif orthophoto %}
-              <div class="step-desc">Vérifiez la qualité de l'orthophoto avant intégration à la carte.</div>
-              <form method="post" action="{% url 'drones:orthophoto_validate' orthophoto.pk %}" class="mt-2">
+              <div class="step-desc">Vérifiez la qualité et la netteté de l'orthophoto sur la carte ci-contre.</div>
+              <form method="post" action="{% url 'drones:orthophoto_validate' orthophoto.pk %}" class="mt-1">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-success">
+                <button type="submit" class="btn btn-xs btn-success">
                   <i class="bi bi-patch-check me-1"></i>Valider l'orthophoto
                 </button>
               </form>
@@ -165,49 +198,32 @@
             </div>
           </div>
 
-          <!-- 7. Intégration cartographie -->
+          <!-- 6. Intégration cartographie -->
           <div class="step-item {% if mission.statut == 'integree' %}done{% elif orthophoto.valide %}active{% endif %}">
             <div class="step-num">
-              {% if mission.statut == 'integree' %}<i class="bi bi-check-lg"></i>{% else %}7{% endif %}
+              {% if mission.statut == 'integree' %}<i class="bi bi-check-lg"></i>{% else %}6{% endif %}
             </div>
             <div class="step-body">
               <div class="step-title">Intégration à la cartographie</div>
               {% if mission.statut == 'integree' %}
-              <div class="step-desc">Intégrée à la cartographie principale.</div>
+              <div class="step-desc text-success fw-semibold">✓ Couche active sur la carte générale.</div>
               {% elif orthophoto.valide %}
               <div class="step-desc">
                 {% if not orthophoto.tiles_url %}
-                Une URL de tuiles (WebODM) est requise avant intégration.
-                <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}">Modifier l'orthophoto</a>.
+                Une URL de tuiles (WebODM) est requise avant publication.
+                <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}">Configurer l'URL</a>.
                 {% else %}
-                Prête à être intégrée à la carte principale.
+                Prête à être intégrée à la cartographie générale.
                 {% endif %}
               </div>
-              <form method="post" action="{% url 'drones:orthophoto_integrate' orthophoto.pk %}" class="mt-2">
+              <form method="post" action="{% url 'drones:orthophoto_integrate' orthophoto.pk %}" class="mt-1">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-primary" {% if not orthophoto.tiles_url %}disabled{% endif %}>
-                  <i class="bi bi-map me-1"></i>Intégrer à la cartographie
+                <button type="submit" class="btn btn-xs btn-primary" {% if not orthophoto.tiles_url %}disabled{% endif %}>
+                  <i class="bi bi-map me-1"></i>Publier sur la carte
                 </button>
               </form>
               {% else %}
-              <div class="step-desc">Disponible une fois l'orthophoto validée.</div>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- 8. Visible sur la carte -->
-          <div class="step-item {% if mission.statut == 'integree' %}done{% endif %}">
-            <div class="step-num">
-              {% if mission.statut == 'integree' %}<i class="bi bi-check-lg"></i>{% else %}8{% endif %}
-            </div>
-            <div class="step-body">
-              <div class="step-title">Visible sur la cartographie principale</div>
-              {% if mission.statut == 'integree' %}
-              <a href="{% url 'territoire:cartographie' %}" class="btn btn-sm btn-outline-success mt-1">
-                <i class="bi bi-map me-1"></i>Voir sur la carte
-              </a>
-              {% else %}
-              <div class="step-desc">Dernière étape de la chaîne de production.</div>
+              <div class="step-desc">Disponible après validation.</div>
               {% endif %}
             </div>
           </div>
@@ -215,37 +231,33 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ── Colonne latérale ── -->
-  <div class="col-lg-4">
-    <div class="card mb-3">
-      <div class="card-header"><i class="bi bi-clipboard-data me-2"></i>Paramètres du vol</div>
-      <table class="meta-table w-100 m-2">
-        <tr><td>Opérateur</td><td>{{ mission.operateur|default:"—" }}</td></tr>
-        <tr><td>Drone utilisé</td><td>{{ mission.drone_utilise|default:"—" }}</td></tr>
-        <tr><td>Altitude</td><td>{{ mission.altitude|default:"—" }} m</td></tr>
-        <tr><td>Durée</td><td>{{ mission.duree_minutes|default:"—" }} min</td></tr>
-        <tr><td>Superficie prévue</td><td>{{ mission.superficie_prevue|default:"—" }} ha</td></tr>
-        <tr><td>Superficie réalisée</td><td>{{ orthophoto.superficie_ha|default:"—" }} ha</td></tr>
-      </table>
-      {% if mission.notes %}
-      <div class="px-3 pb-3 small text-muted">{{ mission.notes|linebreaksbr }}</div>
-      {% endif %}
-    </div>
-
-    <div class="card">
-      <div class="card-header text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Zone de danger</div>
-      <div class="card-body">
-        <a href="{% url 'drones:mission_delete' mission.pk %}" class="btn btn-outline-danger btn-sm w-100">
-          <i class="bi bi-trash me-1"></i>Supprimer la mission
+    <!-- Zone de danger -->
+    <div class="card border-0 shadow-sm rounded-4 border-danger-subtle">
+      <div class="card-body p-3 d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fw-bold text-danger" style="font-size: 13px;">Suppression de la mission</div>
+          <div class="text-muted small">Les clichés et orthophotos brutes associées seront conservées.</div>
+        </div>
+        <a href="{% url 'drones:mission_delete' mission.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cette mission drone ?');">
+          <i class="bi bi-trash me-1"></i>Supprimer
         </a>
-        <p class="text-muted small mt-2 mb-0">Les photos et l'orthophoto associées seront conservées.</p>
       </div>
     </div>
-  </div>
 
-</div>
+  </div><!-- /detail-sidebar-panel -->
+
+  <!-- Volet Droit : Carte Immersive SIG (100% Hauteur/Largeur) -->
+  <div class="detail-map-panel">
+    <div id="mission-map"></div>
+    <div class="detail-map-legend">
+      <i class="bi bi-camera-video-fill text-info me-1"></i>
+      {% if orthophoto %}Orthomosaïque WebODM ({{ orthophoto.resolution|default:"—" }} cm/px){% else %}Emprise de mission drone{% endif %}
+    </div>
+  </div><!-- /detail-map-panel -->
+
+</div><!-- /detail-layout-split -->
+
 {% endblock %}
 
 {% block extra_js_vendor %}
@@ -253,18 +265,67 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if orthophoto.emprise %}
 <script>
-var miniMap = initCampusMap('mini-map', { hideLayerControl: true });
-var geojson = {{ orthophoto.emprise.geojson|safe }};
-var contourLayer = L.geoJSON(geojson, {
-  style: { color: '#1E3A8A', fillColor: '#3b82f6', fillOpacity: 0, weight: 2 }
-}).addTo(miniMap);
-miniMap.fitBounds(contourLayer.getBounds(), { padding: [20, 20], maxZoom: 20 });
+document.addEventListener('DOMContentLoaded', function () {
+  var map = L.map('mission-map', { zoomControl: false }).setView([14.6928, -17.4467], 15);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-{% if orthophoto.tiles_url %}
-loadOrthophoto(miniMap, '{{ orthophoto.tiles_url|escapejs }}', { opacity: 1, maxNativeZoom: 24 }).addTo(miniMap);
-{% endif %}
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  }).addTo(map);
+
+  var satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
+
+  L.control.layers(
+    { 'Plan OSM': osm, 'Satellite': satellite },
+    {},
+    { position: 'topright', collapsed: true }
+  ).addTo(map);
+
+  {% if orthophoto.emprise %}
+  try {
+    var geojson = {{ orthophoto.emprise.geojson|safe }};
+    var contourLayer = L.geoJSON(geojson, {
+      style: { color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.15, weight: 3 }
+    }).addTo(map);
+
+    var bounds = contourLayer.getBounds();
+    if (bounds && bounds.isValid && bounds.isValid()) {
+      setTimeout(function () {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 20 });
+      }, 150);
+    }
+  } catch (e) {
+    console.warn('Erreur emprise orthophoto:', e);
+  }
+  {% endif %}
+
+  {% if orthophoto.tiles_url %}
+  try {
+    var orthoTileLayer = L.tileLayer('{{ orthophoto.tiles_url|escapejs }}', {
+      opacity: 1.0,
+      maxNativeZoom: 24,
+      maxZoom: 28
+    }).addTo(map);
+  } catch (e) {
+    console.warn('Erreur chargement tuiles WebODM:', e);
+  }
+  {% endif %}
+
+  function invalidate() {
+    if (map) map.invalidateSize();
+  }
+  setTimeout(invalidate, 150);
+  setTimeout(invalidate, 400);
+  window.addEventListener('resize', invalidate);
+});
 </script>
-{% endif %}
 {% endblock %}

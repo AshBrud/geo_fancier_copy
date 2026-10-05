@@ -104,6 +104,9 @@ def zone_secteur_create(request):
         messages.success(request, f"Zone « {zone.nom} » enregistrée avec succès ({zone.code}).")
         return redirect('territoire:zones')
 
+    if request.method == 'GET':
+        return redirect(reverse('territoire:zones') + '?action=create')
+
     return render(request, 'territoire/zones/form.html', {
         'form': form,
         'action': 'Créer une subdivision',
@@ -124,12 +127,7 @@ def zone_secteur_update(request, pk):
         messages.success(request, f"Subdivision « {zone.nom} » mise à jour avec succès.")
         return redirect('territoire:zone_detail', pk=zone.pk)
 
-    return render(request, 'territoire/zones/form.html', {
-        'form': form,
-        'obj': zone,
-        'action': f"Modifier {zone.nom}",
-        'active_dossier': dossier,
-    })
+    return redirect('territoire:zone_detail', pk=zone.pk)
 
 
 @login_required

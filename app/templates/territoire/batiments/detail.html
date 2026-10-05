@@ -5,120 +5,115 @@
 <li class="breadcrumb-item active">{{ unite.nom|default:unite.code }}</li>
 {% endblock %}
 
+{% block page_content_class %}page-content-carto{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
-
 {% block content %}
 
-<!-- ===== BANDEAU HÉRO ===== -->
-<div class="bat-hero">
-  <div class="bat-hero-icon">
-    <i class="bi bi-buildings"></i>
-  </div>
-  <div style="flex:1;">
-    <div class="bat-hero-code">{{ unite.code }}</div>
-    <h1 class="h3 fw-bold mb-1">{{ unite.nom|default:unite.get_type_bati_display }}</h1>
-    <p class="mb-0 opacity-85 small">
-      {{ unite.get_type_bati_display }} · {{ unite.get_statut_occupation_display }}
-      {% if unite.zone_secteur %} · Localisé à <strong>{{ unite.zone_secteur.nom }}</strong>{% endif %}
-      · Territoire : <strong>{{ active_dossier.nom }}</strong>
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-buildings"></i> {{ unite.nom|default:unite.code }}</h1>
+    <p class="page-description mb-0">
+      <code>{{ unite.code }}</code> · {{ unite.get_type_bati_display }} · {{ unite.get_statut_occupation_display }}{% if unite.zone_secteur %} · Localisé à <strong>{{ unite.zone_secteur.nom }}</strong>{% endif %}
     </p>
   </div>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="carto-header-actions">
     {% if user.is_domaine_foncier or user.is_admin %}
-    <a href="{% url 'territoire:batiment_update' unite.pk %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.25); color:#fff; border:1px solid rgba(255,255,255,.4);">
-      <i class="bi bi-pencil me-1"></i>Modifier
-    </a>
-    <a href="{% url 'territoire:batiment_delete' unite.pk %}" class="btn btn-sm"
-       style="background:rgba(220,38,38,.4); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:batiment_delete' unite.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cette unité bâtie ?');">
       <i class="bi bi-trash me-1"></i>Supprimer
     </a>
     {% endif %}
-    <a href="{% url 'territoire:batiments' %}" class="btn btn-sm"
-       style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3);">
+    <a href="{% url 'territoire:batiments' %}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Retour
     </a>
   </div>
 </div>
 
-<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
-<div class="kpi-row-scroll">
+<!-- ===== LAYOUT SPLIT-SCREEN PLEIN ÉCRAN (0 SCROLL GLOBAL) ===== -->
+<div class="detail-layout-split">
 
-  <!-- 1. Superficie au Sol (Bleu Primaire) -->
-  <div class="kpi-card kpi-card--primary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Superficie au Sol</span>
-      <i class="bi bi-rulers kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ unite.superficie_m2|default:0|floatformat:0 }} m²</span>
-      <span class="kpi-card__badge kpi-card__badge--info">
-        {{ unite.superficie_ha|default:0|floatformat:4 }} ha
-      </span>
-    </div>
-  </div>
+  <!-- Volet Gauche : Métadonnées, KPIs et Fiche Descriptive (Scroll interne) -->
+  <div class="detail-sidebar-panel">
 
-  <!-- 2. Niveaux / Étages (Violet Gouvernance) -->
-  <div class="kpi-card kpi-card--purple">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Niveaux / Étages</span>
-      <i class="bi bi-layers kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ unite.etages }}</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Élévation
-      </span>
-    </div>
-  </div>
+    <!-- KPIs (Ruban horizontal scrollable à cartes fixes) -->
+    <div class="kpi-row-scroll mb-0">
 
-  <!-- 3. Statut d'Occupation (Vert Secondaire) -->
-  <div class="kpi-card kpi-card--secondary">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Occupation</span>
-      <i class="bi bi-activity kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value" style="font-size: 18px;">{{ unite.get_statut_occupation_display }}</span>
-      <span class="kpi-card__badge kpi-card__badge--success">
-        Statut
-      </span>
-    </div>
-  </div>
+      <!-- 1. Superficie au Sol -->
+      <div class="kpi-card kpi-card--primary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Superficie au Sol</span>
+          <i class="bi bi-rulers kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ unite.superficie_m2|default:0|floatformat:0 }} m²</span>
+          <span class="kpi-card__badge kpi-card__badge--info">
+            {{ unite.superficie_ha|default:0|floatformat:4 }} ha
+          </span>
+        </div>
+      </div>
 
-  <!-- 4. Année de Construction (Ardoise Neutre) -->
-  <div class="kpi-card kpi-card--neutral">
-    <div class="kpi-card__header">
-      <span class="kpi-card__label">Construction</span>
-      <i class="bi bi-calendar-event kpi-card__icon"></i>
-    </div>
-    <div class="kpi-card__body">
-      <span class="kpi-card__value">{{ unite.annee_construction|default:"—" }}</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Déclarée
-      </span>
-    </div>
-  </div>
+      <!-- 2. Niveaux / Étages -->
+      <div class="kpi-card kpi-card--purple">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Niveaux / Étages</span>
+          <i class="bi bi-layers kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ unite.etages }}</span>
+          <span class="kpi-card__badge kpi-card__badge--neutral">
+            Élévation
+          </span>
+        </div>
+      </div>
 
-</div>
+      <!-- 3. Statut d'Occupation -->
+      <div class="kpi-card kpi-card--secondary">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Occupation</span>
+          <i class="bi bi-activity kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value" style="font-size: 18px;">{{ unite.get_statut_occupation_display }}</span>
+          <span class="kpi-card__badge kpi-card__badge--success">
+            Statut
+          </span>
+        </div>
+      </div>
 
-<div class="row g-4">
-  <!-- Colonne Gauche : Cliché & Caractéristiques -->
-  <div class="col-lg-5">
+      <!-- 4. Année de Construction -->
+      <div class="kpi-card kpi-card--neutral">
+        <div class="kpi-card__header">
+          <span class="kpi-card__label">Construction</span>
+          <i class="bi bi-calendar-event kpi-card__icon"></i>
+        </div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ unite.annee_construction|default:"—" }}</span>
+          <span class="kpi-card__badge kpi-card__badge--neutral">
+            Déclarée
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Cliché Photographique si existant -->
     {% if unite.photo %}
-    <div class="card mb-3 overflow-hidden border-0 shadow-sm rounded-4">
-      <img src="{{ unite.photo.url }}" class="img-fluid w-100" style="max-height: 240px; object-fit: cover;" alt="{{ unite.nom }}">
+    <div class="card overflow-hidden border-0 shadow-sm rounded-4">
+      <img src="{{ unite.photo.url }}" class="img-fluid w-100" style="max-height: 200px; object-fit: cover;" alt="{{ unite.nom }}">
     </div>
     {% endif %}
 
+    <!-- Fiche Descriptive & Technique -->
     <div class="card border-0 shadow-sm rounded-4">
-      <div class="card-header bg-light py-3 px-4 fw-bold text-dark">
-        <i class="bi bi-card-list me-2 text-primary"></i>Fiche Descriptive & Technique
+      <div class="card-header bg-light py-2.5 px-3 fw-bold text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-card-list text-primary"></i>
+        <span>Fiche Descriptive &amp; Technique</span>
       </div>
-      <div class="card-body p-4">
+      <div class="card-body p-3">
         <div class="info-row">
           <span class="info-row-lbl">Code identifiant</span>
           <span class="info-row-val"><code>{{ unite.code }}</code></span>
@@ -152,7 +147,7 @@
           <span class="info-row-val">{{ unite.superficie_m2|default:0|floatformat:0 }} m² ({{ unite.superficie_ha|default:0|floatformat:4 }} ha)</span>
         </div>
         <div class="info-row">
-          <span class="info-row-lbl">Actif & Existant</span>
+          <span class="info-row-lbl">Actif &amp; Existant</span>
           <span class="info-row-val">
             {% if unite.est_actif %}
             <span class="badge bg-success-subtle text-success">Oui</span>
@@ -173,54 +168,83 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Colonne Droite : Carte Leaflet Emprise -->
-  <div class="col-lg-7">
-    <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-      <div class="card-header bg-light py-3 px-4 d-flex justify-content-between align-items-center">
-        <span class="fw-bold text-dark"><i class="bi bi-map-fill me-2 text-primary"></i>Emprise spatiale (SIG)</span>
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">WGS 84</span>
-      </div>
-      <div id="detail-map" style="height: 480px;"></div>
+  </div><!-- /detail-sidebar-panel -->
+
+  <!-- Volet Droit : Carte Immersive SIG (100% Hauteur/Largeur) -->
+  <div class="detail-map-panel">
+    <div id="detail-map"></div>
+    <div class="detail-map-legend">
+      <i class="bi bi-geo-alt-fill text-primary me-1"></i> Emprise cadastrale WGS 84
     </div>
-  </div>
-</div>
+  </div><!-- /detail-map-panel -->
+
+</div><!-- /detail-layout-split -->
 
 {% endblock %}
 
 {% block extra_js_vendor %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  var map = L.map('detail-map').setView([14.6928, -17.4467], 15);
+  var map = L.map('detail-map', { zoomControl: false }).setView([14.6928, -17.4467], 15);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
   }).addTo(map);
+
+  var satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
+
+  L.control.layers(
+    { 'Plan OSM': osm, 'Satellite': satellite },
+    {},
+    { position: 'topright', collapsed: true }
+  ).addTo(map);
 
   var geomJson = {{ geom_json|safe }};
   if (geomJson) {
-    var layer = L.geoJSON(geomJson, {
-      style: {
-        color: '#1e3a8a',
-        fillColor: '{{ unite.couleur_statut }}',
-        fillOpacity: 0.55,
-        weight: 2
-      }
-    }).addTo(map);
-
-    layer.bindPopup('<strong>{{ unite.nom|default:unite.code|escapejs }}</strong><br>{{ unite.get_type_bati_display|escapejs }}');
-
     try {
-      map.fitBounds(layer.getBounds(), { padding: [30, 30] });
-    } catch(e) {}
+      var layer = L.geoJSON(geomJson, {
+        style: {
+          color: '#1e3a8a',
+          fillColor: '{{ unite.couleur_statut }}',
+          fillOpacity: 0.55,
+          weight: 3
+        }
+      }).addTo(map);
+
+      layer.bindPopup('<strong>{{ unite.nom|default:unite.code|escapejs }}</strong><br>{{ unite.get_type_bati_display|escapejs }}');
+
+      var bounds = layer.getBounds();
+      if (bounds && bounds.isValid && bounds.isValid()) {
+        setTimeout(function () {
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 19 });
+        }, 150);
+      }
+    } catch(e) {
+      console.warn('Erreur affichage géométrie unité bâtie:', e);
+    }
   }
+
+  // Force le rafraîchissement Leaflet
+  function invalidate() {
+    if (map) map.invalidateSize();
+  }
+  setTimeout(invalidate, 150);
+  setTimeout(invalidate, 400);
+  window.addEventListener('resize', invalidate);
 });
 </script>
 {% endblock %}

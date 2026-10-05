@@ -8,6 +8,11 @@
 <li class="breadcrumb-item active">Unités Bâties & Concessions</li>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+{% endblock %}
+
 
 
 {% block content %}
@@ -406,6 +411,23 @@
             <div>Rattachement automatique au territoire actif <strong>{{ active_dossier.nom }}</strong>. La superficie au sol sera calculée via la projection métrique conforme.</div>
           </div>
 
+          <!-- Widget Sélecteur d'Emprise Immersif Plein Écran -->
+          <div class="emprise-picker-widget" id="empriseWidgetBatiment">
+            <div class="emprise-picker-widget-left">
+              <div class="emprise-picker-icon">
+                <i class="bi bi-bounding-box"></i>
+              </div>
+              <div>
+                <div class="emprise-picker-label">Emprise au sol (SIG WGS 84)</div>
+                <div class="emprise-picker-status" id="empriseStatusBatiment">Aucun tracé cartographique</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" id="btnOpenMapPickerBatiment">
+              <i class="bi bi-map"></i>
+              <span id="empriseBtnTextBatiment">Tracer sur la carte</span>
+            </button>
+          </div>
+
           {% crispy form %}
         </div>
 
@@ -458,9 +480,13 @@
   </div>
 </div>
 
+{% include 'components/modal_map_picker.html' %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="/static/js/map_picker.js"></script>
 <script src="/static/js/slideover.js"></script>
 <script src="/static/js/filter_manager.js"></script>
 <script>
@@ -549,6 +575,31 @@ document.addEventListener('DOMContentLoaded', function () {
     mobileFormSelector: '#filterFormMobile',
     debounceMs: 400
   });
+
+  // Ouverture automatique de la modale de création si demandée dans l'URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('action') === 'create' || window.location.hash === '#create') {
+    const modalEl = document.getElementById('modal-batiment-create');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  // Connexion du sélecteur cartographique immersif plein écran
+  const btnPickerBatiment = document.getElementById('btnOpenMapPickerBatiment');
+  if (btnPickerBatiment) {
+    btnPickerBatiment.addEventListener('click', function () {
+      const input = document.getElementById('id_geometrie_batiment');
+      MapPicker.open({
+        title: "Emprise de l'Unité Bâtie",
+        targetInputId: "id_geometrie_batiment",
+        statusElementId: "empriseStatusBatiment",
+        widgetElementId: "empriseWidgetBatiment",
+        buttonTextElementId: "empriseBtnTextBatiment",
+        initialGeoJson: input ? input.value : null
+      });
+    });
+  }
 });
 </script>
 {% endblock %}

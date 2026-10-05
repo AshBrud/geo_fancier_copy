@@ -1,0 +1,47 @@
+<!-- =========================================================================
+     COMPOSANT RÉUTILISABLE : SÉLECTEUR CARTOGRAPHIQUE IMMERSIF PLEIN ÉCRAN
+     Inspiré des maquettes de sélection spatiale (Desktop & Mobile)
+     ========================================================================= -->
+<div class="map-picker-overlay" id="mapPickerOverlay" role="dialog" aria-modal="true" aria-labelledby="mapPickerTitle">
+
+  <!-- 1. Le Canvas Leaflet Plein Écran -->
+  <div id="map-picker-canvas"></div>
+
+  <!-- 2. Barre de recherche flottante en haut (Pill Design) -->
+  <div class="map-picker-search-container" id="mapPickerSearchContainer">
+    <div class="map-picker-search-box">
+      <i class="bi bi-search"></i>
+      <input type="text"
+             class="map-picker-search-input"
+             id="mapPickerSearchInput"
+             placeholder="Rechercher une adresse, un secteur ou un lieu…"
+             autocomplete="off">
+      <button type="button" class="map-picker-search-btn" id="mapPickerSearchBtn">
+        Rechercher
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. Carte flottante inférieure de validation / confirmation -->
+  <div class="map-picker-card" id="mapPickerCard">
+    <div class="map-picker-card-left">
+      <div class="map-picker-icon-badge" id="mapPickerIcon">
+        <i class="bi bi-bounding-box"></i>
+      </div>
+      <div class="map-picker-info">
+        <div class="map-picker-eyebrow" id="mapPickerEyebrow">EMPRISE GÉOMÉTRIQUE</div>
+        <div class="map-picker-title" id="mapPickerTitle">Tracez un polygone avec l'outil à gauche</div>
+        <div class="map-picker-coords-badge" id="mapPickerCoords">--.------, --.------</div>
+      </div>
+    </div>
+    <div class="map-picker-actions">
+      <button type="button" class="map-picker-confirm-btn" id="mapPickerConfirmBtn" disabled>
+        <i class="bi bi-check2 me-1"></i>Confirmer cette emprise
+      </button>
+      <button type="button" class="map-picker-cancel-btn" id="mapPickerCancelBtn">
+        Annuler
+      </button>
+    </div>
+  </div>
+
+</div>

@@ -8,229 +8,49 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 {% endblock %}
 
-
 {% block extra_js_vendor %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% endblock %}
 
 {% block content %}
 
-<!-- ===== EN-TÊTE ===== -->
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
 <div class="carto-header">
   <div class="carto-header-left">
     <h1 class="page-title mb-0"><i class="bi bi-map"></i> Cartographie</h1>
-    <p class="page-description mb-0">Visualisez et explorez le campus de l'UAD : espaces fonciers, bâtiments et orthophotos issues des missions drone.</p>
+    <p class="page-description mb-0">
+      {% if dossier %}{{ dossier.nom }} &mdash; {% endif %}Exploration cartographique interactive, couches thématiques et orthophotographies aériennes.
+    </p>
   </div>
-  <div class="carto-header-chips">
-    <span class="carto-chip">
-      <span class="carto-chip-dot" style="background:#64748b;"></span>
-      {{ total_espaces }} espace{{ total_espaces|pluralize }}
-    </span>
-    <span class="carto-chip">
-      <span class="carto-chip-dot" style="background:#78350F;"></span>
-      {{ total_batiments }} bâtiment{{ total_batiments|pluralize }}
-    </span>
-    <span class="carto-chip">
-      <span class="carto-chip-dot" style="background:#16A34A;"></span>
-      {{ nb_espaces_libres }} libre{{ nb_espaces_libres|pluralize }}
-    </span>
-    <span class="carto-chip">
-      <span class="carto-chip-dot" style="background:#0891b2;"></span>
-      {{ nb_orthophotos }} orthophoto{{ nb_orthophotos|pluralize }}
-    </span>
-    {% if user.can_manage_foncier %}
-    <a href="{% url 'territoire:zone_create' %}" class="btn btn-sm btn-success">
-      <i class="bi bi-plus-lg me-1"></i>Subdivision
+  <div class="carto-header-actions">
+    <a href="{% url 'territoire:zones' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-grid-3x3-gap me-1"></i>Subdivisions
     </a>
-    <a href="{% url 'territoire:batiment_create' %}" class="btn btn-sm btn-primary">
-      <i class="bi bi-plus-lg me-1"></i>Bâtiment
+    <a href="{% url 'territoire:batiments' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-buildings me-1"></i>Bâtiments
     </a>
-    {% endif %}
   </div>
 </div>
 
-<!-- ===== LAYOUT CARTE + SIDEBAR ===== -->
+<!-- ===== LAYOUT CARTE PLEIN ÉCRAN (0 SCROLL) ===== -->
 <div class="carto-layout">
-
-  <!-- ======= SIDEBAR COUCHES ======= -->
-  <div class="carto-sidebar" id="cartoSidebar">
-
-    <div class="carto-sidebar-hdr">
-      <div class="carto-sidebar-title">
-        <i class="bi bi-layers-fill"></i> Couches cartographiques
-      </div>
-      <button class="carto-collapse-btn" id="collapseBtn" title="Réduire le panneau">
-        <i class="bi bi-chevron-left" id="collapseIcon"></i>
-      </button>
-    </div>
-
-    <div class="carto-sidebar-body">
-
-      <!-- Fond de carte -->
-      <div class="cs-section">
-        <div class="cs-section-title">Fond de carte</div>
-        <div class="basemap-grid">
-          <div class="basemap-card active" id="btnOsm">
-            <div class="basemap-thumb basemap-thumb-osm"><i class="bi bi-map"></i></div>
-            <div class="basemap-lbl">Plan OSM</div>
-          </div>
-          <div class="basemap-card" id="btnSatellite">
-            <div class="basemap-thumb basemap-thumb-sat"><i class="bi bi-globe2"></i></div>
-            <div class="basemap-lbl">Satellite</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Couches vecteur -->
-      <div class="cs-section">
-        <div class="cs-section-title">Couches vecteur</div>
-        {% if campus %}
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#1E3A8A;"></span>
-            <span class="layer-name">Campus</span>
-            <span class="layer-count">{{ campus.superficie_ha }} ha</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerCampus" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        {% endif %}
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#16A34A;"></span>
-            <span class="layer-name">Sous-espaces libres</span>
-            <span class="layer-count">{{ nb_espaces_libres }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspacesLibres" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#F59E0B;"></span>
-            <span class="layer-name">Sous-espaces réservés</span>
-            <span class="layer-count">{{ nb_espaces_reserves }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspacesReservees" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#DC2626;"></span>
-            <span class="layer-name">Sous-espaces occupés</span>
-            <span class="layer-count">{{ nb_espaces_occupes }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspacesOccupees" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#78350F;"></span>
-            <span class="layer-name">Bâtiments</span>
-            <span class="layer-count">{{ total_batiments }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerBatiments" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#2563EB;"></span>
-            <span class="layer-name">Terrains</span>
-            <span class="layer-count">{{ nb_terrains }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerTerrains" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#F97316;"></span>
-            <span class="layer-name">Terrains sportifs</span>
-            <span class="layer-count">{{ nb_terrains_sportifs }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerTerrainsSportifs" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#22C55E;"></span>
-            <span class="layer-name">Espaces verts</span>
-            <span class="layer-count">{{ nb_espaces_verts }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerEspacesVerts" style="cursor:pointer;" checked>
-          </div>
-        </div>
-        <div class="layer-row">
-          <div class="layer-row-left">
-            <span class="layer-dot" style="background:#A16207;"></span>
-            <span class="layer-name">Voiries</span>
-            <span class="layer-count">{{ nb_voiries }}</span>
-          </div>
-          <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="layerVoiries" style="cursor:pointer;" checked>
-          </div>
-        </div>
-      </div>
-
-      <!-- Orthophotos WebODM -->
-      <div class="cs-section">
-        <div class="cs-section-title">
-          Orthophotos
-          <span class="badge bg-info-subtle text-info border border-info-subtle"
-                style="font-size:8.5px;font-weight:700;padding:2px 6px;letter-spacing:.3px;text-transform:none;">WebODM</span>
-        </div>
-        <div id="orthoLayers"></div>
-      </div>
-
-      <!-- Légende -->
-      <div class="cs-section">
-        <div class="cs-section-title">Légende</div>
-        {% if campus %}
-        <div class="legend-item"><span class="legend-swatch" style="background:#1E3A8A;"></span> Campus (limite)</div>
-        {% endif %}
-        <div class="legend-item"><span class="legend-swatch" style="background:#16A34A;"></span> Sous-espaces libres</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#F59E0B;"></span> Sous-espaces réservés</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#DC2626;"></span> Sous-espaces occupés</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#78350F;"></span> Bâtiments</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#2563EB;"></span> Terrains</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#F97316;"></span> Terrains sportifs</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#22C55E;"></span> Espaces verts</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#A16207;"></span> Voiries</div>
-        <div class="legend-item"><span class="legend-swatch" style="background:#0891b2;"></span> Orthophotos drone</div>
-      </div>
-
-    </div><!-- /sidebar-body -->
-
-    <!-- Statistiques en pied -->
-    <div class="carto-sidebar-foot">
-      <div class="carto-stat-row">
-        <span><i class="bi bi-camera-video me-1 text-info"></i>Orthophotos</span>
-        <span class="carto-stat-val">{{ nb_orthophotos }}</span>
-      </div>
-    </div>
-
-  </div><!-- /carto-sidebar -->
 
   <!-- ======= ZONE CARTE ======= -->
   <div class="carto-map-wrap">
 
-    <!-- Bouton réouvrir (visible quand sidebar fermée) -->
-    <button class="carto-open-sidebar d-none" id="openSidebarBtn">
-      <i class="bi bi-layers-fill"></i> Couches
+    <!-- Bouton Flottant Dédié (Bas-Gauche) -->
+    <button type="button" class="map-floating-filter-btn" id="btnOpenMapSlideover" aria-label="Couches et filtres">
+      <i class="bi bi-layers-fill"></i>
+      <span class="d-none d-sm-inline">Couches &amp; Filtres</span>
+      <span class="map-floating-filter-badge" id="activeLayersBadge">5</span>
     </button>
 
-    <!-- La carte -->
+    <!-- Carte Leaflet -->
     <div id="campus-map"></div>
 
-    <!-- Barre d'outils -->
+    <!-- Barre d'outils carte -->
     <div class="map-toolbar">
-      <button class="map-tool" id="btnRecentrer" title="Recentrer sur le campus">
+      <button class="map-tool" id="btnRecentrer" title="Recentrer sur le territoire">
         <i class="bi bi-crosshair2"></i>
       </button>
       <button class="map-tool" id="btnZoomIn" title="Zoom +">
@@ -242,9 +62,142 @@
     </div>
 
     <!-- Coordonnées curseur -->
-    <div class="map-coords" id="mapCoords">14.6963, -16.4774</div>
+    <div class="map-coords" id="mapCoords">--</div>
+
+    <!-- ======= SLIDEOVER FILTRES & COUCHES ======= -->
+    <div class="map-slideover-backdrop" id="mapSlideoverBackdrop"></div>
+
+    <div class="map-slideover" id="mapSlideover" role="dialog" aria-modal="true" aria-labelledby="slideoverTitle">
+      <div class="map-slideover-hdr">
+        <div class="map-slideover-title" id="slideoverTitle">
+          <i class="bi bi-layers-fill"></i>
+          <span>Couches cartographiques</span>
+        </div>
+        <button type="button" class="map-slideover-close" id="btnCloseMapSlideover" aria-label="Fermer le panneau">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="map-slideover-body">
+        <!-- Fond de carte -->
+        <div class="cs-section">
+          <div class="cs-section-title">Fond de carte</div>
+          <div class="basemap-grid">
+            <div class="basemap-card active" id="btnOsm">
+              <div class="basemap-thumb basemap-thumb-osm"><i class="bi bi-map"></i></div>
+              <div class="basemap-lbl">Plan OSM</div>
+            </div>
+            <div class="basemap-card" id="btnSatellite">
+              <div class="basemap-thumb basemap-thumb-sat"><i class="bi bi-globe2"></i></div>
+              <div class="basemap-lbl">Satellite</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Couches vecteur V2 -->
+        <div class="cs-section">
+          <div class="cs-section-title">Couches vecteur</div>
+          {% if campus %}
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#1E3A8A;"></span>
+              <span class="layer-name">Périmètre du territoire</span>
+              <span class="layer-count">{% if campus.superficie_ha %}{{ campus.superficie_ha }} ha{% endif %}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerCampus" style="cursor:pointer;" checked>
+            </div>
+          </div>
+          {% endif %}
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#16A34A;"></span>
+              <span class="layer-name">Subdivisions libres</span>
+              <span class="layer-count">{{ nb_espaces_libres }}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerEspacesLibres" style="cursor:pointer;" checked>
+            </div>
+          </div>
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#F59E0B;"></span>
+              <span class="layer-name">Subdivisions réservées</span>
+              <span class="layer-count">{{ nb_espaces_reserves }}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerEspacesReservees" style="cursor:pointer;" checked>
+            </div>
+          </div>
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#DC2626;"></span>
+              <span class="layer-name">Subdivisions occupées</span>
+              <span class="layer-count">{{ nb_espaces_occupes }}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerEspacesOccupees" style="cursor:pointer;" checked>
+            </div>
+          </div>
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#78350F;"></span>
+              <span class="layer-name">Bâtiments</span>
+              <span class="layer-count">{{ total_batiments }}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerBatiments" style="cursor:pointer;" checked>
+            </div>
+          </div>
+          <div class="layer-row">
+            <div class="layer-row-left">
+              <span class="layer-dot" style="background:#A16207;"></span>
+              <span class="layer-name">Voiries &amp; Réseaux</span>
+              <span class="layer-count">{{ nb_voiries }}</span>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input filter-layer-cb" type="checkbox" id="layerVoiries" style="cursor:pointer;" checked>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orthophotos WebODM -->
+        <div class="cs-section">
+          <div class="cs-section-title">
+            Orthophotographies
+            <span class="badge bg-info-subtle text-info border border-info-subtle"
+                  style="font-size:8.5px;font-weight:700;padding:2px 6px;letter-spacing:.3px;text-transform:none;">WebODM</span>
+          </div>
+          <div id="orthoLayers"></div>
+        </div>
+      </div>
+
+      <!-- Statistiques en pied du slideover -->
+      <div class="map-slideover-foot">
+        <span><i class="bi bi-camera-video me-1 text-info"></i>Orthophotos</span>
+        <span class="carto-stat-val">{{ nb_orthophotos }}</span>
+      </div>
+    </div><!-- /map-slideover -->
 
   </div><!-- /carto-map-wrap -->
+
+  <!-- ======= LÉGENDE : FOOTER (DESK/TAB) / OVERLAY (MOBILE) ======= -->
+  <footer class="map-footer-legend" id="mapFooterLegend">
+    <div class="map-legend-track">
+      <span class="map-legend-item" style="font-weight:700; color: #1e293b;">
+        <i class="bi bi-info-circle text-primary me-1"></i> Légende :
+      </span>
+      {% if campus %}
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#1E3A8A;"></span> Périmètre</div>
+      {% endif %}
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#16A34A;"></span> Subdivisions libres</div>
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#F59E0B;"></span> Subdivisions réservées</div>
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#DC2626;"></span> Subdivisions occupées</div>
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#78350F;"></span> Bâtiments</div>
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#A16207;"></span> Voiries &amp; Réseaux</div>
+      <div class="map-legend-item"><span class="map-legend-dot" style="background:#0891b2;"></span> Orthophotos drone</div>
+    </div>
+  </footer>
 
 </div><!-- /carto-layout -->
 
@@ -259,77 +212,110 @@
   /* ---- Initialisation carte ---- */
   var map = initCampusMap('campus-map', { hideLayerControl: true });
 
-  /* ---- Couche Campus (contour de référence, non modifiable ici) ---- */
-  var campusLayer = L.layerGroup();
-  if (CAMPUS_GEOM) {
-    var campusOutline = L.geoJSON(CAMPUS_GEOM, {
-      style: { color: '#facc15', fillColor: '#1E3A8A', fillOpacity: 0.06, weight: 5, dashArray: '10,6', lineCap: 'round' },
-    }).addTo(campusLayer);
-    campusOutline.bindTooltip('Limite du Campus', { sticky: true });
-    campusLayer.addTo(map);
-    campusOutline.bringToFront();
-    var layerCampusToggle = document.getElementById('layerCampus');
-    if (layerCampusToggle) {
-      layerCampusToggle.addEventListener('change', function () {
-        if (this.checked) { map.addLayer(campusLayer); campusOutline.bringToFront(); } else { map.removeLayer(campusLayer); }
-      });
+  // Forcer le recalcul de dimension Leaflet pour garantir l'affichage complet des tuiles
+  function invalidateMap() {
+    if (map) {
+      map.invalidateSize();
     }
-  } else {
-    console.warn('Aucune géométrie de Campus à afficher sur la carte.');
+  }
+  setTimeout(invalidateMap, 100);
+  setTimeout(invalidateMap, 300);
+  setTimeout(invalidateMap, 600);
+  window.addEventListener('load', invalidateMap);
+
+  /* ---- Slideover Filtres & Couches ---- */
+  var slideover = document.getElementById('mapSlideover');
+  var backdrop  = document.getElementById('mapSlideoverBackdrop');
+  var btnOpen   = document.getElementById('btnOpenMapSlideover');
+  var btnClose  = document.getElementById('btnCloseMapSlideover');
+  var badgeEl   = document.getElementById('activeLayersBadge');
+
+  function openSlideover() {
+    if (slideover && backdrop) {
+      slideover.classList.add('is-open');
+      backdrop.classList.add('is-open');
+      setTimeout(invalidateMap, 320);
+    }
   }
 
-  /* ---- Couches vecteur (toutes actives par défaut) ---- */
-  var espacesLibresLayer = loadEspaces(map, null, { type: 'libre' });
+  function closeSlideover() {
+    if (slideover && backdrop) {
+      slideover.classList.remove('is-open');
+      backdrop.classList.remove('is-open');
+      setTimeout(invalidateMap, 320);
+    }
+  }
+
+  if (btnOpen)  btnOpen.addEventListener('click', openSlideover);
+  if (btnClose) btnClose.addEventListener('click', closeSlideover);
+  if (backdrop) backdrop.addEventListener('click', closeSlideover);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && slideover && slideover.classList.contains('is-open')) {
+      closeSlideover();
+    }
+  });
+
+  function updateActiveBadge() {
+    if (!badgeEl) return;
+    var checkedBoxes = document.querySelectorAll('.filter-layer-cb:checked, #orthoLayers input[type="checkbox"]:checked');
+    badgeEl.textContent = checkedBoxes.length;
+  }
+
+  /* ---- Couche Limite Territoriale ---- */
+  var campusLayer = L.layerGroup();
+  if (CAMPUS_GEOM) {
+    try {
+      var campusOutline = L.geoJSON(CAMPUS_GEOM, {
+        style: { color: '#facc15', fillColor: '#1E3A8A', fillOpacity: 0.06, weight: 5, dashArray: '10,6', lineCap: 'round' },
+      }).addTo(campusLayer);
+      campusOutline.bindTooltip('Périmètre du territoire', { sticky: true });
+      campusLayer.addTo(map);
+      campusOutline.bringToFront();
+      var layerCampusToggle = document.getElementById('layerCampus');
+      if (layerCampusToggle) {
+        layerCampusToggle.addEventListener('change', function () {
+          if (this.checked) {
+            map.addLayer(campusLayer);
+            campusOutline.bringToFront();
+          } else {
+            map.removeLayer(campusLayer);
+          }
+          updateActiveBadge();
+        });
+      }
+    } catch (e) {
+      console.warn('Erreur chargement géométrie territoire:', e);
+    }
+  }
+
+  /* ---- Couches vecteur V2 ---- */
+  var espacesLibresLayer    = loadEspaces(map, null, { type: 'libre' });
   var espacesReserveesLayer = loadEspaces(map, null, { type: 'reserve' });
-  var espacesOccupeesLayer = loadEspaces(map, null, { type: 'occupe' });
-  var batimentsLayer = L.layerGroup().addTo(map);
+  var espacesOccupeesLayer  = loadEspaces(map, null, { type: 'occupe' });
+  var batimentsLayer        = L.layerGroup().addTo(map);
   loadBatiments(map, batimentsLayer);
-  var terrainsLayer = L.layerGroup().addTo(map);
-  loadTerrains(map, terrainsLayer, { sport: false });
-  var terrainsSportLayer = L.layerGroup().addTo(map);
-  loadTerrains(map, terrainsSportLayer, { sport: true });
-  var espacesVertsLayer = L.layerGroup().addTo(map);
-  loadEspacesVerts(map, espacesVertsLayer);
-  var voiriesLayer = L.layerGroup().addTo(map);
+  var voiriesLayer          = L.layerGroup().addTo(map);
   loadVoiries(map, voiriesLayer);
 
-  document.getElementById('layerEspacesLibres').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(espacesLibresLayer); } else { map.removeLayer(espacesLibresLayer); }
-  });
-  document.getElementById('layerEspacesReservees').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(espacesReserveesLayer); } else { map.removeLayer(espacesReserveesLayer); }
-  });
-  document.getElementById('layerEspacesOccupees').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(espacesOccupeesLayer); } else { map.removeLayer(espacesOccupeesLayer); }
-  });
-  document.getElementById('layerBatiments').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(batimentsLayer); } else { map.removeLayer(batimentsLayer); }
-  });
-  document.getElementById('layerTerrains').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(terrainsLayer); } else { map.removeLayer(terrainsLayer); }
-  });
-  document.getElementById('layerTerrainsSportifs').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(terrainsSportLayer); } else { map.removeLayer(terrainsSportLayer); }
-  });
-  document.getElementById('layerEspacesVerts').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(espacesVertsLayer); } else { map.removeLayer(espacesVertsLayer); }
-  });
-  document.getElementById('layerVoiries').addEventListener('change', function () {
-    if (this.checked) { map.addLayer(voiriesLayer); } else { map.removeLayer(voiriesLayer); }
-  });
+  function bindLayerToggle(id, layer) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', function () {
+      if (this.checked) {
+        map.addLayer(layer);
+      } else {
+        map.removeLayer(layer);
+      }
+      updateActiveBadge();
+    });
+  }
 
-  /* ---- Contrôle des couches natif Leaflet (checklist ☑ demandée) ---- */
-  var overlayMaps = {};
-  if (campusLayer) overlayMaps['Limite du Campus'] = campusLayer;
-  overlayMaps['Sous-espaces libres']    = espacesLibresLayer;
-  overlayMaps['Sous-espaces réservés']  = espacesReserveesLayer;
-  overlayMaps['Sous-espaces occupés']   = espacesOccupeesLayer;
-  overlayMaps['Bâtiments']              = batimentsLayer;
-  overlayMaps['Voiries']                = voiriesLayer;
-  overlayMaps['Terrains']               = terrainsLayer;
-  overlayMaps['Terrains sportifs']      = terrainsSportLayer;
-  overlayMaps['Espaces verts']          = espacesVertsLayer;
-  L.control.layers(map._baseLayers, overlayMaps, { collapsed: true, position: 'topright' }).addTo(map);
+  bindLayerToggle('layerEspacesLibres', espacesLibresLayer);
+  bindLayerToggle('layerEspacesReservees', espacesReserveesLayer);
+  bindLayerToggle('layerEspacesOccupees', espacesOccupeesLayer);
+  bindLayerToggle('layerBatiments', batimentsLayer);
+  bindLayerToggle('layerVoiries', voiriesLayer);
 
   /* ---- Fond de carte ---- */
   function setBase(id) {
@@ -342,148 +328,163 @@
       map._baseLayers.satellite.addTo(map);
       map._activeBase = 'satellite';
     }
-    document.getElementById('btnOsm').classList.toggle('active', id === 'osm');
-    document.getElementById('btnSatellite').classList.toggle('active', id === 'satellite');
+    var btnOsm = document.getElementById('btnOsm');
+    var btnSat = document.getElementById('btnSatellite');
+    if (btnOsm) btnOsm.classList.toggle('active', id === 'osm');
+    if (btnSat) btnSat.classList.toggle('active', id === 'satellite');
   }
-  document.getElementById('btnOsm').addEventListener('click', function () { setBase('osm'); });
-  document.getElementById('btnSatellite').addEventListener('click', function () { setBase('satellite'); });
 
-  /* ---- Orthophotos ---- */
+  var btnOsmEl = document.getElementById('btnOsm');
+  var btnSatEl = document.getElementById('btnSatellite');
+  if (btnOsmEl) btnOsmEl.addEventListener('click', function () { setBase('osm'); });
+  if (btnSatEl) btnSatEl.addEventListener('click', function () { setBase('satellite'); });
+
+  /* ---- Orthophotographies ---- */
   var orthoContainer = document.getElementById('orthoLayers');
   var orthoLayers    = {};
 
-  if (ORTHOPHOTOS.length === 0) {
-    orthoContainer.innerHTML =
-      '<div class="ortho-empty">' +
-      '<i class="bi bi-camera-video-off d-block mb-1" style="font-size:22px;"></i>' +
-      'Aucune orthophoto disponible.<br>' +
-      '<span style="font-size:10.5px;">Traitez une mission via WebODM puis configurez l\'URL des tuiles.</span>' +
-      '</div>';
-  } else {
-    ORTHOPHOTOS.forEach(function (m, idx) {
-      // La plus récente orthophoto validée sert de carte interactive principale :
-      // opacité pleine, affichée par défaut, et la vue se cale sur son emprise.
-      var isPriority = idx === 0;
-      var defaultOpacity = isPriority ? 100 : 85;
-      orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url, { opacity: defaultOpacity / 100, maxNativeZoom: 24 });
-
-      var card = document.createElement('div');
-      card.className = 'ortho-card' + (isPriority ? ' is-active' : '');
-      card.id = 'orthoCard_' + m.id;
-      card.innerHTML =
-        '<div class="ortho-card-hdr">' +
-          '<div class="ortho-card-info">' +
-            '<div class="ortho-card-name" title="' + m.nom + '">' +
-              (isPriority ? '<i class="bi bi-star-fill me-1" title="Carte interactive principale"></i>' : '') +
-              m.nom +
-            '</div>' +
-            '<div class="ortho-card-date"><i class="bi bi-calendar3 me-1"></i>' + m.date_mission + '</div>' +
-          '</div>' +
-          '<div class="form-check form-switch mb-0">' +
-            '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '" style="cursor:pointer;"' +
-                   (isPriority ? ' checked' : '') + '>' +
-          '</div>' +
-        '</div>' +
-        '<div class="ortho-slider-wrap' + (isPriority ? ' visible' : '') + '" id="sliderWrap_' + m.id + '">' +
-          '<div class="ortho-slider-lbl">' +
-            '<span>Opacité</span>' +
-            '<strong id="opLabel_' + m.id + '">' + defaultOpacity + '</strong>%' +
-          '</div>' +
-          '<input type="range" class="form-range" min="10" max="100" value="' + defaultOpacity + '"' +
-                 ' id="slider_' + m.id + '">' +
+  if (orthoContainer) {
+    if (ORTHOPHOTOS.length === 0) {
+      orthoContainer.innerHTML =
+        '<div class="ortho-empty">' +
+        '<i class="bi bi-camera-video-off d-block mb-1" style="font-size:22px;"></i>' +
+        'Aucune orthophoto disponible.<br>' +
+        '<span style="font-size:10.5px;">Traitez une mission via WebODM puis configurez l\'URL des tuiles.</span>' +
         '</div>';
-      orthoContainer.appendChild(card);
+    } else {
+      ORTHOPHOTOS.forEach(function (m, idx) {
+        var isPriority = idx === 0;
+        var defaultOpacity = isPriority ? 100 : 85;
+        orthoLayers[m.id] = loadOrthophoto(map, m.tiles_url, { opacity: defaultOpacity / 100, maxNativeZoom: 24 });
 
-      document.getElementById('ortho_' + m.id).addEventListener('change', function () {
-        var layer   = orthoLayers[m.id];
-        var wrap    = document.getElementById('sliderWrap_' + m.id);
-        var cardEl  = document.getElementById('orthoCard_' + m.id);
-        if (this.checked) {
-          layer.addTo(map);
-          wrap.classList.add('visible');
-          cardEl.classList.add('is-active');
-          // Le satellite Esri n'a pas d'imagerie haute résolution sur toutes
-          // les zones du campus : on repasse sur OSM pour éviter les tuiles
-          // grises "Map data not yet available" autour de l'orthophoto.
-          if (map._activeBase === 'satellite') setBase('osm');
-        } else {
-          map.removeLayer(layer);
-          wrap.classList.remove('visible');
-          cardEl.classList.remove('is-active');
+        var card = document.createElement('div');
+        card.className = 'ortho-card' + (isPriority ? ' is-active' : '');
+        card.id = 'orthoCard_' + m.id;
+        card.innerHTML =
+          '<div class="ortho-card-hdr">' +
+            '<div class="ortho-card-info">' +
+              '<div class="ortho-card-name" title="' + m.nom + '">' +
+                (isPriority ? '<i class="bi bi-star-fill me-1" title="Orthophoto principale"></i>' : '') +
+                m.nom +
+              '</div>' +
+              '<div class="ortho-card-date"><i class="bi bi-calendar3 me-1"></i>' + m.date_mission + '</div>' +
+            '</div>' +
+            '<div class="form-check form-switch mb-0">' +
+              '<input class="form-check-input" type="checkbox" id="ortho_' + m.id + '" style="cursor:pointer;"' +
+                     (isPriority ? ' checked' : '') + '>' +
+            '</div>' +
+          '</div>' +
+          '<div class="ortho-slider-wrap' + (isPriority ? ' visible' : '') + '" id="sliderWrap_' + m.id + '">' +
+            '<div class="ortho-slider-lbl">' +
+              '<span>Opacité</span>' +
+              '<strong id="opLabel_' + m.id + '">' + defaultOpacity + '</strong>%' +
+            '</div>' +
+            '<input type="range" class="form-range" min="10" max="100" value="' + defaultOpacity + '"' +
+                   ' id="slider_' + m.id + '">' +
+          '</div>';
+        orthoContainer.appendChild(card);
+
+        var orthoCb = document.getElementById('ortho_' + m.id);
+        if (orthoCb) {
+          orthoCb.addEventListener('change', function () {
+            var layer   = orthoLayers[m.id];
+            var wrap    = document.getElementById('sliderWrap_' + m.id);
+            var cardEl  = document.getElementById('orthoCard_' + m.id);
+            if (this.checked) {
+              layer.addTo(map);
+              if (wrap) wrap.classList.add('visible');
+              if (cardEl) cardEl.classList.add('is-active');
+              if (map._activeBase === 'satellite') setBase('osm');
+            } else {
+              map.removeLayer(layer);
+              if (wrap) wrap.classList.remove('visible');
+              if (cardEl) cardEl.classList.remove('is-active');
+            }
+            updateActiveBadge();
+          });
+        }
+
+        var orthoSlider = document.getElementById('slider_' + m.id);
+        if (orthoSlider) {
+          orthoSlider.addEventListener('input', function () {
+            orthoLayers[m.id].setOpacity(this.value / 100);
+            var opLabel = document.getElementById('opLabel_' + m.id);
+            if (opLabel) opLabel.textContent = this.value;
+          });
+        }
+
+        if (isPriority) {
+          orthoLayers[m.id].addTo(map);
+          setBase('osm');
+          if (m.bounds && m.bounds.length === 4) {
+            var b = m.bounds;
+            map.fitBounds([[b[1], b[0]], [b[3], b[2]]], { maxZoom: 21 });
+          } else {
+            var tilesJsonUrl = m.tiles_url.split('/tiles/')[0] + '/tiles.json';
+            fetch(tilesJsonUrl)
+              .then(function (r) { return r.json(); })
+              .then(function (meta) {
+                if (meta.bounds && meta.bounds.length === 4) {
+                  var b2 = meta.bounds;
+                  map.fitBounds([[b2[1], b2[0]], [b2[3], b2[2]]], { maxZoom: 21 });
+                }
+              })
+              .catch(function () {});
+          }
         }
       });
+    }
+  }
 
-      document.getElementById('slider_' + m.id).addEventListener('input', function () {
-        orthoLayers[m.id].setOpacity(this.value / 100);
-        document.getElementById('opLabel_' + m.id).textContent = this.value;
-      });
-
-      if (isPriority) {
-        orthoLayers[m.id].addTo(map);
-        setBase('osm');
-
-        // Cale la vue initiale sur l'emprise réelle de l'orthophoto pour que cette
-        // carte serve de vue par défaut plutôt qu'une simple couche en option.
-        if (m.bounds && m.bounds.length === 4) {
-          var b = m.bounds;
-          map.fitBounds([[b[1], b[0]], [b[3], b[2]]], { maxZoom: 21 });
-        } else {
-          // Repli pour les orthophotos WebODM sans emprise enregistrée : on tente
-          // de lire les bornes depuis le tiles.json du serveur de tuiles.
-          var tilesJsonUrl = m.tiles_url.split('/tiles/')[0] + '/tiles.json';
-          fetch(tilesJsonUrl)
-            .then(function (r) { return r.json(); })
-            .then(function (meta) {
-              if (meta.bounds && meta.bounds.length === 4) {
-                var b2 = meta.bounds;
-                map.fitBounds([[b2[1], b2[0]], [b2[3], b2[2]]], { maxZoom: 21 });
-              }
-            })
-            .catch(function () { /* pas grave, on garde la vue par défaut */ });
-        }
+  // Cadrage territorial initial si géométrie disponible
+  if (CAMPUS_GEOM) {
+    try {
+      var geomLayer = L.geoJSON(CAMPUS_GEOM);
+      var gBounds = geomLayer.getBounds();
+      if (gBounds && gBounds.isValid && gBounds.isValid()) {
+        map.fitBounds(gBounds, { padding: [20, 20] });
       }
+    } catch (e) {
+      console.warn('Cadrage territorial impossible:', e);
+    }
+  }
+
+  // Initialisation du badge de couches actives
+  updateActiveBadge();
+
+  /* ---- Barre d'outils carte ---- */
+  var btnRecentrer = document.getElementById('btnRecentrer');
+  if (btnRecentrer) {
+    btnRecentrer.addEventListener('click', function () {
+      if (CAMPUS_GEOM) {
+        try {
+          var geomLayer = L.geoJSON(CAMPUS_GEOM);
+          var gBounds = geomLayer.getBounds();
+          if (gBounds && gBounds.isValid && gBounds.isValid()) {
+            map.fitBounds(gBounds, { padding: [20, 20] });
+            return;
+          }
+        } catch (e) {}
+      }
+      map.setView([14.696291168874254, -16.477368387258974], 17);
     });
   }
 
-  // Cadrage final : quel que soit l'état des orthophotos, la vue par défaut
-  // du "Voir le Campus" doit couvrir l'étendue complète du Campus.
-  if (CAMPUS_GEOM) {
-    try { map.fitBounds(L.geoJSON(CAMPUS_GEOM).getBounds(), { padding: [20, 20] }); } catch (e) {}
-  }
-
-  /* ---- Collapse sidebar ---- */
-  var sidebar     = document.getElementById('cartoSidebar');
-  var collapseBtn = document.getElementById('collapseBtn');
-  var collapseIco = document.getElementById('collapseIcon');
-  var openBtn     = document.getElementById('openSidebarBtn');
-
-  collapseBtn.addEventListener('click', function () {
-    sidebar.classList.add('is-collapsed');
-    openBtn.classList.remove('d-none');
-  });
-  openBtn.addEventListener('click', function () {
-    sidebar.classList.remove('is-collapsed');
-    openBtn.classList.add('d-none');
-  });
-
-  /* ---- Barre d'outils carte ---- */
-  document.getElementById('btnRecentrer').addEventListener('click', function () {
-    if (CAMPUS_GEOM) {
-      try {
-        map.fitBounds(L.geoJSON(CAMPUS_GEOM).getBounds(), { padding: [20, 20] });
-        return;
-      } catch (e) {}
-    }
-    map.setView([14.696291168874254, -16.477368387258974], 17);
-  });
-  document.getElementById('btnZoomIn').addEventListener('click', function () { map.zoomIn(); });
-  document.getElementById('btnZoomOut').addEventListener('click', function () { map.zoomOut(); });
+  var btnZoomIn = document.getElementById('btnZoomIn');
+  var btnZoomOut = document.getElementById('btnZoomOut');
+  if (btnZoomIn) btnZoomIn.addEventListener('click', function () { map.zoomIn(); });
+  if (btnZoomOut) btnZoomOut.addEventListener('click', function () { map.zoomOut(); });
 
   /* ---- Coordonnées curseur ---- */
   var coordsEl = document.getElementById('mapCoords');
-  map.on('mousemove', function (e) {
-    coordsEl.textContent = e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6);
-  });
+  if (coordsEl) {
+    map.on('mousemove', function (e) {
+      coordsEl.textContent = e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6);
+    });
+  }
+
+  // Redimensionnement automatique de Leaflet lors du redimensionnement de la fenêtre
+  window.addEventListener('resize', invalidateMap);
 })();
 </script>
 {% endblock %}
