@@ -1,48 +1,48 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags dossier_tags %}
 
 {% block title %}Missions Drones — {{ active_dossier.nom|default:"Territoire" }}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Drones & Imagerie</a></li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:missions' %}">Drones & Imagerie</a></li>
 <li class="breadcrumb-item active">Missions</li>
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 {% endblock %}
-
 
 {% block content %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
     <div class="d-flex align-items-center gap-2 mb-1">
-      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 11px;">
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold"
+        style="font-size: 11px;">
         <i class="bi bi-geo-alt me-1"></i>{{ active_dossier.nom|default:"Espace Actif" }}
       </span>
       <span class="badge bg-light text-secondary border" style="font-size: 11px;">
         {{ nb_missions }} mission{{ nb_missions|pluralize }}
       </span>
     </div>
-    <h1 class="page-title mb-1"><i class="bi bi-airplane me-2" style="color:#4338ca;"></i>Missions Drones & Télédétection</h1>
-    <p class="page-description text-muted mb-0">Chaîne de production photogrammétrique : planification de vol, acquisition, traitement et orthophotos.</p>
+    <h1 class="page-title mb-1"><i class="bi bi-airplane me-2" style="color:#4338ca;"></i>Missions Drones &
+      Télédétection</h1>
+    <p class="page-description text-muted mb-0">Répertoire opérationnel des vols, délimitations spatiales et livrables
+      photogrammétriques.</p>
   </div>
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-mission-create">
+    <a href="{% ws_url 'drones:mission_create' %}" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
       <i class="bi bi-plus-lg"></i>
-      <span>Nouvelle mission</span>
-    </button>
-    <a href="{% url 'drones:import_orthophoto' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+      <span>Planifier une mission</span>
+    </a>
+    <a href="{% ws_url 'drones:import_orthophoto' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
       <i class="bi bi-upload"></i>
       <span class="d-none d-sm-inline">Importer Orthophoto</span>
     </a>
   </div>
 </div>
 
-<!-- ===== KPI (Ruban horizontal scrollable à cartes fixes) ===== -->
+<!-- ===== KPI (Ruban horizontal scrollable) ===== -->
 <div class="kpi-row-scroll">
-
-  <!-- 1. Missions Totales (Bleu Primaire) -->
   <div class="kpi-card kpi-card--primary">
     <div class="kpi-card__header">
       <span class="kpi-card__label">Missions Totales</span>
@@ -50,13 +50,10 @@
     </div>
     <div class="kpi-card__body">
       <span class="kpi-card__value">{{ nb_missions }}</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Vols planifiés
-      </span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">Vols planifiés</span>
     </div>
   </div>
 
-  <!-- 2. Orthophotos (Cyan Info) -->
   <div class="kpi-card kpi-card--info">
     <div class="kpi-card__header">
       <span class="kpi-card__label">Orthophotos</span>
@@ -64,13 +61,10 @@
     </div>
     <div class="kpi-card__body">
       <span class="kpi-card__value">{{ total_orthophotos }}</span>
-      <span class="kpi-card__badge kpi-card__badge--info">
-        Produites
-      </span>
+      <span class="kpi-card__badge kpi-card__badge--info">Produites</span>
     </div>
   </div>
 
-  <!-- 3. Surface Couverte (Vert Secondaire) -->
   <div class="kpi-card kpi-card--secondary">
     <div class="kpi-card__header">
       <span class="kpi-card__label">Surface Couverte</span>
@@ -78,13 +72,10 @@
     </div>
     <div class="kpi-card__body">
       <span class="kpi-card__value">{{ surface_ha }} ha</span>
-      <span class="kpi-card__badge kpi-card__badge--neutral">
-        Cartographiée
-      </span>
+      <span class="kpi-card__badge kpi-card__badge--neutral">Cartographiée</span>
     </div>
   </div>
 
-  <!-- 4. Validées (Vert Secondaire) -->
   <div class="kpi-card kpi-card--secondary">
     <div class="kpi-card__header">
       <span class="kpi-card__label">Validées</span>
@@ -92,23 +83,18 @@
     </div>
     <div class="kpi-card__body">
       <span class="kpi-card__value">{{ nb_validees }}</span>
-      <span class="kpi-card__badge kpi-card__badge--success">
-        Conformes
-      </span>
+      <span class="kpi-card__badge kpi-card__badge--success">Conformes</span>
     </div>
   </div>
-
 </div>
 
-<!-- ===== BARRE DE FILTRES STICKY (Desktop & Tablette) ===== -->
+<!-- ===== BARRE DE FILTRES STICKY ===== -->
 <div class="filter-bar-sticky d-none d-md-block">
   <form method="get" class="d-flex flex-wrap align-items-center gap-2 m-0 w-100" id="filterDronesDesktop">
-    
-    <!-- Champ de recherche épuré avec icône intégrée -->
-    <div class="filter-search-wrapper">
+    <div class="filter-search-wrapper" style="max-width: 320px;">
       <i class="bi bi-search filter-search-icon"></i>
       <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm filter-search-input"
-             placeholder="Rechercher une mission, un opérateur, un drone..." autocomplete="off">
+        placeholder="Rechercher une mission, opérateur, drone..." autocomplete="off">
       {% if q %}
       <button type="button" class="filter-search-clear" title="Effacer la recherche">
         <i class="bi bi-x"></i>
@@ -116,7 +102,7 @@
       {% endif %}
     </div>
 
-    <select name="statut" class="form-select form-select-sm" style="max-width: 200px;">
+    <select name="statut" class="form-select form-select-sm" style="max-width: 180px;">
       <option value="">Tous les statuts</option>
       {% for code, label in statuts %}
       <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
@@ -124,221 +110,347 @@
     </select>
 
     {% if q or statut %}
-    <a href="{% url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset" title="Réinitialiser les filtres">
+    <a href="{% ws_url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary btn-filter-reset"
+      title="Réinitialiser les filtres">
       <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
     </a>
     {% endif %}
   </form>
 </div>
 
-<!-- ===== BOUTON FLOTTANT FILTRES (Mobile uniquement) ===== -->
-<div class="fab-filter-mobile d-md-none">
-  <button type="button" class="btn fab-filter-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDronesFilters" aria-controls="offcanvasDronesFilters">
-    <i class="bi bi-funnel-fill"></i>
-    {% if q or statut %}
-    <span class="badge-filter-count">!</span>
-    {% endif %}
-  </button>
+<!-- ===== TABLE CARD (Aligné Standard accounts/management/list.html) ===== -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-header bg-white d-flex align-items-center justify-content-between py-3 px-4 border-bottom">
+    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+      <i class="bi bi-list-check text-primary"></i>
+      Répertoire des missions de vol
+    </div>
+    <span class="badge bg-light text-secondary border">
+      Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages|default:1 }}
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-uad mb-0" id="table-missions">
+      <thead>
+        <tr>
+          <th>Mission</th>
+          <th>Date de vol</th>
+          <th>Opérateur &amp; Drone</th>
+          <th>Altitude · Durée</th>
+          <th>Superficie</th>
+          <th>Clichés &amp; Orthophoto</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mission in page_obj %}
+        <tr class="table-row-clickable" data-mission-id="{{ mission.pk }}">
+
+          <!-- Colonne 1 : Mission & Nom -->
+          <td>
+            <div class="d-flex align-items-center gap-2.5">
+              <div
+                class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                style="width: 36px; height: 36px;">
+                <i class="bi bi-airplane-fill" style="font-size: 16px;"></i>
+              </div>
+              <div>
+                <div class="fw-bold text-dark" style="font-size: 13.5px;">{{ mission.nom }}</div>
+                <div class="text-muted small" style="font-size: 11.5px;">
+                  {% if mission.emprise %}<i class="bi bi-bounding-box text-primary me-1"></i>Délimitation tracée{% else %}Emprise non bornée{% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Métadonnées complètes pour la Modale Immersive -->
+            <script type="application/json" id="missionData_{{ mission.pk }}">
+              {
+                "id": {{ mission.pk }},
+                "nom": "{{ mission.nom|escapejs }}",
+                "date_vol": "{{ mission.date_vol|date:'d/m/Y' }}",
+                "date_vol_raw": "{{ mission.date_vol|date:'Y-m-d' }}",
+                "operateur": "{{ mission.operateur|default:'Non renseigné'|escapejs }}",
+                "drone_utilise": "{{ mission.drone_utilise|default:'Standard'|escapejs }}",
+                "altitude": "{% if mission.altitude %}{{ mission.altitude }} m{% else %}—{% endif %}",
+                "duree_minutes": "{% if mission.duree_minutes %}{{ mission.duree_minutes }} min{% else %}—{% endif %}",
+                "superficie_prevue": "{% if mission.superficie_prevue %}{{ mission.superficie_prevue }} ha{% else %}—{% endif %}",
+                "statut": "{{ mission.statut }}",
+                "statut_display": "{{ mission.get_statut_display|escapejs }}",
+                "badge_couleur": "{{ mission.badge_couleur }}",
+                "notes": "{{ mission.notes|default:''|escapejs }}",
+                "nb_photos": {{ mission.nb_photos }},
+                "a_orthophoto": {% if mission.a_orthophoto %}true{% else %}false{% endif %},
+                "emprise_geojson": {% if mission.emprise %}{{ mission.emprise.geojson|safe }}{% else %}null{% endif %},
+                "trajectoire_geojson": {% if mission.trajectoire %}{{ mission.trajectoire.geojson|safe }}{% else %}null{% endif %},
+                {% with ortho=mission.orthophotos.first %}
+                "ortho": {% if ortho %}
+                  {
+                    "nom": "{{ ortho.nom|escapejs }}",
+                    "resolution": "{{ ortho.resolution|default:'—' }}",
+                    "superficie_ha": "{{ ortho.superficie_ha|default:'—' }}",
+                    "valide": {% if ortho.valide %}true{% else %}false{% endif %},
+                    "tiles_url": "{{ ortho.tiles_url|default:''|escapejs }}",
+                    "emprise_geojson": {% if ortho.emprise %}{{ ortho.emprise.geojson|safe }}{% else %}null{% endif %}
+                  }
+                {% else %}null{% endif %},
+                {% endwith %}
+                "urls": {
+                  "update": "{% ws_url 'drones:mission_update' mission.pk %}",
+                  "delete": "{% ws_url 'drones:mission_delete' mission.pk %}",
+                  "photos_import": "{% ws_url 'drones:mission_photos_import' mission.pk %}",
+                  "ortho_import": "{% ws_url 'drones:mission_orthophoto_import' mission.pk %}",
+                  "marquer_traitement": "{% ws_url 'drones:mission_marquer_traitement' mission.pk %}"
+                }
+              }
+            </script>
+          </td>
+
+          <!-- Colonne 2 : Date de vol -->
+          <td>
+            <div class="fw-medium text-dark"><i class="bi bi-calendar3 text-muted me-1"></i>{{ mission.date_vol|date:"d/m/Y" }}</div>
+          </td>
+
+          <!-- Colonne 3 : Opérateur & Drone -->
+          <td>
+            <div class="text-dark fw-semibold">{{ mission.operateur|default:"—" }}</div>
+            <div class="text-muted small"><i class="bi bi-cpu me-1"></i>{{ mission.drone_utilise|default:"DJI Standard" }}</div>
+          </td>
+
+          <!-- Colonne 4 : Paramètres de vol -->
+          <td>
+            <span class="badge bg-light text-dark border">
+              {% if mission.altitude %}{{ mission.altitude }} m{% else %}—{% endif %}
+            </span>
+            <span class="text-muted small ms-1">
+              {% if mission.duree_minutes %}{{ mission.duree_minutes }} min{% else %}—{% endif %}
+            </span>
+          </td>
+
+          <!-- Colonne 5 : Superficie -->
+          <td>
+            <span class="fw-bold text-dark">
+              {% if mission.superficie_prevue %}{{ mission.superficie_prevue }} ha{% else %}—{% endif %}
+            </span>
+          </td>
+
+          <!-- Colonne 6 : Clichés & Orthophoto -->
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-light text-secondary border">
+                <i class="bi bi-camera me-1"></i>{{ mission.nb_photos }}
+              </span>
+              {% if mission.a_orthophoto %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle-fill me-1"></i>Orthophoto prête
+              </span>
+              {% else %}
+              <span class="badge bg-light text-muted border">
+                Sans orthophoto
+              </span>
+              {% endif %}
+            </div>
+          </td>
+
+          <!-- Colonne 7 : Statut -->
+          <td>
+            <span class="badge bg-{{ mission.badge_couleur }} px-2.5 py-1.5 fw-semibold">
+              {{ mission.get_statut_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="bi bi-airplane fs-2 text-muted d-block mb-2"></i>
+            Aucune mission trouvée{% if q %} pour « {{ q }} »{% endif %}.
+            <div class="mt-2">
+              <a href="{% ws_url 'drones:mission_create' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Créer une première mission
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
-<!-- ===== TIROIR DE FILTRES OFFCANVAS (Mobile) ===== -->
-<div class="offcanvas offcanvas-bottom rounded-top-4 d-md-none" tabindex="-1" id="offcanvasDronesFilters" aria-labelledby="offcanvasDronesFiltersLabel" style="height: auto; max-height: 85vh;">
-  <div class="offcanvas-header border-bottom py-3">
-    <h5 class="offcanvas-title fs-6 fw-bold text-dark d-flex align-items-center gap-2" id="offcanvasDronesFiltersLabel">
-      <i class="bi bi-funnel-fill text-primary"></i> Filtrer les missions drones
-    </h5>
-    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+<!-- Callout vers la Supervision -->
+<div class="perspectives-callout mb-4">
+  <i class="bi bi-broadcast fs-5 text-primary"></i>
+  <div>
+    Flux vidéo live, enregistrements et télémétrie en direct :
+    <a href="{% ws_url 'drones:perspectives' %}" class="fw-semibold text-primary">accéder au Centre de Supervision
+      Drone</a>.
   </div>
-  <div class="offcanvas-body p-4">
-    <form method="get" class="d-flex flex-column gap-3" id="filterDronesMobile">
-      <div>
-        <label class="form-label small fw-semibold text-muted mb-1">Recherche textuelle</label>
-        <div class="filter-search-wrapper w-100" style="max-width: 100%;">
-          <i class="bi bi-search filter-search-icon"></i>
-          <input type="text" name="q" class="form-control filter-search-input" placeholder="Mission, opérateur, drone..." value="{{ q }}">
-          {% if q %}
-          <button type="button" class="filter-search-clear" title="Effacer la recherche">
-            <i class="bi bi-x"></i>
-          </button>
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <label class="form-label small fw-semibold text-muted mb-1">Statut du vol</label>
-        <select name="statut" class="form-select">
-          <option value="">Tous les statuts</option>
-          {% for code, label in statuts %}
-          <option value="{{ code }}" {% if statut == code %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="d-flex gap-2 pt-2">
-        <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm py-2">
-          <i class="bi bi-check-lg me-1"></i> Appliquer les filtres
-        </button>
-        {% if q or statut %}
-        <a href="{% url 'drones:missions' %}" class="btn btn-outline-secondary py-2">
-          <i class="bi bi-arrow-counterclockwise"></i>
-        </a>
-        {% endif %}
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="row g-4">
-
-  <!-- ── Liste des missions ── -->
-  <div class="col-lg-8">
-
-    <div id="missions-container">
-      {% if page_obj.object_list %}
-      {% for mission in page_obj %}
-      <div class="mission-row clickable-row"
-           data-pk="{{ mission.pk }}"
-           data-nom="{{ mission.nom }}"
-           data-date="{{ mission.date_vol|date:'d/m/Y' }}"
-           data-operateur="{{ mission.operateur|default:'Non renseigné' }}"
-           data-drone="{{ mission.drone_utilise|default:'Standard' }}"
-           data-altitude="{% if mission.altitude %}{{ mission.altitude }} m{% else %}—{% endif %}"
-           data-duree="{% if mission.duree_minutes %}{{ mission.duree_minutes }} min{% else %}—{% endif %}"
-           data-superficie="{% if mission.superficie_prevue %}{{ mission.superficie_prevue }} ha{% else %}—{% endif %}"
-           data-statut="{{ mission.get_statut_display }}"
-           data-statut-couleur="{{ mission.badge_couleur }}"
-           data-photos="{{ mission.nb_photos }}"
-           data-orthophoto="{% if mission.a_orthophoto %}Générée & Validée{% else %}En attente / Sans orthophoto{% endif %}"
-           data-notes="{{ mission.notes|default:'Aucune observation enregistrée.' }}"
-           data-detail-url="{% url 'drones:mission_detail' mission.pk %}"
-           data-update-url="{% url 'drones:mission_update' mission.pk %}"
-           data-delete-url="{% url 'drones:mission_delete' mission.pk %}">
-        <div class="mission-icon"><i class="bi bi-airplane-fill"></i></div>
-        <div class="mission-info">
-          <div class="mission-name">
-            <span class="text-dark">{{ mission.nom }}</span>
-          </div>
-          <div class="mission-meta">
-            <i class="bi bi-calendar3 me-1"></i>{{ mission.date_vol|date:"d/m/Y" }}
-            {% if mission.operateur %}· <i class="bi bi-person me-1"></i>{{ mission.operateur }}{% endif %}
-            {% if mission.drone_utilise %}· <i class="bi bi-cpu me-1"></i>{{ mission.drone_utilise }}{% endif %}
-          </div>
-        </div>
-        <div class="mission-stats">
-          <span><i class="bi bi-camera me-1"></i>{{ mission.nb_photos }} photo{{ mission.nb_photos|pluralize }}</span>
-          <span>
-            {% if mission.a_orthophoto %}<i class="bi bi-check-circle-fill text-success me-1"></i>Orthophoto
-            {% else %}<i class="bi bi-dash-circle text-muted me-1"></i>Sans orthophoto{% endif %}
-          </span>
-        </div>
-        <span class="badge bg-{{ mission.badge_couleur }}">{{ mission.get_statut_display }}</span>
-        <div class="d-flex gap-1" onclick="event.stopPropagation();">
-          <a href="{% url 'drones:mission_detail' mission.pk %}" class="btn btn-sm btn-outline-primary" title="Fiche détaillée">
-            <i class="bi bi-eye"></i>
-          </a>
-          <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
-            <i class="bi bi-pencil"></i>
-          </a>
-          <a href="{% url 'drones:mission_delete' mission.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
-            <i class="bi bi-trash"></i>
-          </a>
-        </div>
-      </div>
-      {% endfor %}
-
-      {% if page_obj.has_other_pages %}
-      <nav class="mt-4">
-        <ul class="pagination pagination-sm justify-content-center">
-          {% if page_obj.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&statut={{ statut }}"><i class="bi bi-chevron-left"></i></a></li>
-          {% endif %}
-          {% for num in page_obj.paginator.page_range %}
-          <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-            <a class="page-link" href="?page={{ num }}&q={{ q }}&statut={{ statut }}">{{ num }}</a>
-          </li>
-          {% endfor %}
-          {% if page_obj.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&statut={{ statut }}"><i class="bi bi-chevron-right"></i></a></li>
-          {% endif %}
-        </ul>
-      </nav>
-      {% endif %}
-
-      {% else %}
-      <div class="text-center py-5 bg-white rounded-4 border">
-        <i class="bi bi-airplane fs-1 text-muted d-block mb-3"></i>
-        <h6 class="text-muted">Aucune mission trouvée{% if q %} pour « {{ q }} »{% endif %}</h6>
-        <p class="text-muted small mb-4">
-          Créez une mission pour démarrer la chaîne de production : vol, photos, traitement, orthophoto.
-        </p>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-mission-create">
-          <i class="bi bi-plus-lg me-2"></i>Nouvelle mission
-        </button>
-      </div>
-      {% endif %}
-    </div>
-
-  </div>
-
-  <!-- ── Carte de couverture ── -->
-  <div class="col-lg-4">
-    <div class="card border-0 shadow-sm rounded-4">
-      <div class="card-header bg-light d-flex align-items-center gap-2 border-bottom py-3">
-        <i class="bi bi-map text-primary"></i>
-        <span class="fw-bold text-dark">Carte de couverture</span>
-      </div>
-      <div class="card-body p-2">
-        <div id="coverage-map"></div>
-        {% if not has_geodata %}
-        <p class="text-muted small text-center mt-2 mb-0">
-          <i class="bi bi-info-circle me-1"></i>
-          Aucune emprise géoréférencée pour le moment.
-        </p>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="perspectives-callout mt-3">
-      <i class="bi bi-broadcast fs-5 text-primary"></i>
-      <div>
-        Flux vidéo live, enregistrements et télémétrie :
-        <a href="{% url 'drones:perspectives' %}" class="fw-semibold text-primary">voir Centre de Supervision</a>.
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <!-- =========================================================================
-     MODALE DE CRÉATION DIRECTE (Zero-Page Create)
+     MODALE IMMERSIVE 100% (REMPLACE DETAIL.HTML)
      ========================================================================= -->
-<div class="modal fade" id="modal-mission-create" tabindex="-1" aria-labelledby="modalMissionCreateLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow-lg rounded-4">
-      <div class="modal-header border-bottom py-3 px-4 bg-light">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-airplane-fill fs-5 text-primary"></i>
-          <h5 class="modal-title fw-bold text-dark" id="modalMissionCreateLabel">Planifier une Mission Drone</h5>
+<div class="modal fade modal-mission-immersive" id="modalMissionDetail" tabindex="-1"
+  aria-labelledby="modalMissionDetailTitle" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+
+      <!-- En-tête de la modale -->
+      <div class="modal-header py-3 px-4 bg-white border-bottom d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center"
+            style="width: 40px; height: 40px;">
+            <i class="bi bi-airplane-engines-fill fs-5"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="modal-title fw-bold text-dark mb-0" id="mDetailNom">Nom de la Mission</h5>
+              <span class="badge" id="mDetailBadgeStatut">Statut</span>
+            </div>
+            <div class="text-muted small" id="mDetailMetaSub">Vol du --/--/---- · Opérateur : ----</div>
+          </div>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        <div class="d-flex align-items-center gap-2">
+          <a href="#" id="mDetailBtnUpdate" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+          </a>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
       </div>
 
-      <form method="post" action="{% url 'drones:mission_create' %}">
-        {% csrf_token %}
-        <div class="modal-body p-4">
-          <div class="alert alert-info py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
-            <i class="bi bi-info-circle-fill fs-5"></i>
-            <div>Rattachement automatique à l'espace territorial en cours. Vous pourrez importer les photographies de vol immédiatement après création.</div>
+      <!-- Corps de la modale en 2 colonnes immersives -->
+      <div class="modal-body">
+        <div class="modal-split-wrap">
+
+          <!-- Volet Gauche : Paramètres & Chaîne de production 6 étapes -->
+          <div class="modal-split-sidebar">
+
+            <!-- Carte Paramètres de vol -->
+            <div class="card border-0 shadow-sm rounded-3">
+              <div
+                class="card-header bg-white py-2.5 px-3 fw-bold text-dark small d-flex align-items-center gap-2 border-bottom">
+                <i class="bi bi-clipboard-data text-primary"></i>
+                Paramètres de Navigation & Vol
+              </div>
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between py-1 border-bottom small">
+                  <span class="text-muted">Opérateur</span>
+                  <span class="fw-semibold text-dark" id="mDetailOp">Amadou Diallo</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom small">
+                  <span class="text-muted">Drone utilisé</span>
+                  <span class="fw-semibold text-dark" id="mDetailDrone">DJI Matrice 300</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom small">
+                  <span class="text-muted">Altitude de vol</span>
+                  <span class="fw-semibold text-dark" id="mDetailAlt">80 m</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom small">
+                  <span class="text-muted">Durée de mission</span>
+                  <span class="fw-semibold text-dark" id="mDetailDuree">25 min</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 small">
+                  <span class="text-muted">Superficie couverte</span>
+                  <span class="fw-bold text-success" id="mDetailSurf">4.5 ha</span>
+                </div>
+                <div class="mt-2 pt-2 border-top small text-muted" id="mDetailNotesBlock">
+                  <span class="fw-bold d-block text-dark mb-0.5">Notes :</span>
+                  <span id="mDetailNotes" style="white-space: pre-wrap;">Aucune observation</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Carte Chaîne de production photogrammétrique -->
+            <div class="card border-0 shadow-sm rounded-3">
+              <div
+                class="card-header bg-white py-2.5 px-3 fw-bold text-dark small d-flex align-items-center gap-2 border-bottom">
+                <i class="bi bi-diagram-3 text-primary"></i>
+                Chaîne Photogrammétrique (WebODM)
+              </div>
+              <div class="card-body p-3">
+                <div class="modal-step-list">
+
+                  <!-- Étape 1 : Mission planifiée -->
+                  <div class="modal-step-item modal-step-done">
+                    <div class="modal-step-num"><i class="bi bi-check"></i></div>
+                    <div class="flex-grow-1 small">
+                      <div class="fw-bold text-dark">1. Mission planifiée</div>
+                      <div class="text-muted">Tracé et paramètres opérationnels enregistrés.</div>
+                    </div>
+                  </div>
+
+                  <!-- Étape 2 : Photos importées -->
+                  <div class="modal-step-item" id="mStepPhotos">
+                    <div class="modal-step-num" id="mStepPhotosNum">2</div>
+                    <div class="flex-grow-1 small">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold text-dark">2. Clichés aériens</div>
+                        <a href="#" id="mBtnImportPhotos" class="btn btn-xs btn-outline-primary py-0.5 px-2">
+                          <i class="bi bi-upload me-1"></i>Importer
+                        </a>
+                      </div>
+                      <div class="text-muted" id="mStepPhotosDesc">0 clichés importés.</div>
+                    </div>
+                  </div>
+
+                  <!-- Étape 3 : Traitement WebODM -->
+                  <div class="modal-step-item" id="mStepWebodm">
+                    <div class="modal-step-num" id="mStepWebodmNum">3</div>
+                    <div class="flex-grow-1 small">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold text-dark">3. Traitement WebODM</div>
+                        <form method="post" id="mFormTraitement" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-xs btn-outline-warning py-0.5 px-2"
+                            id="mBtnLaunchTraitement">
+                            <i class="bi bi-gear-wide-connected me-1"></i>Traiter
+                          </button>
+                        </form>
+                      </div>
+                      <div class="text-muted" id="mStepWebodmDesc">En attente de traitement.</div>
+                    </div>
+                  </div>
+
+                  <!-- Étape 4 : Orthophoto GeoTIFF -->
+                  <div class="modal-step-item" id="mStepOrtho">
+                    <div class="modal-step-num" id="mStepOrthoNum">4</div>
+                    <div class="flex-grow-1 small">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold text-dark">4. Orthophoto 2D</div>
+                        <a href="#" id="mBtnImportOrtho" class="btn btn-xs btn-outline-info py-0.5 px-2">
+                          <i class="bi bi-plus-lg me-1"></i>Associer
+                        </a>
+                      </div>
+                      <div class="text-muted" id="mStepOrthoDesc">Aucune orthophoto liée.</div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions de suppression -->
+            <div class="mt-auto pt-2">
+              <a href="#" id="mDetailBtnDelete" class="btn btn-sm btn-outline-danger w-100"
+                onclick="return confirm('Confirmez-vous la suppression définitive de cette mission ?');">
+                <i class="bi bi-trash me-1"></i>Supprimer la mission
+              </a>
+            </div>
+
+          </div><!-- /modal-split-sidebar -->
+
+          <!-- Volet Droit : Carte Leaflet Immersive -->
+          <div class="modal-split-map-panel">
+            <div id="modal-mission-map"></div>
+            <div class="modal-map-floating-legend" id="mMapLegend">
+              <i class="bi bi-layers-half text-info"></i>
+              <span id="mMapLegendText">Emprise spatiale &amp; Trajectoire de vol</span>
+            </div>
           </div>
 
-          {{ creation_form|crispy }}
         </div>
+      </div><!-- /modal-body -->
 
-        <div class="modal-footer border-top py-3 px-4 bg-light">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-primary px-4">
-            <i class="bi bi-check-lg me-1"></i> Enregistrer la mission
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 </div>
@@ -346,121 +458,239 @@
 {% endblock %}
 
 {% block extra_js_vendor %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock %}
 
 {% block extra_js %}
-<script src="/static/js/slideover.js"></script>
 <script src="/static/js/filter_manager.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Bind du SlideOver latéral sur les lignes de mission
-  SlideOver.bindTable('#missions-container', function (row) {
-    const d = row.dataset;
+  document.addEventListener('DOMContentLoaded', function () {
 
-    const badgeHtml = `<span class="badge bg-${d.statutCouleur}">${d.statut}</span>`;
+    // 1. Initialisation des filtres
+    FilterManager.init({
+      desktopFormSelector: '#filterDronesDesktop',
+      debounceMs: 400
+    });
 
-    const bodyHtml = `
-      <div class="slideover-card">
-        <div class="slideover-section-title">Paramètres de Vol</div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Date d'opération</span>
-          <span class="slideover-kv-val fw-bold">${d.date}</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Opérateur</span>
-          <span class="slideover-kv-val">${d.operateur}</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Modèle de Drone</span>
-          <span class="slideover-kv-val">${d.drone}</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Altitude de vol</span>
-          <span class="slideover-kv-val text-primary fw-bold">${d.altitude}</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Durée de mission</span>
-          <span class="slideover-kv-val">${d.duree}</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Superficie couverte</span>
-          <span class="slideover-kv-val text-success fw-bold">${d.superficie}</span>
-        </div>
-      </div>
+    // 2. Initialisation de la Carte Leaflet dans la Modale Immersive
+    var modalMap = null;
+    var modalGeoLayerGroup = null;
+    var modalOrthoTileLayer = null;
 
-      <div class="slideover-card">
-        <div class="slideover-section-title">Données Acquises & Imagerie</div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Photos capturées</span>
-          <span class="slideover-kv-val fw-bold">${d.photos} clichés</span>
-        </div>
-        <div class="slideover-kv-row">
-          <span class="slideover-kv-key">Orthophoto 2D</span>
-          <span class="slideover-kv-val">${d.orthophoto}</span>
-        </div>
-      </div>
+    function initModalMap() {
+      if (modalMap) return;
 
-      <div class="slideover-card">
-        <div class="slideover-section-title">Observations Terrain</div>
-        <p class="text-muted small mb-0" style="white-space: pre-wrap;">${d.notes}</p>
-      </div>
-    `;
+      modalMap = L.map('modal-mission-map', {
+        center: [14.6928, -17.4467],
+        zoom: 14,
+        zoomControl: false
+      });
 
-    const footerHtml = `
-      <div class="d-flex gap-2 w-100 justify-content-between align-items-center">
-        <a href="${d.deleteUrl}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de la mission ?');">
-          <i class="bi bi-trash me-1"></i> Supprimer
-        </a>
-        <div class="d-flex gap-1 ms-auto">
-          <a href="${d.updateUrl}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-pencil me-1"></i> Modifier
-          </a>
-          <a href="${d.detailUrl}" class="btn btn-sm btn-primary">
-            <i class="bi bi-eye me-1"></i> Fiche Complète
-          </a>
-        </div>
-      </div>
-    `;
+      L.control.zoom({ position: 'bottomright' }).addTo(modalMap);
 
-    return {
-      title: d.nom,
-      badgeHtml: badgeHtml,
-      bodyHtml: bodyHtml,
-      footerHtml: footerHtml
-    };
-  });
+      var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 28,
+        maxNativeZoom: 19
+      }).addTo(modalMap);
 
-  // Carte de couverture Leaflet
-  try {
-    var map = initCampusMap('coverage-map', {});
-    {% if has_geodata %}
-    var geojson = {{ coverage_geojson|safe }};
-    var layer = L.geoJSON(geojson, {
-      style: { color: '#1E3A8A', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 2 },
-      onEachFeature: function(f, l) {
-        var p = f.properties;
-        l.bindPopup(
-          '<strong>' + p.nom + '</strong><br>' +
-          '<small>' + p.date + (p.resolution ? ' · ' + p.resolution + ' cm/px' : '') + '</small>'
-        );
-        if (p.tiles_url) {
-          loadOrthophoto(map, p.tiles_url, { opacity: 1, maxNativeZoom: 24 }).addTo(map);
-        }
+      var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 28,
+        maxNativeZoom: 19
+      });
+
+      L.control.layers({ 'Plan OSM': osm, 'Satellite': satellite }, null, { position: 'topright' }).addTo(modalMap);
+
+      modalGeoLayerGroup = L.featureGroup().addTo(modalMap);
+    }
+
+    // 3. Remplissage et Affichage de la Modale Immersive
+    var detailModalEl = document.getElementById('modalMissionDetail');
+    var bsDetailModal = new bootstrap.Modal(detailModalEl);
+
+    function openMissionModal(missionId) {
+      var scriptEl = document.getElementById('missionData_' + missionId);
+      if (!scriptEl) return;
+
+      var data = JSON.parse(scriptEl.textContent);
+
+      // Métadonnées d'en-tête
+      document.getElementById('mDetailNom').textContent = data.nom;
+      var badgeStatut = document.getElementById('mDetailBadgeStatut');
+      badgeStatut.textContent = data.statut_display;
+      badgeStatut.className = 'badge bg-' + data.badge_couleur;
+      document.getElementById('mDetailMetaSub').textContent = 'Vol du ' + data.date_vol + ' · Opérateur : ' + data.operateur;
+
+      // Boutons de navigation
+      document.getElementById('mDetailBtnUpdate').href = data.urls.update;
+      document.getElementById('mDetailBtnDelete').href = data.urls.delete;
+      document.getElementById('mBtnImportPhotos').href = data.urls.photos_import;
+      document.getElementById('mBtnImportOrtho').href = data.urls.ortho_import;
+      document.getElementById('mFormTraitement').action = data.urls.marquer_traitement;
+
+      // Paramètres du vol
+      document.getElementById('mDetailOp').textContent = data.operateur;
+      document.getElementById('mDetailDrone').textContent = data.drone_utilise;
+      document.getElementById('mDetailAlt').textContent = data.altitude;
+      document.getElementById('mDetailDuree').textContent = data.duree_minutes;
+      document.getElementById('mDetailSurf').textContent = data.superficie_prevue;
+      document.getElementById('mDetailNotes').textContent = data.notes || 'Aucune observation enregistrée.';
+
+      // Étapes de la chaîne WebODM
+      var stepPhotos = document.getElementById('mStepPhotos');
+      var stepPhotosDesc = document.getElementById('mStepPhotosDesc');
+      var stepPhotosNum = document.getElementById('mStepPhotosNum');
+      if (data.nb_photos > 0) {
+        stepPhotos.className = 'modal-step-item modal-step-done';
+        stepPhotosNum.innerHTML = '<i class="bi bi-check"></i>';
+        stepPhotosDesc.textContent = data.nb_photos + ' cliché(s) importé(s).';
+      } else {
+        stepPhotos.className = 'modal-step-item modal-step-todo';
+        stepPhotosNum.textContent = '2';
+        stepPhotosDesc.textContent = '0 clichés. Import requis pour le traitement.';
       }
-    }).addTo(map);
-    map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 20 });
-    {% endif %}
-  } catch (err) {
-    console.warn("Carte couverture non initialisée :", err);
-  }
 
-  // Initialisation du contrôleur réactif de filtres
-  FilterManager.init({
-    desktopFormSelector: '#filterDronesDesktop',
-    mobileFormSelector: '#filterDronesMobile',
-    debounceMs: 400
+      var stepWebodm = document.getElementById('mStepWebodm');
+      var stepWebodmDesc = document.getElementById('mStepWebodmDesc');
+      var stepWebodmNum = document.getElementById('mStepWebodmNum');
+      var btnTraitement = document.getElementById('mBtnLaunchTraitement');
+      if (data.statut === 'traitee' || data.statut === 'integree') {
+        stepWebodm.className = 'modal-step-item modal-step-done';
+        stepWebodmNum.innerHTML = '<i class="bi bi-check"></i>';
+        stepWebodmDesc.textContent = 'Traitement photogrammétrique achevé.';
+        btnTraitement.style.display = 'none';
+      } else if (data.statut === 'traitement') {
+        stepWebodm.className = 'modal-step-item modal-step-current';
+        stepWebodmNum.textContent = '3';
+        stepWebodmDesc.textContent = 'Calculs en cours dans WebODM...';
+        btnTraitement.style.display = 'none';
+      } else {
+        stepWebodm.className = 'modal-step-item modal-step-todo';
+        stepWebodmNum.textContent = '3';
+        stepWebodmDesc.textContent = 'En attente de traitement.';
+        btnTraitement.style.display = (data.nb_photos > 0) ? 'inline-block' : 'none';
+      }
+
+      var stepOrtho = document.getElementById('mStepOrtho');
+      var stepOrthoDesc = document.getElementById('mStepOrthoDesc');
+      var stepOrthoNum = document.getElementById('mStepOrthoNum');
+      var legendText = document.getElementById('mMapLegendText');
+
+      if (data.ortho) {
+        stepOrtho.className = 'modal-step-item modal-step-done';
+        stepOrthoNum.innerHTML = '<i class="bi bi-check"></i>';
+        stepOrthoDesc.textContent = data.ortho.nom + ' (' + (data.ortho.resolution || '—') + ' cm/px)';
+        legendText.textContent = 'Orthomosaïque WebODM (' + (data.ortho.resolution || '—') + ' cm/px)';
+      } else {
+        stepOrtho.className = 'modal-step-item modal-step-todo';
+        stepOrthoNum.textContent = '4';
+        stepOrthoDesc.textContent = 'Aucune orthophoto générée.';
+        legendText.textContent = 'Emprise spatiale & Trajectoire de vol';
+      }
+
+      // Affichage de la modale
+      bsDetailModal.show();
+
+      // Rendu Cartographique différé (évite les tuiles grises Leaflet)
+      setTimeout(function () {
+        initModalMap();
+        modalMap.invalidateSize();
+        modalGeoLayerGroup.clearLayers();
+
+        if (modalOrthoTileLayer) {
+          modalMap.removeLayer(modalOrthoTileLayer);
+          modalOrthoTileLayer = null;
+        }
+
+        var hasLayer = false;
+
+        // 1. Limites polygonales de la mission
+        if (data.emprise_geojson) {
+          try {
+            var empriseLayer = L.geoJSON(data.emprise_geojson, {
+              style: { color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.25, weight: 3 }
+            });
+            modalGeoLayerGroup.addLayer(empriseLayer);
+            hasLayer = true;
+          } catch (e) {
+            console.warn('Erreur rendu emprise mission:', e);
+          }
+        }
+
+        // 2. Trajectoire de vol
+        if (data.trajectoire_geojson) {
+          try {
+            var trajLayer = L.geoJSON(data.trajectoire_geojson, {
+              style: { color: '#f59e0b', weight: 3.5, dashArray: '6, 6' }
+            });
+            modalGeoLayerGroup.addLayer(trajLayer);
+            hasLayer = true;
+          } catch (e) {
+            console.warn('Erreur rendu trajectoire mission:', e);
+          }
+        }
+
+        // 3. Orthophoto et tuiles WebODM
+        if (data.ortho) {
+          if (data.ortho.emprise_geojson) {
+            try {
+              var orthoEmpriseLayer = L.geoJSON(data.ortho.emprise_geojson, {
+                style: { color: '#10b981', weight: 2, fillOpacity: 0.05 }
+              });
+              modalGeoLayerGroup.addLayer(orthoEmpriseLayer);
+              hasLayer = true;
+            } catch (e) { }
+          }
+
+          if (data.ortho.tiles_url) {
+            try {
+              modalOrthoTileLayer = L.tileLayer(data.ortho.tiles_url, {
+                maxNativeZoom: 24,
+                maxZoom: 28,
+                opacity: 1.0
+              }).addTo(modalMap);
+            } catch (e) { }
+          }
+        }
+
+        // Centrage
+        if (hasLayer && modalGeoLayerGroup.getLayers().length > 0) {
+          var bounds = modalGeoLayerGroup.getBounds();
+          if (bounds && bounds.isValid && bounds.isValid()) {
+            modalMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+          }
+        } else {
+          modalMap.setView([14.6928, -17.4467], 14);
+        }
+      }, 250);
+    }
+
+    // 4. Écoute du clic sur les lignes du tableau
+    document.querySelectorAll('.table-row-clickable').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var missionId = this.dataset.missionId;
+        if (missionId) {
+          openMissionModal(missionId);
+        }
+      });
+    });
+
+    // 5. Invalidation de taille à chaque ouverture Bootstrap
+    detailModalEl.addEventListener('shown.bs.modal', function () {
+      if (modalMap) {
+        modalMap.invalidateSize();
+      }
+    });
+
+    // 6. Ouverture automatique si ?mission=<pk> dans l'URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var autoMissionId = urlParams.get('mission');
+    if (autoMissionId) {
+      setTimeout(function () {
+        openMissionModal(autoMissionId);
+      }, 200);
+    }
   });
-});
 </script>
 {% endblock %}

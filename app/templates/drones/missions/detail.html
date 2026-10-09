@@ -1,14 +1,15 @@
 {% extends 'base.html' %}
+{% load dossier_tags %}
 {% block title %}{{ mission.nom }} · Mission Drone{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:missions' %}">Missions Drones</a></li>
 <li class="breadcrumb-item active">{{ mission.nom }}</li>
 {% endblock %}
 
 {% block page_content_class %}page-content-carto{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 {% endblock %}
 
 {% block content %}
@@ -25,10 +26,10 @@
     </p>
   </div>
   <div class="carto-header-actions">
-    <a href="{% url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-primary">
+    <a href="{% ws_url 'drones:mission_update' mission.pk %}" class="btn btn-sm btn-outline-primary">
       <i class="bi bi-pencil me-1"></i>Modifier
     </a>
-    <a href="{% url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary">
+    <a href="{% ws_url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Retour
     </a>
   </div>
@@ -112,7 +113,7 @@
                 {% if mission.nb_photos > 0 %}{{ mission.nb_photos }} cliché{{ mission.nb_photos|pluralize }} importé{{ mission.nb_photos|pluralize }}
                 {% else %}Aucune photo importée pour le moment{% endif %}
               </div>
-              <a href="{% url 'drones:mission_photos_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
+              <a href="{% ws_url 'drones:mission_photos_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
                 <i class="bi bi-cloud-upload me-1"></i>Importer des photos
               </a>
               {% if photos %}
@@ -136,7 +137,7 @@
                 Traitement photogrammétrique externe des photos pour calculer l'orthomosaïque GeoTIFF.
               </div>
               {% if mission.statut == 'attente' and mission.nb_photos > 0 %}
-              <form method="post" action="{% url 'drones:mission_marquer_traitement' mission.pk %}" class="mt-1">
+              <form method="post" action="{% ws_url 'drones:mission_marquer_traitement' mission.pk %}" class="mt-1">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-xs btn-outline-warning">
                   <i class="bi bi-arrow-repeat me-1"></i>Marquer en traitement
@@ -161,12 +162,12 @@
                 <tr><td class="text-muted p-0">Projection :</td><td class="p-0 fw-semibold">{{ orthophoto.systeme_proj|default:"—" }}</td></tr>
                 <tr><td class="text-muted p-0">Superficie :</td><td class="p-0 fw-semibold">{{ orthophoto.superficie_ha|default:"—" }} ha</td></tr>
               </table>
-              <a href="{% url 'drones:orthophoto_delete' orthophoto.pk %}" class="btn btn-xs btn-outline-danger mt-1">
+              <a href="{% ws_url 'drones:orthophoto_delete' orthophoto.pk %}" class="btn btn-xs btn-outline-danger mt-1">
                 <i class="bi bi-trash me-1"></i>Supprimer l'orthophoto
               </a>
               {% else %}
               <div class="step-desc">Aucune orthophoto importée pour le moment.</div>
-              <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
+              <a href="{% ws_url 'drones:mission_orthophoto_import' mission.pk %}" class="btn btn-xs btn-outline-primary mt-1">
                 <i class="bi bi-cloud-upload me-1"></i>Importer l'orthophoto
               </a>
               {% endif %}
@@ -186,7 +187,7 @@
               </div>
               {% elif orthophoto %}
               <div class="step-desc">Vérifiez la qualité et la netteté de l'orthophoto sur la carte ci-contre.</div>
-              <form method="post" action="{% url 'drones:orthophoto_validate' orthophoto.pk %}" class="mt-1">
+              <form method="post" action="{% ws_url 'drones:orthophoto_validate' orthophoto.pk %}" class="mt-1">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-xs btn-success">
                   <i class="bi bi-patch-check me-1"></i>Valider l'orthophoto
@@ -211,12 +212,12 @@
               <div class="step-desc">
                 {% if not orthophoto.tiles_url %}
                 Une URL de tuiles (WebODM) est requise avant publication.
-                <a href="{% url 'drones:mission_orthophoto_import' mission.pk %}">Configurer l'URL</a>.
+                <a href="{% ws_url 'drones:mission_orthophoto_import' mission.pk %}">Configurer l'URL</a>.
                 {% else %}
                 Prête à être intégrée à la cartographie générale.
                 {% endif %}
               </div>
-              <form method="post" action="{% url 'drones:orthophoto_integrate' orthophoto.pk %}" class="mt-1">
+              <form method="post" action="{% ws_url 'drones:orthophoto_integrate' orthophoto.pk %}" class="mt-1">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-xs btn-primary" {% if not orthophoto.tiles_url %}disabled{% endif %}>
                   <i class="bi bi-map me-1"></i>Publier sur la carte
@@ -239,7 +240,7 @@
           <div class="fw-bold text-danger" style="font-size: 13px;">Suppression de la mission</div>
           <div class="text-muted small">Les clichés et orthophotos brutes associées seront conservées.</div>
         </div>
-        <a href="{% url 'drones:mission_delete' mission.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cette mission drone ?');">
+        <a href="{% ws_url 'drones:mission_delete' mission.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmez-vous la suppression de cette mission drone ?');">
           <i class="bi bi-trash me-1"></i>Supprimer
         </a>
       </div>
@@ -261,7 +262,7 @@
 {% endblock %}
 
 {% block extra_js_vendor %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock %}
 
 {% block extra_js %}

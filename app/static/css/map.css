@@ -324,11 +324,12 @@
   min-width: 0;
   min-height: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: hidden;
 }
 
-.carto-map-wrap #campus-map {
+.carto-map-wrap #campus-map,
+.carto-map-wrap #supervision-map {
   position: absolute;
   top: 0;
   left: 0;
@@ -1193,6 +1194,7 @@
   .detail-layout-split {
     flex-direction: column;
   }
+
   .detail-sidebar-panel {
     width: 100%;
     max-width: 100%;
@@ -1201,7 +1203,308 @@
     border-bottom: 1px solid #e2e8f0;
     padding: 14px;
   }
+
   .detail-map-panel {
     height: 52%;
+  }
+}
+
+/* =====================================================
+   SUPERVISION DRONE TEMPS RÉEL (ÉTAT 1 & ÉTAT 2)
+   ===================================================== */
+
+/* Double Bouton Flottant Décollage / Régie (Centre-Bas, Style Minimaliste Épuré) */
+.drone-floating-actions-bottom {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #cbd5e1;
+  border-radius: 40px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+}
+
+.btn-drone-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 30px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-drone-action:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-drone-action--demo {
+  background: #fefce8;
+  border-color: #fef08a;
+  color: #854d0e;
+}
+
+.btn-drone-action--demo:hover {
+  background: #fef08a;
+  color: #713f12;
+}
+
+.btn-drone-action--real {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+}
+
+.btn-drone-action--real:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+/* Boutons Flottants Gauche (Alertes & Activité) */
+.drone-floating-controls-left {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 950;
+  display: flex;
+  gap: 8px;
+}
+
+.drone-float-btn {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.drone-float-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  /* transform: translateY(-1px); */
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+/* =====================================================
+   ÉTAT 2 : COCKPIT LIVE DRONE IMMERSIF (PLEIN ÉCRAN DARK)
+   ===================================================== */
+.drone-cockpit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: #070b15;
+  color: #f1f5f9;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drone-cockpit-overlay.is-active {
+  display: flex;
+}
+
+/* Barre de Contrôle Supérieure du Cockpit */
+.drone-cockpit-topbar {
+  height: 56px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.cockpit-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cockpit-status-badge.live {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.cockpit-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+/* Corps du Cockpit (Vidéo + Télémétrie) */
+.drone-cockpit-body {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+  width: 100%;
+}
+
+.drone-cockpit-video-pane {
+  flex: 1 1 68%;
+  position: relative;
+  background: #020617;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.drone-cockpit-sidebar {
+  width: 440px;
+  max-width: 34%;
+  flex-shrink: 0;
+  background: #0b1120;
+  border-left: 1px solid #1e293b;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+}
+
+/* Mini-Carte PIP (Picture-In-Picture) */
+.drone-pip-map-wrap {
+  height: 180px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  position: relative;
+}
+
+#drone-pip-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Jauge Télémétrie Dark */
+.cockpit-telem-card {
+  background: #131b2e;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.cockpit-telem-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cockpit-telem-box {
+  background: #0b1120;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.cockpit-telem-lbl {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cockpit-telem-val {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-top: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+@media (max-width: 991.98px) {
+  .drone-cockpit-body {
+    flex-direction: column;
+  }
+
+  .drone-cockpit-video-pane {
+    height: 52%;
+    flex: none;
+  }
+
+  .drone-cockpit-sidebar {
+    width: 100%;
+    max-width: 100%;
+    height: 48%;
+    border-left: none;
+    border-top: 1px solid #1e293b;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .drone-floating-actions-bottom {
+    flex-direction: column;
+    bottom: 16px;
+    width: calc(100% - 32px);
+    max-width: 320px;
+    border-radius: 30px;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .drone-floating-actions-bottom .btn-drone-action {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 12px;
   }
 }

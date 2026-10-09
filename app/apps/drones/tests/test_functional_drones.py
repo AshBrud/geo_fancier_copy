@@ -134,14 +134,12 @@ class DronesFunctionalTestCase(TestCase):
         nouvelle_mission.refresh_from_db()
         self.assertEqual(nouvelle_mission.statut, Mission.STATUT_TRAITEMENT)
 
-    def test_mission_detail_view_returns_200(self):
-        """La vue détail d'une mission de vol s'affiche sans erreur."""
+    def test_mission_detail_view_redirects_to_modal_in_list(self):
+        """La vue détail d'une mission redirige vers la liste épurée avec ouverture automatique de la modale."""
         url = f'/{self.dossier.slug}/drones/missions/{self.mission.pk}/'
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'drones/missions/detail.html')
-        self.assertEqual(response.context['mission'], self.mission)
-        self.assertContains(response, 'Mission Reconnaissance Printemps 2026')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(f'?mission={self.mission.pk}', response.url)
 
     def test_supervision_perspectives_view_returns_200(self):
         """Le Centre de supervision temps réel s'initialise correctement (200 OK) avec les métriques territoriales."""

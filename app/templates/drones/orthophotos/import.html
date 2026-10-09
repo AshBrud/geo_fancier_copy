@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags dossier_tags %}
 {% block title %}Importer une orthophoto{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:missions' %}">Missions Drones</a></li>
 {% if mission %}
-<li class="breadcrumb-item"><a href="{% url 'drones:mission_detail' mission.pk %}">{{ mission.nom }}</a></li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:mission_detail' mission.pk %}">{{ mission.nom }}</a></li>
 {% endif %}
 <li class="breadcrumb-item active">Importer orthophoto</li>
 {% endblock %}
@@ -22,7 +22,7 @@
       Les métadonnées géographiques sont extraites automatiquement depuis les fichiers GeoTIFF.
     </p>
   </div>
-  <a href="{% if mission %}{% url 'drones:mission_detail' mission.pk %}{% else %}{% url 'drones:missions' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+  <a href="{% if mission %}{% ws_url 'drones:mission_detail' mission.pk %}{% else %}{% ws_url 'drones:missions' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
     <i class="bi bi-arrow-left me-1"></i>Retour
   </a>
 </div>
@@ -142,7 +142,7 @@
             <button type="submit" class="btn btn-success px-4" id="submit-btn">
               <i class="bi bi-cloud-upload me-2"></i>Importer l'orthophoto
             </button>
-            <a href="{% if mission %}{% url 'drones:mission_detail' mission.pk %}{% else %}{% url 'drones:missions' %}{% endif %}" class="btn btn-light">Annuler</a>
+            <a href="{% if mission %}{% ws_url 'drones:mission_detail' mission.pk %}{% else %}{% ws_url 'drones:missions' %}{% endif %}" class="btn btn-light">Annuler</a>
           </div>
 
         </form>

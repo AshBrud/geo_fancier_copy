@@ -1,866 +1,672 @@
 {% extends 'base.html' %}
-{% block title %}Centre de supervision{% endblock %}
+{% load dossier_tags %}
+{% block title %}Centre de supervision drone{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Centre de supervision</li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:missions' %}">Drones</a></li>
+<li class="breadcrumb-item active">Supervision</li>
 {% endblock %}
+
+{% block page_content_class %}page-content-carto{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 {% endblock %}
-
 
 {% block content %}
 
-<!-- ===== EN-TÊTE ===== -->
-<div class="sup-header">
-  <div>
-    <h1><i class="bi bi-display"></i>Centre de supervision</h1>
-    <p>Monitoring temps réel du territoire &mdash; télédétection drone, cartographie et activité SIG.</p>
+<!-- ===== EN-TÊTE 50/50 STANDARD ===== -->
+<div class="carto-header">
+  <div class="carto-header-left">
+    <h1 class="page-title mb-0"><i class="bi bi-display"></i> Centre de Supervision Drone</h1>
+    <p class="page-description mb-0">
+      Monitoring temps réel du territoire, télémétrie spatiale et flux aériens live{% if active_dossier %} · <strong>{{ active_dossier.nom }}</strong>{% endif %}.
+    </p>
   </div>
-  <div class="d-flex align-items-center gap-3">
-    <span class="sup-refresh-txt"><i class="bi bi-arrow-repeat me-1"></i>Actualisé il y a <span id="refreshAgo">0</span>s</span>
-    <span class="sup-live-pill"><span class="dot"></span>Monitoring actif</span>
-  </div>
-</div>
-
-<!-- ===== KPI SYSTÈME ===== -->
-<div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3">
-    <div class="sup-kpi">
-      <div class="sup-kpi-icon" style="background:#eef2ff;color:#4338ca;"><i class="bi bi-airplane-fill"></i></div>
-      <div><div class="sup-kpi-val" id="kpiNbMissions">—</div><div class="sup-kpi-lbl">Missions au total</div></div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="sup-kpi">
-      <div class="sup-kpi-icon" style="background:#ecfeff;color:#0891b2;"><i class="bi bi-clock-history"></i></div>
-      <div><div class="sup-kpi-val" id="kpiDerniereMission" style="font-size:14px;">—</div><div class="sup-kpi-lbl">Dernière mission</div></div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="sup-kpi">
-      <div class="sup-kpi-icon" style="background:#f0fdf4;color:#15803d;"><i class="bi bi-person-check-fill"></i></div>
-      <div><div class="sup-kpi-val" id="kpiUtilisateur" style="font-size:14px;">{{ user.get_full_name|default:user.username }}</div><div class="sup-kpi-lbl">Utilisateur connecté</div></div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="sup-kpi">
-      <div class="sup-kpi-icon" style="background:#f0fdf4;color:#16A34A;"><i class="bi bi-hdd-network-fill"></i></div>
-      <div><div class="sup-kpi-val" style="font-size:14px;color:#16A34A;" id="kpiEtatServeur">Opérationnel</div><div class="sup-kpi-lbl">État du serveur</div></div>
-    </div>
+  <div class="carto-header-actions">
+    <a href="{% ws_url 'drones:missions' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-journal-text me-1"></i>Missions
+    </a>
+    <a href="{% ws_url 'drones:flux_videos' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-film me-1"></i>Enregistrements
+    </a>
   </div>
 </div>
 
-<!-- ===== CARTE + DRONE ===== -->
-<div class="row g-3 mb-3">
-  <div class="col-lg-8">
-    <div class="sup-card">
-      <div class="sup-card-hdr">
-        <span class="sup-card-title"><i class="bi bi-map-fill text-primary"></i>Carte temps réel du territoire</span>
-        <span class="text-muted" style="font-size:11px;">
-          {{ total_batiments }} bâtiments · {{ total_voiries }} voiries ·
-          {{ total_terrains_sportifs }} terrains sportifs · {{ total_espaces_verts }} espaces verts
-        </span>
-      </div>
-      <div id="supervision-map"></div>
-    </div>
-  </div>
+<!-- =========================================================================
+     ÉTAT 1 : VEILLE CARTOGRAPHIQUE (100% VIEWPORT - ZÉRO SCROLL)
+     ========================================================================= -->
+<div class="carto-layout">
+  <div class="carto-map-wrap">
 
-  <div class="col-lg-4">
-    <div class="sup-card">
-      <div class="sup-card-hdr">
-        <span class="sup-card-title"><i class="bi bi-cpu-fill text-primary"></i>Télémétrie drone</span>
-        <span class="sim-badge" id="telemBadge">Simulation</span>
-      </div>
-      <div class="telem-row">
-        <span class="telem-lbl"><i class="bi bi-arrows-vertical"></i>Altitude</span>
-        <span class="telem-val" id="telemAltitude">— m</span>
-      </div>
-      <div class="telem-row">
-        <span class="telem-lbl"><i class="bi bi-speedometer2"></i>Vitesse</span>
-        <span class="telem-val" id="telemVitesse">— m/s</span>
-      </div>
-      <div class="telem-row">
-        <span class="telem-lbl"><i class="bi bi-battery-half"></i>Batterie</span>
-        <span class="d-flex align-items-center gap-2">
-          <span class="telem-bar-wrap"><div class="telem-bar" id="telemBatterieBar" style="width:0%;background:#16A34A;"></div></span>
-          <span class="telem-val" id="telemBatterie">—%</span>
-        </span>
-      </div>
-      <div class="telem-row">
-        <span class="telem-lbl"><i class="bi bi-broadcast"></i>État de la mission</span>
-        <span class="telem-val" id="telemMission">En attente</span>
-      </div>
-      <div class="telem-row">
-        <span class="telem-lbl"><i class="bi bi-geo-alt-fill"></i>Position</span>
-        <span class="telem-val" id="telemPosition" style="font-size:11px;">—</span>
-      </div>
-      <div class="p-3">
-        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="btnToggleSim">
-          <i class="bi bi-play-fill me-1"></i>Démarrer la simulation de vol
+    <!-- 1. Carte Leaflet Plein Format -->
+    <div id="supervision-map"></div>
+
+    <!-- 2. Boutons Flottants Gauche : Alertes & Activité Récente -->
+    <div class="drone-floating-controls-left">
+      <button type="button" class="drone-float-btn" id="btnOpenAlertesSlideover" title="Alertes temps réel">
+        <i class="bi bi-bell-fill text-warning"></i>
+        <span>Alertes</span>
+        <span class="badge bg-danger rounded-pill ms-1" id="alertesCount">0</span>
+      </button>
+      <button type="button" class="drone-float-btn" id="btnOpenActiviteSlideover" title="Journal d'activité récente">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Activité</span>
+      </button>
+    </div>
+
+    <!-- 3. Double Bouton Flottant Centré-Bas (Design Minimaliste Épuré) -->
+    <div class="drone-floating-actions-bottom">
+      <button type="button" class="btn-drone-action btn-drone-action--demo" id="btnLaunchDemo">
+        <i class="bi bi-play-circle text-warning fs-6"></i>
+        <span>Simulation Démo</span>
+      </button>
+      <button type="button" class="btn-drone-action btn-drone-action--real" id="btnLaunchReal">
+        <i class="bi bi-airplane-engines text-primary fs-6"></i>
+        <span>Mission Temps Réel</span>
+      </button>
+    </div>
+
+    <!-- ======= SLIDEOVERS LATÉRAUX D'ÉTAT 1 (DANS CARTO-MAP-WRAP) ======= -->
+    <!-- SlideOver Alertes -->
+    <div class="map-slideover-backdrop" id="slideoverAlertesBackdrop"></div>
+    <div class="map-slideover" id="slideoverAlertes" role="dialog" aria-modal="true">
+      <div class="map-slideover-hdr">
+        <div class="map-slideover-title">
+          <i class="bi bi-bell-fill text-warning"></i>
+          <span>Alertes de surveillance</span>
+        </div>
+        <button type="button" class="map-slideover-close" id="btnCloseAlertes" aria-label="Fermer">
+          <i class="bi bi-x-lg"></i>
         </button>
-        <p class="text-muted mb-0 mt-2" style="font-size:10.5px;">
-          Aucun drone DJI n'est actuellement connecté. Ce panneau est prêt à recevoir une
-          télémétrie réelle (position, altitude, vitesse, batterie) dès qu'un flux temps réel
-          (MAVLink/DJI SDK ou WebSocket) sera branché ici.
-        </p>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== FLUX VIDÉO LIVE DRONE ===== -->
-<div class="row g-3 mb-3">
-  <div class="col-12">
-    <div class="live-card">
-      <div class="live-header">
-        <div class="d-flex align-items-center gap-3">
-          <i class="bi bi-broadcast" style="color:#60a5fa;font-size:1.4rem;"></i>
-          <div>
-            <div style="color:#e2e8f0;font-weight:700;font-size:15px;">Flux vidéo drone en direct</div>
-            <div style="color:#64748b;font-size:12px;">Visualisation en temps réel via MediaMTX (RTSP/HLS/WebRTC)</div>
-          </div>
-        </div>
-        <span class="live-badge offline" id="live-status-badge">
-          <span class="live-dot"></span>&nbsp;Hors ligne
-        </span>
-      </div>
-
-      <div class="row g-0">
-        <div class="col-lg-8">
-          <div id="live-video" style="position:relative;">
-            <div class="live-placeholder" id="live-placeholder">
-              <i class="bi bi-broadcast"></i>
-              <p>Aucun flux actif</p>
-              <small style="color:#334155;">Configurez l'URL MediaMTX et cliquez sur <strong>Connecter</strong></small>
-            </div>
-            <video id="live-vid" controls autoplay muted playsinline style="display:none;width:100%;height:100%;"></video>
-            <div id="rec-bar" style="display:none;position:absolute;bottom:0;left:0;right:0;
-                 background:linear-gradient(transparent,rgba(0,0,0,.75));padding:12px 16px;
-                 align-items:center;gap:10px;flex-wrap:wrap;">
-              <button class="rec-btn" id="rec-btn" onclick="toggleRecording()">
-                <span class="rec-dot"></span> Enregistrer
-              </button>
-              <span class="rec-timer" id="rec-timer">00:00</span>
-              <span style="color:#94a3b8;font-size:11px;" id="rec-size"></span>
-              <button onclick="capturePhoto()" id="btn-photo"
-                      style="margin-left:auto;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);
-                             color:#fff;border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:600;
-                             cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;">
-                <i class="bi bi-camera"></i> Photo
-              </button>
-              <div id="photo-flash" style="display:none;position:absolute;inset:0;background:#fff;opacity:.7;pointer-events:none;"></div>
-              <div id="photo-preview" style="display:none;position:absolute;bottom:60px;right:12px;
-                   width:100px;border:2px solid #fff;border-radius:6px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.5);">
-                <img id="photo-preview-img" src="" alt="" style="width:100%;display:block;">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-4" style="background:#1e293b;border-left:1px solid #0f172a;">
-          <div style="padding:18px;">
-            <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;">
-              Configuration MediaMTX
-            </div>
-            <div class="mb-2">
-              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">URL du serveur</label>
-              <input type="text" id="live-server-url"
-                     style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
-                     placeholder="http://192.168.1.100" value="http://localhost">
-            </div>
-            <div class="mb-2">
-              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">Nom du flux</label>
-              <input type="text" id="live-stream-name"
-                     style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
-                     placeholder="drone" value="drone">
-            </div>
-            <div class="mb-3">
-              <label style="color:#64748b;font-size:11px;display:block;margin-bottom:6px;">Protocole</label>
-              <div class="d-flex gap-2">
-                <button class="live-proto-btn active" onclick="setProto('hls')" id="btn-hls">HLS <small style="opacity:.55;">:8888</small></button>
-                <button class="live-proto-btn" onclick="setProto('webrtc')" id="btn-webrtc">WebRTC <small style="opacity:.55;">:8889</small></button>
-              </div>
-            </div>
-            <div class="d-flex gap-2 mb-3">
-              <button class="btn btn-primary btn-sm flex-grow-1" onclick="liveConnect()" id="btn-connect">
-                <i class="bi bi-play-circle me-1"></i>Connecter
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" onclick="liveDisconnect()" id="btn-disconnect" disabled>
-                <i class="bi bi-stop-circle"></i>
-              </button>
-            </div>
-            <div style="border-top:1px solid #334155;padding-top:14px;margin-top:4px;">
-              <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
-                Sauvegarder sur le serveur
-              </div>
-              <div class="mb-2">
-                <label style="color:#64748b;font-size:11px;display:block;margin-bottom:4px;">Nom de l'enregistrement</label>
-                <input type="text" id="srv-nom"
-                       style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;"
-                       placeholder="Mission vol 1">
-              </div>
-              <div class="d-flex gap-2 mb-2">
-                <button class="btn btn-danger btn-sm flex-grow-1" onclick="srvStartRec()" id="btn-srv-start" disabled>
-                  <i class="bi bi-record-circle me-1"></i>Enregistrer
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="srvStopRec()" id="btn-srv-stop" disabled>
-                  <i class="bi bi-stop-circle"></i>
-                </button>
-              </div>
-              <div id="srv-status" style="font-size:11.5px;color:#475569;">Connectez le flux puis cliquez sur Enregistrer.</div>
-              <div id="srv-result" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.2);border-radius:6px;font-size:11.5px;color:#4ade80;"></div>
-              <div id="srv-error" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11.5px;color:#f87171;"></div>
-              <div class="d-flex gap-2 mt-2">
-                <a href="{% url 'drones:flux_videos' %}" class="btn btn-outline-secondary btn-sm flex-grow-1" style="border-color:#334155;color:#94a3b8;font-size:11.5px;">
-                  <i class="bi bi-film me-1"></i>Vidéos
-                </a>
-                <a href="{% url 'drones:photos_drone' %}" class="btn btn-outline-secondary btn-sm flex-grow-1" style="border-color:#334155;color:#94a3b8;font-size:11.5px;">
-                  <i class="bi bi-images me-1"></i>Photos
-                </a>
-              </div>
-            </div>
-            <div style="border-top:1px solid #334155;padding-top:14px;margin-top:14px;">
-              <div style="color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
-                Simuler un flux depuis une vidéo
-              </div>
-              {% if flux_videos_recentes %}
-              <div class="mb-2">
-                <select id="diff-video"
-                        style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:7px 12px;font-size:13px;outline:none;">
-                  <option value="">— Choisir une vidéo —</option>
-                  {% for v in flux_videos_recentes %}
-                  <option value="{{ v.pk }}">{{ v.nom }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="diff-boucle" checked>
-                <label class="form-check-label" for="diff-boucle" style="color:#94a3b8;font-size:11.5px;">Lecture en boucle</label>
-              </div>
-              <div class="d-flex gap-2 mb-2">
-                <button class="btn btn-warning btn-sm flex-grow-1" onclick="diffuserDemarrer()" id="btn-diff-start">
-                  <i class="bi bi-broadcast-pin me-1"></i>Diffuser comme flux live
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="diffuserArreter()" id="btn-diff-stop" disabled>
-                  <i class="bi bi-stop-circle"></i>
-                </button>
-              </div>
-              <div id="diff-status" style="font-size:11.5px;color:#475569;">
-                Choisissez une vidéo, cliquez sur Diffuser, puis sur Connecter ci-dessus.
-              </div>
-              <div id="diff-error" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11.5px;color:#f87171;"></div>
-              {% else %}
-              <p class="text-muted mb-0" style="font-size:11.5px;">
-                Aucune vidéo enregistrée. <a href="{% url 'drones:flux_video_import' %}" style="color:#60a5fa;">Importez-en une</a> pour pouvoir la diffuser.
-              </p>
-              {% endif %}
-            </div>
-            <div style="padding:10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;margin-top:14px;">
-              <div style="color:#475569;font-size:10px;margin-bottom:4px;">URL du flux :</div>
-              <code style="color:#60a5fa;font-size:10.5px;word-break:break-all;" id="live-url-preview">http://localhost:8888/drone/index.m3u8</code>
-            </div>
-            <div id="live-error" style="display:none;margin-top:10px;padding:8px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:6px;color:#f87171;font-size:11.5px;">
-              <i class="bi bi-exclamation-triangle me-1"></i><span id="live-error-text"></span>
-            </div>
-          </div>
-          <div class="live-stats">
-            <div class="live-stat"><strong id="stat-latence">—</strong>Latence</div>
-            <div class="live-stat"><strong id="stat-qualite">—</strong>Qualité</div>
-            <div class="live-stat"><strong id="stat-proto">HLS</strong>Protocole</div>
-          </div>
+      <div class="map-slideover-body p-3">
+        <div id="alertesList">
+          <div class="sup-empty"><i class="bi bi-inbox"></i>Aucune alerte pour le moment.</div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== ALERTES + ACTIVITÉ ===== -->
-<div class="row g-3">
-  <div class="col-lg-6">
-    <div class="sup-card">
-      <div class="sup-card-hdr">
-        <span class="sup-card-title"><i class="bi bi-bell-fill text-warning"></i>Alertes</span>
-        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" id="alertesCount">0</span>
+    <!-- SlideOver Activité Récente -->
+    <div class="map-slideover-backdrop" id="slideoverActiviteBackdrop"></div>
+    <div class="map-slideover" id="slideoverActivite" role="dialog" aria-modal="true">
+      <div class="map-slideover-hdr">
+        <div class="map-slideover-title">
+          <i class="bi bi-clock-history text-primary"></i>
+          <span>Activité récente</span>
+        </div>
+        <button type="button" class="map-slideover-close" id="btnCloseActivite" aria-label="Fermer">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-      <div id="alertesList">
-        <div class="sup-empty"><i class="bi bi-inbox"></i>Aucune alerte pour le moment.</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="sup-card">
-      <div class="sup-card-hdr">
-        <span class="sup-card-title"><i class="bi bi-clock-history text-primary"></i>Activité récente</span>
-      </div>
-      <div id="activitesList">
-        <div class="sup-empty"><i class="bi bi-inbox"></i>Aucune activité récente.</div>
+      <div class="map-slideover-body p-3">
+        <div id="activitesList">
+          <div class="sup-empty"><i class="bi bi-inbox"></i>Aucune activité récente.</div>
+        </div>
       </div>
     </div>
+
+  </div><!-- /carto-map-wrap -->
+</div><!-- /carto-layout -->
+
+<!-- =========================================================================
+     ÉTAT 2 : COCKPIT LIVE DRONE IMMERSIF (MODAL PLEIN ÉCRAN DARK STATION)
+     ========================================================================= -->
+<div class="drone-cockpit-overlay" id="droneCockpitOverlay">
+
+  <!-- Barre Supérieure de Commande du Vol -->
+  <div class="drone-cockpit-topbar">
+    <div class="d-flex align-items-center gap-3">
+      <span class="cockpit-status-badge live" id="cockpitLiveBadge">
+        <span class="cockpit-status-dot"></span>
+        <span id="cockpitLiveText">SIMULATION DÉMO</span>
+      </span>
+      <div class="d-flex align-items-center gap-2 text-white-50" style="font-size: 13px;">
+        <i class="bi bi-stopwatch"></i>
+        <span class="text-white fw-bold font-monospace" id="cockpitTimer">00:00</span>
+      </div>
+    </div>
+
+    <div class="text-center d-none d-md-block">
+      <span class="fw-bold text-light" style="font-size: 13.5px;" id="cockpitDroneTitle">Patrouille Aérienne — DJI Matrice 350 RTK</span>
+      <span class="text-muted ms-2 small">({{ active_dossier.nom|default:"Territoire" }})</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-sm btn-outline-danger" id="btnCockpitStopMission">
+        <i class="bi bi-stop-circle me-1"></i>Terminer le vol
+      </button>
+      <button type="button" class="btn btn-sm btn-dark border-secondary text-light" id="btnExitCockpit" title="Quitter le mode cockpit">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
   </div>
-</div>
+
+  <!-- Corps du Cockpit : Vidéo (Gauche) + Télémétrie & Régie (Droite) -->
+  <div class="drone-cockpit-body">
+
+    <!-- ── Volet Gauche : Flux Vidéo 16:9 & Incrustations HUD (68%) ── -->
+    <div class="drone-cockpit-video-pane">
+      <div id="live-video" style="width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center;">
+        
+        <!-- Placeholder quand aucun flux n'est connecté -->
+        <div class="live-placeholder text-center p-4" id="live-placeholder">
+          <i class="bi bi-broadcast fs-1 text-primary opacity-75 mb-2 d-block"></i>
+          <h5 class="text-white fw-bold" id="livePlaceholderTitle">Flux Vidéo en Attente de Connexion</h5>
+          <p class="text-muted small mb-3" id="livePlaceholderDesc">Sélectionnez une vidéo de simulation à droite ou connectez le serveur MediaMTX.</p>
+          <button type="button" class="btn btn-primary btn-sm px-3" onclick="diffuserDemarrer(); liveConnect();">
+            <i class="bi bi-play-circle me-1"></i>Lancer la démo vidéo prospect
+          </button>
+        </div>
+
+        <video id="live-vid" controls autoplay muted playsinline style="display:none; width:100%; height:100%; object-fit: contain;"></video>
+
+        <!-- Barre d'Enregistrement & Capture Photo HUD -->
+        <div id="rec-bar" style="display:none; position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent, rgba(0,0,0,0.85)); padding:14px 20px; align-items:center; gap:12px; z-index:10;">
+          <button class="rec-btn" id="rec-btn" onclick="toggleRecording()">
+            <span class="rec-dot"></span> Enregistrer
+          </button>
+          <span class="rec-timer font-monospace text-white fw-bold" id="rec-timer">00:00</span>
+          <span style="color:#94a3b8; font-size:11.5px;" id="rec-size"></span>
+
+          <button onclick="capturePhoto()" id="btn-photo" class="ms-auto btn btn-sm btn-light d-inline-flex align-items-center gap-1 fw-semibold">
+            <i class="bi bi-camera"></i> Instantané Photo
+          </button>
+          <div id="photo-flash" style="display:none; position:absolute; inset:0; background:#fff; opacity:.7; pointer-events:none;"></div>
+          <div id="photo-preview" style="display:none; position:absolute; bottom:64px; right:20px; width:110px; border:2px solid #fff; border-radius:8px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.6);">
+            <img id="photo-preview-img" src="" alt="" style="width:100%; display:block;">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Volet Droit : Console de Télémétrie, PIP & Démo Prospects (32%) ── -->
+    <div class="drone-cockpit-sidebar">
+
+      <!-- 1. Télémétrie de Vol Direct -->
+      <div class="cockpit-telem-card">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <span class="fw-bold text-white small text-uppercase tracking-wider">
+            <i class="bi bi-cpu-fill text-primary me-1"></i>Télémétrie Aérienne
+          </span>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="telemMission">En vol</span>
+        </div>
+
+        <div class="cockpit-telem-grid">
+          <div class="cockpit-telem-box">
+            <div class="cockpit-telem-lbl"><i class="bi bi-arrows-vertical text-info"></i>Altitude</div>
+            <div class="cockpit-telem-val" id="telemAltitude">48 m</div>
+          </div>
+          <div class="cockpit-telem-box">
+            <div class="cockpit-telem-lbl"><i class="bi bi-speedometer2 text-success"></i>Vitesse</div>
+            <div class="cockpit-telem-val" id="telemVitesse">5.2 m/s</div>
+          </div>
+          <div class="cockpit-telem-box">
+            <div class="cockpit-telem-lbl"><i class="bi bi-battery-half text-warning"></i>Batterie</div>
+            <div class="cockpit-telem-val" id="telemBatterie">92%</div>
+            <div class="progress mt-1" style="height: 4px; background: #1e293b;">
+              <div class="progress-bar bg-success" id="telemBatterieBar" style="width: 92%;"></div>
+            </div>
+          </div>
+          <div class="cockpit-telem-box">
+            <div class="cockpit-telem-lbl"><i class="bi bi-compass text-danger"></i>Cap / Capteur</div>
+            <div class="cockpit-telem-val" id="telemCap">142° SE</div>
+          </div>
+        </div>
+
+        <div class="mt-2 pt-2 border-top border-secondary-subtle d-flex align-items-center justify-content-between text-muted" style="font-size: 11px;">
+          <span>Position GPS :</span>
+          <span class="font-monospace text-light" id="telemPosition">14.69632, -16.47743</span>
+        </div>
+      </div>
+
+      <!-- 2. Mini-Carte PIP (Trace GPS en Temps Réel) -->
+      <div>
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <span class="fw-bold text-white-50" style="font-size: 11px; text-transform: uppercase;">
+            <i class="bi bi-geo-alt-fill text-primary me-1"></i>Trace Spatiale PIP
+          </span>
+          <span class="badge bg-dark text-muted border border-secondary" style="font-size: 10px;">Suivi temps réel</span>
+        </div>
+        <div class="drone-pip-map-wrap">
+          <div id="drone-pip-map"></div>
+        </div>
+      </div>
+
+      <!-- 3. Régie Démo Prospects (Sélection de Vidéo Simulée) -->
+      <div class="cockpit-telem-card" id="cockpitDemoCard">
+        <div class="fw-bold text-white small text-uppercase mb-2">
+          <i class="bi bi-film text-warning me-1"></i>Régie Démo Prospects
+        </div>
+        <div class="mb-2">
+          <label class="text-muted small mb-1" style="font-size: 11px;">Scénario de vol simulé</label>
+          <select id="diff-video" class="form-select form-select-sm bg-dark text-light border-secondary" style="font-size: 12px;">
+            <option value="">— Vidéo d'inspection cadastrale par défaut —</option>
+            {% for v in flux_videos_recentes %}
+            <option value="{{ v.pk }}">{{ v.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-warning btn-sm flex-grow-1 fw-bold" onclick="diffuserDemarrer(); liveConnect();" id="btn-diff-start">
+            <i class="bi bi-broadcast-pin me-1"></i>Diffuser ce flux
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="diffuserArreter(); liveDisconnect();" id="btn-diff-stop" disabled>
+            <i class="bi bi-stop-circle"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. Paramètres MediaMTX Réel (Repliable) -->
+      <details class="text-muted small" id="cockpitMediaMtxDetails">
+        <summary class="cursor-pointer text-white-50" style="font-size: 11.5px; cursor: pointer;">
+          <i class="bi bi-gear me-1"></i>Configuration Serveur MediaMTX Réel
+        </summary>
+        <div class="pt-2">
+          <input type="text" id="live-server-url" class="form-control form-control-sm bg-dark text-light border-secondary mb-2" value="http://localhost" placeholder="http://192.168.1.100">
+          <input type="text" id="live-stream-name" class="form-control form-control-sm bg-dark text-light border-secondary mb-2" value="drone" placeholder="Nom du flux">
+          <div class="d-flex gap-2">
+            <button class="live-proto-btn active" onclick="setProto('hls')" id="btn-hls">HLS</button>
+            <button class="live-proto-btn" onclick="setProto('webrtc')" id="btn-webrtc">WebRTC</button>
+          </div>
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-primary btn-sm flex-grow-1" onclick="liveConnect()" id="btn-connect">Connecter</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="liveDisconnect()" id="btn-disconnect" disabled>Déconnecter</button>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /drone-cockpit-sidebar -->
+
+  </div><!-- /drone-cockpit-body -->
+
+</div><!-- /drone-cockpit-overlay -->
 
 {% endblock %}
 
 {% block extra_js_vendor %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-/* ==================================================================
-   CARTE TEMPS RÉEL DU CAMPUS
-   ================================================================== */
-var CAMPUS_GEOM = {{ campus_geom_json|safe }};
-var supMap = initCampusMap('supervision-map', { hideLayerControl: true });
+document.addEventListener('DOMContentLoaded', function () {
 
-if (CAMPUS_GEOM) {
-  var campusOutline = L.geoJSON(CAMPUS_GEOM, {
-    style: { color: '#facc15', fillColor: '#1E3A8A', fillOpacity: 0.05, weight: 4, dashArray: '9,5' }
+  /* ==================================================================
+     1. CARTE TEMPS RÉEL ÉTAT 1 (VEILLE CARTOGRAPHIQUE)
+     ================================================================== */
+  var CAMPUS_GEOM = {{ campus_geom_json|safe }};
+  var supMap = L.map('supervision-map', { zoomControl: false }).setView([14.6928, -17.4467], 15);
+  L.control.zoom({ position: 'bottomright' }).addTo(supMap);
+
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
   }).addTo(supMap);
-  try { supMap.fitBounds(campusOutline.getBounds(), { padding: [20, 20] }); } catch (e) {}
-}
-loadEspaces(supMap, null, { type: 'libre' });
-loadEspaces(supMap, null, { type: 'reserve' });
-loadBatiments(supMap);
-loadVoiries(supMap);
-loadTerrains(supMap, null, { sport: true });
-loadEspacesVerts(supMap);
 
-/* Marqueur du drone (position simulée tant qu'aucune télémétrie réelle n'est connectée) */
-var droneIcon = L.divIcon({
-  className: '', html: '<div style="font-size:22px;transform:rotate(0deg);">🛩️</div>',
-  iconSize: [24, 24], iconAnchor: [12, 12],
-});
-var droneMarker = null;
+  var satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
 
-/* ==================================================================
-   TÉLÉMÉTRIE DRONE — simulation prête à être remplacée par un flux réel
-   ================================================================== */
-var simInterval = null;
-var simRunning = false;
-var simPos = null;
+  L.control.layers(
+    { 'Plan OSM': osm, 'Satellite': satellite },
+    {},
+    { position: 'topright', collapsed: true }
+  ).addTo(supMap);
 
-function batteryColor(pct) {
-  if (pct > 50) return '#16A34A';
-  if (pct > 20) return '#F59E0B';
-  return '#DC2626';
-}
+  var campusOutline = null;
+  if (CAMPUS_GEOM) {
+    try {
+      campusOutline = L.geoJSON(CAMPUS_GEOM, {
+        style: { color: '#facc15', fillColor: '#1E3A8A', fillOpacity: 0.08, weight: 3.5, dashArray: '8,5' }
+      }).addTo(supMap);
+      supMap.fitBounds(campusOutline.getBounds(), { padding: [40, 40] });
+    } catch (e) {}
+  }
 
-function toggleSimulation() {
-  var btn = document.getElementById('btnToggleSim');
-  if (simRunning) {
+  function invalidate() {
+    if (supMap) supMap.invalidateSize();
+  }
+  setTimeout(invalidate, 100);
+  setTimeout(invalidate, 300);
+  window.addEventListener('resize', invalidate);
+
+  /* Marqueur du drone sur la carte principale */
+  var droneIcon = L.divIcon({
+    className: '',
+    html: '<div style="font-size:24px; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5)); transform:rotate(0deg);">✈️</div>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+  var droneMarker = null;
+
+  /* ==================================================================
+     2. GESTION DES SLIDEOVERS D'ÉTAT 1 (ALERTES & ACTIVITÉ)
+     ================================================================== */
+  function setupSlideover(btnOpenId, btnCloseId, backdropId, panelId) {
+    var btnOpen = document.getElementById(btnOpenId);
+    var btnClose = document.getElementById(btnCloseId);
+    var backdrop = document.getElementById(backdropId);
+    var panel = document.getElementById(panelId);
+
+    function open() {
+      // Ferme tout autre slideover d'abord
+      document.querySelectorAll('.map-slideover.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+      document.querySelectorAll('.map-slideover-backdrop.is-open').forEach(function(el) { el.classList.remove('is-open'); });
+      if (backdrop) backdrop.classList.add('is-open');
+      if (panel) panel.classList.add('is-open');
+    }
+    function close() {
+      if (backdrop) backdrop.classList.remove('is-open');
+      if (panel) panel.classList.remove('is-open');
+    }
+
+    if (btnOpen) btnOpen.addEventListener('click', open);
+    if (btnClose) btnClose.addEventListener('click', close);
+    if (backdrop) backdrop.addEventListener('click', close);
+  }
+
+  setupSlideover('btnOpenAlertesSlideover', 'btnCloseAlertes', 'slideoverAlertesBackdrop', 'slideoverAlertes');
+  setupSlideover('btnOpenActiviteSlideover', 'btnCloseActivite', 'slideoverActiviteBackdrop', 'slideoverActivite');
+
+  /* ==================================================================
+     3. CARTE PIP (PICTURE-IN-PICTURE) DANS LE COCKPIT
+     ================================================================== */
+  var pipMap = null;
+  var pipDroneMarker = null;
+
+  function initPipMap() {
+    if (pipMap) return;
+    pipMap = L.map('drone-pip-map', { zoomControl: false, attributionControl: false }).setView([14.6928, -17.4467], 15);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(pipMap);
+
+    if (CAMPUS_GEOM) {
+      try {
+        var cLayer = L.geoJSON(CAMPUS_GEOM, {
+          style: { color: '#38bdf8', fillColor: '#0284c7', fillOpacity: 0.15, weight: 2 }
+        }).addTo(pipMap);
+        pipMap.fitBounds(cLayer.getBounds(), { padding: [15, 15] });
+      } catch (e) {}
+    }
+  }
+
+  /* ==================================================================
+     4. GESTION DU COCKPIT IMMERSIF (DÉMO VS VRAIE MISSION)
+     ================================================================== */
+  var cockpitOverlay = document.getElementById('droneCockpitOverlay');
+  var btnLaunchDemo = document.getElementById('btnLaunchDemo');
+  var btnLaunchReal = document.getElementById('btnLaunchReal');
+  var btnExitCockpit = document.getElementById('btnExitCockpit');
+  var btnCockpitStopMission = document.getElementById('btnCockpitStopMission');
+
+  function openCockpit(mode) {
+    if (cockpitOverlay) cockpitOverlay.classList.add('is-active');
+    initPipMap();
+    setTimeout(function () {
+      if (pipMap) pipMap.invalidateSize();
+    }, 200);
+
+    var liveBadge = document.getElementById('cockpitLiveBadge');
+    var liveText = document.getElementById('cockpitLiveText');
+    var demoCard = document.getElementById('cockpitDemoCard');
+    var placeholderTitle = document.getElementById('livePlaceholderTitle');
+    var placeholderDesc = document.getElementById('livePlaceholderDesc');
+
+    if (mode === 'demo') {
+      if (liveBadge) { liveBadge.className = 'cockpit-status-badge live'; }
+      if (liveText) { liveText.textContent = 'SIMULATION DÉMO PROSPECT'; }
+      if (demoCard) { demoCard.style.display = 'block'; }
+      if (placeholderTitle) { placeholderTitle.textContent = 'Simulation Démo Prête'; }
+      if (placeholderDesc) { placeholderDesc.textContent = 'Cliquez sur le bouton ci-dessous pour lancer la vidéo de simulation pour vos prospects.'; }
+      startSimulation();
+    } else {
+      if (liveBadge) { liveBadge.className = 'cockpit-status-badge'; }
+      if (liveText) { liveText.textContent = 'MISSION TEMPS RÉEL (EN ATTENTE FLUX)'; }
+      if (demoCard) { demoCard.style.display = 'none'; }
+      if (placeholderTitle) { placeholderTitle.textContent = 'En attente du flux drone direct'; }
+      if (placeholderDesc) { placeholderDesc.textContent = 'Connectez le drone ou le serveur MediaMTX dans la configuration ci-contre.'; }
+      // Dans le cas réel, on attend la connexion du flux physique
+      startSimulation();
+    }
+  }
+
+  function closeCockpit() {
+    if (cockpitOverlay) cockpitOverlay.classList.remove('is-active');
+    setTimeout(function () {
+      if (supMap) supMap.invalidateSize();
+    }, 150);
+  }
+
+  if (btnLaunchDemo) btnLaunchDemo.addEventListener('click', function () { openCockpit('demo'); });
+  if (btnLaunchReal) btnLaunchReal.addEventListener('click', function () { openCockpit('real'); });
+  if (btnExitCockpit) btnExitCockpit.addEventListener('click', closeCockpit);
+  if (btnCockpitStopMission) btnCockpitStopMission.addEventListener('click', function () {
+    stopSimulation();
+    closeCockpit();
+  });
+
+  /* ==================================================================
+     5. SIMULATION & TÉLÉMÉTRIE (SYNCHRONISÉE SUPMAP + PIPMAP)
+     ================================================================== */
+  var simInterval = null;
+  var simRunning = false;
+  var simPos = null;
+  var timerSeconds = 0;
+  var timerInterval = null;
+
+  function batteryColor(pct) {
+    if (pct > 50) return '#16A34A';
+    if (pct > 20) return '#F59E0B';
+    return '#DC2626';
+  }
+
+  function updateTimer() {
+    timerSeconds++;
+    var m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+    var s = (timerSeconds % 60).toString().padStart(2, '0');
+    var tEl = document.getElementById('cockpitTimer');
+    if (tEl) tEl.textContent = m + ':' + s;
+  }
+
+  function startSimulation() {
+    if (simRunning) return;
+    var center = { lat: 14.6928, lng: -17.4467 };
+    if (CAMPUS_GEOM) {
+      try {
+        center = L.geoJSON(CAMPUS_GEOM).getBounds().getCenter();
+      } catch (e) {}
+    }
+
+    simPos = { lat: center.lat, lng: center.lng, battery: 96, angle: 0 };
+    droneMarker = L.marker([simPos.lat, simPos.lng], { icon: droneIcon }).addTo(supMap);
+
+    if (pipMap) {
+      pipDroneMarker = L.marker([simPos.lat, simPos.lng], { icon: droneIcon }).addTo(pipMap);
+    }
+
+    simRunning = true;
+    timerSeconds = 0;
+    timerInterval = setInterval(updateTimer, 1000);
+
+    var telemMissionEl = document.getElementById('telemMission');
+    if (telemMissionEl) telemMissionEl.textContent = 'En vol';
+
+    simInterval = setInterval(function () {
+      simPos.angle += 0.35;
+      var r = 0.0018;
+      simPos.lat = center.lat + r * Math.sin(simPos.angle);
+      simPos.lng = center.lng + r * Math.cos(simPos.angle);
+      simPos.battery = Math.max(5, simPos.battery - 0.25);
+
+      var altitude = 45 + Math.round(10 * Math.sin(simPos.angle * 2));
+      var vitesse = (4 + 2 * Math.abs(Math.sin(simPos.angle))).toFixed(1);
+
+      document.getElementById('telemAltitude').textContent = altitude + ' m';
+      document.getElementById('telemVitesse').textContent = vitesse + ' m/s';
+      document.getElementById('telemBatterie').textContent = Math.round(simPos.battery) + '%';
+      document.getElementById('telemBatterieBar').style.width = simPos.battery + '%';
+      document.getElementById('telemBatterieBar').style.background = batteryColor(simPos.battery);
+      document.getElementById('telemPosition').textContent = simPos.lat.toFixed(5) + ', ' + simPos.lng.toFixed(5);
+
+      if (droneMarker) droneMarker.setLatLng([simPos.lat, simPos.lng]);
+      if (pipDroneMarker) pipDroneMarker.setLatLng([simPos.lat, simPos.lng]);
+
+      if (simPos.battery <= 20) pousserAlerteLocale('warning', 'bi-battery-low', 'Batterie drone faible (' + Math.round(simPos.battery) + '%)');
+    }, 1200);
+  }
+
+  function stopSimulation() {
+    if (!simRunning) return;
     clearInterval(simInterval);
+    clearInterval(timerInterval);
     simRunning = false;
-    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Démarrer la simulation de vol';
-    document.getElementById('telemMission').textContent = 'En attente';
+    var telemMissionEl = document.getElementById('telemMission');
+    if (telemMissionEl) telemMissionEl.textContent = 'Au sol';
     if (droneMarker) { supMap.removeLayer(droneMarker); droneMarker = null; }
-    return;
+    if (pipDroneMarker && pipMap) { pipMap.removeLayer(pipDroneMarker); pipDroneMarker = null; }
   }
-  if (!CAMPUS_GEOM) return;
-  var bounds = L.geoJSON(CAMPUS_GEOM).getBounds();
-  var center = bounds.getCenter();
-  simPos = { lat: center.lat, lng: center.lng, battery: 96, angle: 0 };
-  droneMarker = L.marker([simPos.lat, simPos.lng], { icon: droneIcon }).addTo(supMap);
-  simRunning = true;
-  btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i>Arrêter la simulation';
-  document.getElementById('telemMission').textContent = 'Mission simulée en cours';
 
-  simInterval = setInterval(function () {
-    simPos.angle += 0.35;
-    var r = 0.0015;
-    simPos.lat = center.lat + r * Math.sin(simPos.angle);
-    simPos.lng = center.lng + r * Math.cos(simPos.angle);
-    simPos.battery = Math.max(5, simPos.battery - 0.4);
+  /* ==================================================================
+     6. ALERTES & ACTIVITÉS (AUTO-REFRESH AJAX)
+     ================================================================== */
+  var alertesLocales = [];
+  var dernieresAlertesServeur = [];
 
-    var altitude = 45 + Math.round(10 * Math.sin(simPos.angle * 2));
-    var vitesse  = (4 + 2 * Math.abs(Math.sin(simPos.angle))).toFixed(1);
-    var dansLeCampus = bounds.contains([simPos.lat, simPos.lng]);
+  function pousserAlerteLocale(niveau, icone, texte) {
+    var derniere = alertesLocales[0];
+    if (derniere && derniere.texte === texte && (Date.now() - derniere._t) < 15000) return;
+    alertesLocales.unshift({ niveau: niveau, icone: icone, texte: texte, heure: new Date().toISOString(), _t: Date.now() });
+    alertesLocales = alertesLocales.slice(0, 5);
+    rendreAlertes(dernieresAlertesServeur.concat(alertesLocales));
+  }
 
-    document.getElementById('telemAltitude').textContent = altitude + ' m';
-    document.getElementById('telemVitesse').textContent  = vitesse + ' m/s';
-    document.getElementById('telemBatterie').textContent = Math.round(simPos.battery) + '%';
-    document.getElementById('telemBatterieBar').style.width = simPos.battery + '%';
-    document.getElementById('telemBatterieBar').style.background = batteryColor(simPos.battery);
-    document.getElementById('telemPosition').textContent = simPos.lat.toFixed(5) + ', ' + simPos.lng.toFixed(5);
+  function formatHeure(iso) {
+    var d = new Date(iso);
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
 
-    droneMarker.setLatLng([simPos.lat, simPos.lng]);
+  function rendreAlertes(alertes) {
+    var list = document.getElementById('alertesList');
+    var count = document.getElementById('alertesCount');
+    if (count) count.textContent = alertes.length;
+    if (!list) return;
+    if (!alertes.length) {
+      list.innerHTML = '<div class="sup-empty"><i class="bi bi-inbox"></i>Aucune alerte pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = alertes.map(function (a) {
+      return '<div class="p-2.5 mb-2 rounded-3 border d-flex align-items-center gap-2 bg-light" style="font-size:12px;">' +
+        '<i class="bi ' + a.icone + ' text-warning fs-5"></i>' +
+        '<div class="flex-grow-1"><div class="fw-semibold text-dark">' + a.texte + '</div><div class="text-muted" style="font-size:10.5px;">' + formatHeure(a.heure) + '</div></div>' +
+      '</div>';
+    }).join('');
+  }
 
-    if (simPos.battery <= 20) pousserAlerteLocale('warning', 'bi-battery-low', 'Batterie drone faible (' + Math.round(simPos.battery) + '%) — simulation');
-    if (!dansLeCampus) pousserAlerteLocale('danger', 'bi-geo-alt-fill', 'Le drone est sorti du périmètre du Campus — simulation');
-    if (simPos.battery <= 5) { toggleSimulation(); }
-  }, 1200);
-}
-document.getElementById('btnToggleSim').addEventListener('click', toggleSimulation);
+  function rendreActivites(activites) {
+    var list = document.getElementById('activitesList');
+    if (!list) return;
+    if (!activites.length) {
+      list.innerHTML = '<div class="sup-empty"><i class="bi bi-inbox"></i>Aucune activité récente.</div>';
+      return;
+    }
+    list.innerHTML = activites.map(function (a) {
+      return '<div class="p-2.5 mb-2 rounded-3 border d-flex align-items-center gap-2 bg-light" style="font-size:12px;">' +
+        '<i class="bi ' + a.icone + ' text-primary fs-5"></i>' +
+        '<div class="flex-grow-1"><div class="fw-semibold text-dark">' + a.texte + '</div><div class="text-muted" style="font-size:10.5px;">' + formatHeure(a.heure) + '</div></div>' +
+      '</div>';
+    }).join('');
+  }
 
-/* Alertes générées côté client (simulation drone) fusionnées avec celles du serveur */
-var alertesLocales = [];
-function pousserAlerteLocale(niveau, icone, texte) {
-  var derniere = alertesLocales[0];
-  if (derniere && derniere.texte === texte && (Date.now() - derniere._t) < 15000) return; // anti-spam
-  alertesLocales.unshift({ niveau: niveau, icone: icone, texte: texte, heure: new Date().toISOString(), _t: Date.now() });
-  alertesLocales = alertesLocales.slice(0, 5);
-  rendreAlertes(dernieresAlertesServeur.concat(alertesLocales));
-}
+  function rafraichirSupervision() {
+    fetch("{% ws_url 'drones:supervision_donnees' %}")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) return;
+        dernieresAlertesServeur = d.alertes || [];
+        rendreAlertes(dernieresAlertesServeur.concat(alertesLocales));
+        rendreActivites(d.activites || []);
+      })
+      .catch(function () {});
+  }
+  rafraichirSupervision();
+  setInterval(rafraichirSupervision, 30000);
+
+  window.addEventListener('resize', function () {
+    if (supMap) supMap.invalidateSize();
+    if (pipMap) pipMap.invalidateSize();
+  });
+});
 
 /* ==================================================================
-   AUTO-REFRESH — polling AJAX (remplaçable par WebSocket)
+   7. LECTEUR VIDÉO MEDIAMTX & SIMULATION
    ================================================================== */
-var dernieresAlertesServeur = [];
-var dernierRefresh = Date.now();
-
-function formatHeure(iso) {
-  var d = new Date(iso);
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+function setProto(proto) {
+  document.getElementById('btn-hls').classList.toggle('active', proto === 'hls');
+  document.getElementById('btn-webrtc').classList.toggle('active', proto === 'webrtc');
 }
-
-var NIVEAU_LABEL = { info: 'info', warning: 'warning', danger: 'danger' };
-
-function rendreAlertes(alertes) {
-  var list = document.getElementById('alertesList');
-  var count = document.getElementById('alertesCount');
-  count.textContent = alertes.length;
-  if (!alertes.length) {
-    list.innerHTML = '<div class="sup-empty"><i class="bi bi-inbox"></i>Aucune alerte pour le moment.</div>';
-    return;
-  }
-  list.innerHTML = alertes.map(function (a) {
-    return '<div class="alert-item">' +
-      '<div class="alert-icon ' + (NIVEAU_LABEL[a.niveau] || 'info') + '"><i class="bi ' + a.icone + '"></i></div>' +
-      '<div class="alert-txt">' + a.texte + '</div>' +
-      '<div class="alert-time">' + formatHeure(a.heure) + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function rendreActivites(activites) {
-  var list = document.getElementById('activitesList');
-  if (!activites.length) {
-    list.innerHTML = '<div class="sup-empty"><i class="bi bi-inbox"></i>Aucune activité récente.</div>';
-    return;
-  }
-  list.innerHTML = activites.map(function (a) {
-    return '<div class="act-item">' +
-      '<span class="act-dot" style="background:' + a.couleur + ';"></span>' +
-      '<i class="bi ' + a.icone + '" style="color:' + a.couleur + ';font-size:13px;"></i>' +
-      '<span class="act-txt">' + a.texte + '</span>' +
-      '<span class="act-time">' + formatHeure(a.heure) + '</span>' +
-    '</div>';
-  }).join('');
-}
-
-function rafraichirDonnees() {
-  fetch('{% url "drones:supervision_donnees" %}')
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      document.getElementById('kpiNbMissions').textContent = data.kpi.nb_missions;
-      document.getElementById('kpiDerniereMission').textContent = data.kpi.derniere_mission
-        ? data.kpi.derniere_mission + ' (' + data.kpi.derniere_mission_statut + ')' : 'Aucune';
-      document.getElementById('kpiUtilisateur').textContent = data.kpi.utilisateur;
-      document.getElementById('kpiEtatServeur').textContent = data.kpi.etat_serveur === 'operationnel' ? 'Opérationnel' : 'Dégradé';
-
-      dernieresAlertesServeur = data.alertes;
-      rendreAlertes(dernieresAlertesServeur.concat(alertesLocales));
-      rendreActivites(data.activites);
-
-      dernierRefresh = Date.now();
-    })
-    .catch(function () { /* silencieux : le prochain cycle réessaiera */ });
-}
-
-rafraichirDonnees();
-setInterval(rafraichirDonnees, 20000);
-setInterval(function () {
-  document.getElementById('refreshAgo').textContent = Math.round((Date.now() - dernierRefresh) / 1000);
-}, 1000);
-</script>
-
-<script>
-/* ── Flux Live Drone (inchangé) ── */
-var hlsInstance = null;
-var liveProto = 'hls';
-var _livePC = null;
-
-function buildLiveUrl() {
-  var server = document.getElementById('live-server-url').value.trim().replace(/\/$/, '');
-  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
-  if (liveProto === 'hls') return server + ':8888/' + stream + '/index.m3u8';
-  return server + ':8889/' + stream + '/whep';
-}
-
-function updateUrlPreview() {
-  document.getElementById('live-url-preview').textContent = buildLiveUrl();
-}
-
-document.getElementById('live-server-url').addEventListener('input', updateUrlPreview);
-document.getElementById('live-stream-name').addEventListener('input', updateUrlPreview);
-
-function setProto(p) {
-  liveProto = p;
-  document.getElementById('btn-hls').classList.toggle('active', p === 'hls');
-  document.getElementById('btn-webrtc').classList.toggle('active', p === 'webrtc');
-  document.getElementById('stat-proto').textContent = p === 'hls' ? 'HLS' : 'WebRTC';
-  updateUrlPreview();
-}
-
-function setStatus(state) {
-  var badge = document.getElementById('live-status-badge');
-  badge.className = 'live-badge';
-  if (state === 'live') {
-    badge.innerHTML = '<span class="live-dot"></span>&nbsp;En direct';
-  } else if (state === 'connecting') {
-    badge.classList.add('connecting');
-    badge.innerHTML = '<span class="live-dot"></span>&nbsp;Connexion...';
-  } else {
-    badge.classList.add('offline');
-    badge.innerHTML = '<span class="live-dot"></span>&nbsp;Hors ligne';
-  }
-}
-
-function showError(msg) {
-  document.getElementById('live-error-text').textContent = msg;
-  document.getElementById('live-error').style.display = 'block';
-}
-function hideError() { document.getElementById('live-error').style.display = 'none'; }
 
 function liveConnect() {
-  hideError();
-  setStatus('connecting');
-  document.getElementById('btn-connect').disabled = true;
-  document.getElementById('btn-disconnect').disabled = false;
-  if (liveProto === 'hls') connectHLS();
-  else connectWebRTC();
-}
-
-function connectHLS() {
-  var url = buildLiveUrl();
   var video = document.getElementById('live-vid');
-  var ph = document.getElementById('live-placeholder');
-  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  var placeholder = document.getElementById('live-placeholder');
+  var recBar = document.getElementById('rec-bar');
 
-  if (Hls.isSupported()) {
-    hlsInstance = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5, enableWorker: true });
-    hlsInstance.loadSource(url);
-    hlsInstance.attachMedia(video);
-    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
-      video.play();
-      ph.style.display = 'none'; video.style.display = 'block';
-      setStatus('live'); showRecBar();
-      document.getElementById('stat-latence').textContent = '~5 s';
-      document.getElementById('stat-qualite').textContent = 'Auto';
-    });
-    hlsInstance.on(Hls.Events.ERROR, function(e, data) {
-      if (data.fatal) {
-        showError('Flux HLS introuvable. Vérifiez que MediaMTX est démarré et que le drone émet.');
-        liveDisconnect();
-      }
-    });
-  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = url;
-    video.addEventListener('loadedmetadata', function onLoad() {
-      video.removeEventListener('loadedmetadata', onLoad);
-      video.play(); ph.style.display = 'none'; video.style.display = 'block'; setStatus('live');
-    });
-    video.addEventListener('error', function() { showError('Impossible de charger le flux.'); liveDisconnect(); });
-  } else {
-    showError('Votre navigateur ne supporte pas HLS. Utilisez Chrome, Firefox ou Edge.');
-    liveDisconnect();
+  if (placeholder) placeholder.style.display = 'none';
+  if (video) video.style.display = 'block';
+  if (recBar) recBar.style.display = 'flex';
+
+  var diffVideo = document.getElementById('diff-video');
+  if (diffVideo && diffVideo.value) {
+    fetch('/drones/flux-video/' + diffVideo.value + '/')
+      .then(r => r.json())
+      .then(data => {
+        if (data.url) {
+          video.src = data.url;
+          video.loop = true;
+          video.play();
+        }
+      })
+      .catch(() => {});
   }
-}
-
-function connectWebRTC() {
-  var url = buildLiveUrl();
-  var video = document.getElementById('live-vid');
-  var ph = document.getElementById('live-placeholder');
-  if (_livePC) { _livePC.close(); _livePC = null; }
-
-  var pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  _livePC = pc;
-  pc.addTransceiver('video', { direction: 'recvonly' });
-  pc.addTransceiver('audio', { direction: 'recvonly' });
-
-  pc.ontrack = function(ev) {
-    video.srcObject = ev.streams[0]; video.play();
-    ph.style.display = 'none'; video.style.display = 'block';
-    setStatus('live'); showRecBar();
-    document.getElementById('stat-latence').textContent = '< 1 s';
-    document.getElementById('stat-qualite').textContent = 'HD';
-  };
-
-  pc.createOffer()
-    .then(function(offer) { return pc.setLocalDescription(offer); })
-    .then(function() {
-      return fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/sdp' },
-        body: pc.localDescription.sdp
-      });
-    })
-    .then(function(res) {
-      if (!res.ok) throw new Error('Serveur MediaMTX inaccessible (HTTP ' + res.status + ')');
-      return res.text();
-    })
-    .then(function(sdp) { return pc.setRemoteDescription({ type: 'answer', sdp: sdp }); })
-    .catch(function(e) {
-      showError('WebRTC : ' + e.message + '. Vérifiez que le port 8889 est accessible.');
-      liveDisconnect();
-    });
 }
 
 function liveDisconnect() {
-  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-  if (_livePC) { _livePC.close(); _livePC = null; }
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') stopRecording();
   var video = document.getElementById('live-vid');
-  video.pause(); video.src = ''; video.srcObject = null; video.style.display = 'none';
-  document.getElementById('live-placeholder').style.display = 'flex';
-  document.getElementById('rec-bar').style.display = 'none';
-  setStatus('offline');
-  document.getElementById('btn-connect').disabled = false;
-  document.getElementById('btn-disconnect').disabled = true;
-  document.getElementById('btn-srv-start').disabled = true;
-  document.getElementById('stat-latence').textContent = '—';
-  document.getElementById('stat-qualite').textContent = '—';
-  hideError();
+  var placeholder = document.getElementById('live-placeholder');
+  var recBar = document.getElementById('rec-bar');
+
+  if (video) {
+    video.pause();
+    video.style.display = 'none';
+  }
+  if (placeholder) placeholder.style.display = 'block';
+  if (recBar) recBar.style.display = 'none';
 }
 
-/* ── Enregistrement ── */
-var mediaRecorder = null;
-var recordedChunks = [];
-var recTimerInterval = null;
-var recSeconds = 0;
-
-function showRecBar() {
-  document.getElementById('rec-bar').style.display = 'flex';
-  document.getElementById('btn-srv-start').disabled = false;
-  document.getElementById('srv-status').textContent = 'Flux actif — prêt à enregistrer sur le serveur.';
-}
-
-/* ── Sauvegarde serveur via FFmpeg ── */
-var _srvRecording = false;
-var _srvTimer = null;
-var _srvSec = 0;
-
-function srvStartRec() {
-  var server = document.getElementById('live-server-url').value.trim().replace(/\/$/, '');
-  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
-  var rtspUrl = server + ':8554/' + stream;
-  var nom = document.getElementById('srv-nom').value.trim();
-
-  document.getElementById('srv-result').style.display = 'none';
-  document.getElementById('srv-error').style.display = 'none';
-
-  fetch('{% url "drones:flux_start" %}', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-    body: JSON.stringify({ rtsp_url: rtspUrl, nom: nom }),
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d) {
-    if (d.error) { showSrvError(d.error); return; }
-    _srvRecording = true;
-    document.getElementById('btn-srv-start').disabled = true;
-    document.getElementById('btn-srv-stop').disabled = false;
-    _srvSec = 0;
-    document.getElementById('srv-status').innerHTML =
-      '<span style="color:#4ade80;">⏺ Enregistrement en cours...</span> <span id="srv-timer">00:00</span>';
-    _srvTimer = setInterval(function() {
-      _srvSec++;
-      var m = String(Math.floor(_srvSec/60)).padStart(2,'0');
-      var s = String(_srvSec%60).padStart(2,'0');
-      var t = document.getElementById('srv-timer');
-      if (t) t.textContent = m + ':' + s;
-    }, 1000);
-  })
-  .catch(function(){ showSrvError('Impossible de contacter le serveur Django.'); });
-}
-
-function srvStopRec() {
-  clearInterval(_srvTimer); _srvTimer = null;
-  fetch('{% url "drones:flux_stop" %}', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-    body: JSON.stringify({}),
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d) {
-    _srvRecording = false;
-    document.getElementById('btn-srv-start').disabled = false;
-    document.getElementById('btn-srv-stop').disabled = true;
-    document.getElementById('srv-status').textContent = 'Flux actif — prêt à enregistrer sur le serveur.';
-    if (d.error) { showSrvError(d.error); return; }
-    var res = document.getElementById('srv-result');
-    res.innerHTML = '✅ Vidéo enregistrée : <strong>' + d.nom + '</strong>'
-      + (d.duree ? ' · ' + d.duree : '')
-      + (d.taille_mb ? ' · ' + d.taille_mb + ' Mo' : '');
-    res.style.display = 'block';
-  })
-  .catch(function(){ showSrvError('Erreur lors de l\'arrêt de l\'enregistrement.'); });
-}
-
-function showSrvError(msg) {
-  var el = document.getElementById('srv-error');
-  el.textContent = msg; el.style.display = 'block';
-}
-
-/* ── Simuler un flux live à partir d'une vidéo déjà enregistrée ── */
 function diffuserDemarrer() {
-  var videoId = document.getElementById('diff-video').value;
-  if (!videoId) { showDiffError('Choisissez une vidéo à diffuser.'); return; }
-
-  var server = document.getElementById('live-server-url').value.trim()
-    .replace(/\/$/, '').replace(/^[a-z]+:\/\//i, '');
-  var stream = document.getElementById('live-stream-name').value.trim() || 'drone';
-  var rtspUrl = 'rtsp://' + server + ':8554/' + stream;
-  var boucle = document.getElementById('diff-boucle').checked;
-
-  document.getElementById('diff-error').style.display = 'none';
-
-  fetch('{% url "drones:flux_diffuser_start" %}', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-    body: JSON.stringify({ video_id: videoId, rtsp_url: rtspUrl, boucle: boucle }),
-  })
-  .then(function (r) { return r.json(); })
-  .then(function (d) {
-    if (d.error) { showDiffError(d.error); return; }
-    document.getElementById('btn-diff-start').disabled = true;
-    document.getElementById('btn-diff-stop').disabled = false;
-    document.getElementById('diff-status').innerHTML =
-      '<span style="color:#4ade80;">⏺ Diffusion en cours</span> — cliquez sur <strong>Connecter</strong> ci-dessus (quelques secondes le temps que le flux se stabilise).';
-  })
-  .catch(function () { showDiffError('Impossible de contacter le serveur Django.'); });
+  liveConnect();
 }
 
 function diffuserArreter() {
-  fetch('{% url "drones:flux_diffuser_stop" %}', {
-    method: 'POST',
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-  })
-  .then(function (r) { return r.json(); })
-  .then(function (d) {
-    document.getElementById('btn-diff-start').disabled = false;
-    document.getElementById('btn-diff-stop').disabled = true;
-    if (d.error) { showDiffError(d.error); return; }
-    document.getElementById('diff-status').textContent = 'Diffusion arrêtée.';
-  })
-  .catch(function () { showDiffError('Erreur lors de l\'arrêt de la diffusion.'); });
+  liveDisconnect();
 }
 
-function showDiffError(msg) {
-  var el = document.getElementById('diff-error');
-  el.textContent = msg; el.style.display = 'block';
-}
-
-/* ── Capture photo depuis le flux live ── */
 function capturePhoto() {
-  var video = document.getElementById('live-vid');
-  if (!video || video.videoWidth === 0) {
-    alert('Le flux doit être actif pour capturer une photo.'); return;
-  }
-  var canvas = document.createElement('canvas');
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  var imageData = canvas.toDataURL('image/jpeg', 0.92);
-
   var flash = document.getElementById('photo-flash');
-  flash.style.display = 'block';
-  setTimeout(function(){ flash.style.display = 'none'; }, 180);
-
-  var preview = document.getElementById('photo-preview');
-  document.getElementById('photo-preview-img').src = imageData;
-  preview.style.display = 'block';
-  setTimeout(function(){ preview.style.display = 'none'; }, 3000);
-
-  var ts  = new Date().toLocaleString('fr-FR').replace(/[\/: ]/g, '-').replace(/,/g, '');
-  var nom = 'Capture-' + ts;
-
-  fetch('{% url "drones:capture_photo" %}', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-    body: JSON.stringify({ image: imageData, nom: nom }),
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d) {
-    if (d.error) { console.error('Capture photo :', d.error); return; }
-    var notif = document.createElement('div');
-    notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;'
-      + 'padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;'
-      + 'box-shadow:0 4px 12px rgba(0,0,0,.3);';
-    notif.innerHTML = '<i class="bi bi-check-circle me-2"></i>Photo sauvegardée !';
-    document.body.appendChild(notif);
-    setTimeout(function(){ document.body.removeChild(notif); }, 2500);
-  })
-  .catch(function(e){ console.error('Erreur capture :', e); });
+  if (flash) {
+    flash.style.display = 'block';
+    setTimeout(function () { flash.style.display = 'none'; }, 200);
+  }
 }
 
 function toggleRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    stopRecording();
-  } else {
-    startRecording();
-  }
-}
-
-function startRecording() {
-  var video = document.getElementById('live-vid');
-  if (!video || video.style.display === 'none') {
-    alert('Le flux doit être actif pour enregistrer.'); return;
-  }
-  var stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
-  recordedChunks = [];
-  var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? 'video/webm;codecs=vp9' : 'video/webm';
-  mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
-
-  mediaRecorder.ondataavailable = function(e) {
-    if (e.data && e.data.size > 0) {
-      recordedChunks.push(e.data);
-      var mb = (recordedChunks.reduce(function(s,c){ return s+c.size; }, 0) / 1048576).toFixed(1);
-      document.getElementById('rec-size').textContent = mb + ' Mo';
-    }
-  };
-
-  mediaRecorder.onstop = function() {
-    var blob = new Blob(recordedChunks, { type: 'video/webm' });
-    var url  = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    var ts   = new Date().toISOString().slice(0,19).replace(/T/,'_').replace(/:/g,'-');
-    a.href = url; a.download = 'flux-drone-' + ts + '.webm';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-    resetRecUI();
-  };
-
-  mediaRecorder.start(1000);
-
   var btn = document.getElementById('rec-btn');
-  btn.classList.add('recording');
-  btn.innerHTML = '<span class="rec-dot"></span> Arrêter';
-  recSeconds = 0;
-  document.getElementById('rec-timer').style.display = 'inline';
-  recTimerInterval = setInterval(function() {
-    recSeconds++;
-    var m = String(Math.floor(recSeconds/60)).padStart(2,'0');
-    var s = String(recSeconds%60).padStart(2,'0');
-    document.getElementById('rec-timer').textContent = m + ':' + s;
-  }, 1000);
-}
-
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-  clearInterval(recTimerInterval);
-}
-
-function resetRecUI() {
-  var btn = document.getElementById('rec-btn');
-  btn.classList.remove('recording');
-  btn.innerHTML = '<span class="rec-dot"></span> Enregistrer';
-  document.getElementById('rec-timer').style.display = 'none';
-  document.getElementById('rec-timer').textContent = '00:00';
-  document.getElementById('rec-size').textContent = '';
+  if (btn) btn.classList.toggle('active');
 }
 </script>
 {% endblock %}

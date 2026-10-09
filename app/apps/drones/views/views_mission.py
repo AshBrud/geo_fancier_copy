@@ -47,8 +47,18 @@ def mission_list(request):
 
 @login_required
 @domaine_required
+def _redirect_missions(request, pk=None):
+    dossier = getattr(request, 'active_dossier', None)
+    suffix = f"?mission={pk}" if pk else ""
+    if dossier:
+        return redirect(f'/{dossier.slug}/drones/missions/{suffix}')
+    return redirect(f'/drones/missions/{suffix}')
+
+
+@login_required
+@domaine_required
 def mission_create(request):
-    """Création d'une nouvelle mission (par modale ou page dédiée)."""
+    """Création d'une nouvelle mission (par modale ou page dédiée 2 colonnes)."""
     form = MissionForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         mission = form.save(commit=False)
@@ -56,8 +66,8 @@ def mission_create(request):
         if dossier and not mission.dossier:
             mission.dossier = dossier
         mission.save()
-        messages.success(request, f'Mission « {mission.nom} » créée avec succès.')
-        return redirect('drones:missions')
+        messages.success(request, f'Mission « {mission.nom} » planifiée avec succès.')
+        return _redirect_missions(request, pk=mission.pk)
     return render(request, 'drones/missions/form.html', {'form': form, 'action': 'Nouvelle mission'})
 
 
@@ -69,7 +79,7 @@ def mission_update(request, pk):
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, f'Mission « {mission.nom} » mise à jour.')
-        return redirect('drones:missions')
+        return _redirect_missions(request, pk=mission.pk)
     return render(request, 'drones/missions/form.html', {
         'form': form,
         'mission': mission,
@@ -88,21 +98,15 @@ def mission_delete(request, pk):
             request,
             f'Mission « {nom} » supprimée. Les photos et orthophotos associées sont conservées.'
         )
-        return redirect('drones:missions')
+        return _redirect_missions(request)
     return render(request, 'drones/communs/confirm_delete.html', {'obj': mission})
 
 
 @login_required
 @domaine_required
 def mission_detail(request, pk):
-    mission = get_mission_by_id(pk)
-    orthophoto = mission.orthophotos.order_by('-date_ajout').first()
-    photos = mission.photos.order_by('-date_capture')
-    return render(request, 'drones/missions/detail.html', {
-        'mission': mission,
-        'orthophoto': orthophoto,
-        'photos': photos,
-    })
+    """Redirection transparente vers le hub des missions avec ouverture automatique de la modale."""
+    return _redirect_missions(request, pk=pk)
 
 
 @login_required
@@ -113,7 +117,7 @@ def mission_marquer_traitement(request, pk):
         mission.statut = Mission.STATUT_TRAITEMENT
         mission.save(update_fields=['statut', 'date_modification'])
         messages.success(request, f'Mission « {mission.nom} » marquée en traitement photogrammétrique.')
-    return redirect('drones:mission_detail', pk=mission.pk)
+    return _redirect_missions(request, pk=mission.pk)
 
 
 @login_required
@@ -139,5 +143,5 @@ def mission_photos_import(request, pk):
                 request,
                 f'{len(fichiers)} photo(s) importée(s) pour la mission « {mission.nom} ».'
             )
-            return redirect('drones:mission_detail', pk=mission.pk)
+            return _redirect_missions(request, pk=mission.pk)
     return render(request, 'drones/missions/photos_import.html', {'mission': mission})

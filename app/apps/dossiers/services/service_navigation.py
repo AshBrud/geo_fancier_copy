@@ -202,6 +202,13 @@ def get_workspace_navigation(dossier, current_path: str = '', user=None) -> List
                 'url': f'/{slug}/drones/perspectives/',
                 'required_perm': 'drones:view',
             },
+            {
+                'slug': 'enregistrements',
+                'label': 'Enregistrements & Vidéos',
+                'icon': 'bi-film',
+                'url': f'/{slug}/drones/flux/videos/',
+                'required_perm': 'drones:view',
+            },
         ]
 
         accessible_drones = [

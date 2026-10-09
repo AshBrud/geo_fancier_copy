@@ -18,7 +18,7 @@ def get_missions_queryset(q=None, statut=None, dossier=None):
         )
     if statut:
         qs = qs.filter(statut=statut)
-    return qs.order_by('-date_vol')
+    return qs.prefetch_related('orthophotos', 'photos').order_by('-date_vol')
 
 
 def get_mission_by_id(pk):

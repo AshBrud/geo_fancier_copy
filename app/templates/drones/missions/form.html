@@ -1,48 +1,386 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
-{% block title %}{% if mission %}Modifier la mission{% else %}Nouvelle mission{% endif %}{% endblock %}
+{% load crispy_forms_tags dossier_tags %}
+{% block title %}{% if mission %}Modifier la mission{% else %}Planifier une mission drone{% endif %}{% endblock %}
+
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'drones:missions' %}">Missions Drones</a></li>
+<li class="breadcrumb-item"><a href="{% ws_url 'drones:missions' %}">Missions Drones</a></li>
 <li class="breadcrumb-item active">{% if mission %}Modifier{% else %}Nouvelle mission{% endif %}</li>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">
-      <i class="bi bi-airplane me-2"></i>{% if mission %}Modifier la mission{% else %}Nouvelle mission de vol{% endif %}
-    </h1>
-    <p class="page-description">
-      Renseignez les paramètres du vol : opérateur, drone utilisé, altitude, durée et superficie prévue.
-    </p>
+
+<!-- ===== BANDEAU EN-TÊTE ===== -->
+<div class="mission-form-hero">
+  <div class="d-flex align-items-center gap-3">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 20px;">
+      <i class="bi bi-airplane-engines-fill"></i>
+    </div>
+    <div>
+      <h1 class="h4 fw-bold mb-0 text-white">{% if mission %}Modifier la mission{% else %}Planifier une mission drone{% endif %}</h1>
+      <p class="mb-0 small text-white-50">
+        Définissez les paramètres de vol et délimitez la zone de navigation et la trajectoire sur la carte SIG.
+      </p>
+    </div>
   </div>
-  <a href="{% if mission %}{% url 'drones:mission_detail' mission.pk %}{% else %}{% url 'drones:missions' %}{% endif %}"
-     class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left me-1"></i>Retour
+  <a href="{% ws_url 'drones:missions' %}" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1">
+    <i class="bi bi-arrow-left"></i> Retour aux missions
   </a>
 </div>
 
-<div class="row g-4">
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-clipboard-data text-primary me-2"></i>Paramètres de la mission</div>
-      <div class="card-body">
-        {% crispy form %}
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-4">
-    <div class="card">
-      <div class="card-header"><i class="bi bi-diagram-3 me-2"></i>Étapes suivantes</div>
-      <div class="card-body">
-        <ol class="small text-muted ps-3 mb-0" style="line-height:2;">
-          <li>Importer les photos du vol</li>
-          <li>Traitement photogrammétrique (WebODM)</li>
-          <li>Importer l'orthophoto GeoTIFF</li>
-          <li>Valider puis intégrer à la carte</li>
-        </ol>
-      </div>
-    </div>
+{% if form.errors %}
+<div class="alert alert-danger d-flex align-items-start gap-2 mb-3 rounded-3">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Veuillez corriger les erreurs ci-dessous :</strong>
+    <ul class="mb-0 mt-1 small">
+      {% for field in form %}
+        {% for error in field.errors %}
+        <li>{{ field.label }} : {{ error }}</li>
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
   </div>
 </div>
+{% endif %}
+
+<form method="post" id="formMission" novalidate>
+  {% csrf_token %}
+
+  <div class="row g-4">
+    <!-- ===== COLONNE GAUCHE (Attributs & Métadonnées) ===== -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-header bg-white py-3 px-4 border-bottom fw-bold text-dark d-flex align-items-center gap-2">
+          <i class="bi bi-card-checklist text-primary"></i>
+          Désignation & Équipage
+        </div>
+        <div class="card-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark" for="id_nom">Nom de la mission <span class="text-danger">*</span></label>
+            <input type="text" name="nom" id="id_nom" class="form-control" placeholder="ex: Orthophoto Campus Nord" value="{{ form.nom.value|default:'' }}" required>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark" for="id_date_vol">Date du vol <span class="text-danger">*</span></label>
+              <input type="date" name="date_vol" id="id_date_vol" class="form-control" value="{{ form.date_vol.value|date:'Y-m-d'|default:'' }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark" for="id_operateur">Opérateur / Télépilote</label>
+              <input type="text" name="operateur" id="id_operateur" class="form-control" placeholder="ex: Amadou Diallo" value="{{ form.operateur.value|default:'' }}">
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-bold text-dark" for="id_drone_utilise">Drone utilisé</label>
+            <input type="text" name="drone_utilise" id="id_drone_utilise" class="form-control" placeholder="ex: DJI Matrice 300 RTK" value="{{ form.drone_utilise.value|default:'' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-header bg-white py-3 px-4 border-bottom fw-bold text-dark d-flex align-items-center justify-content-between">
+          <span class="d-flex align-items-center gap-2">
+            <i class="bi bi-speedometer2 text-primary"></i>
+            Paramètres Techniques de Navigation
+          </span>
+          <span class="surface-pill" id="badge-surface-display">
+            <i class="bi bi-bounding-box"></i> <span id="val-surface-display">{% if form.superficie_prevue.value %}{{ form.superficie_prevue.value }} ha{% else %}0.00 ha{% endif %}</span>
+          </span>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-dark" for="id_altitude">Altitude (m)</label>
+              <input type="number" step="any" name="altitude" id="id_altitude" class="form-control" placeholder="80" value="{{ form.altitude.value|default:'' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-dark" for="id_duree_minutes">Durée (min)</label>
+              <input type="number" step="any" name="duree_minutes" id="id_duree_minutes" class="form-control" placeholder="25" value="{{ form.duree_minutes.value|default:'' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-dark" for="id_superficie_prevue">Superficie (ha)</label>
+              <input type="number" step="any" name="superficie_prevue" id="id_superficie_prevue" class="form-control bg-light" placeholder="Calculée auto" value="{{ form.superficie_prevue.value|default:'' }}">
+            </div>
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label small fw-bold text-dark" for="id_notes">Consignes &amp; Observations</label>
+            <textarea name="notes" id="id_notes" class="form-control" rows="3" placeholder="Objectifs de la mission, météo, contraintes de survol...">{{ form.notes.value|default:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Champs GeoJSON masqués pour l'enregistrement PostGIS -->
+      <input type="hidden" name="emprise" id="id_mission_emprise" value="{% if mission and mission.emprise %}{{ mission.emprise.geojson }}{% endif %}">
+      <input type="hidden" name="trajectoire" id="id_mission_trajectoire" value="{% if mission and mission.trajectoire %}{{ mission.trajectoire.geojson }}{% endif %}">
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1 py-2.5 fw-semibold shadow-sm">
+          <i class="bi bi-check-lg me-1"></i> {% if mission %}Enregistrer les modifications{% else %}Créer la mission{% endif %}
+        </button>
+        <a href="{% ws_url 'drones:missions' %}" class="btn btn-outline-secondary py-2.5 px-3">
+          Annuler
+        </a>
+      </div>
+    </div>
+
+    <!-- ===== COLONNE DROITE (Carte Interactive SIG avec Leaflet.Draw) ===== -->
+    <div class="col-lg-7">
+      <div class="mission-map-card">
+        <div class="mission-map-toolbar">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-geo-alt-fill text-primary"></i>
+            <span class="fw-bold text-dark small">Délimitation spatiale du vol</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-xs btn-outline-secondary" id="btn-recenter-map" title="Recentrer sur le territoire">
+              <i class="bi bi-aspect-ratio me-1"></i>Recentrer
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-danger" id="btn-clear-draw" title="Effacer les tracés">
+              <i class="bi bi-trash me-1"></i>Effacer
+            </button>
+          </div>
+        </div>
+
+        <div id="mission-draw-map"></div>
+
+        <div class="p-2 px-3 bg-light border-top d-flex flex-wrap justify-content-between align-items-center">
+          <div class="draw-tip">
+            <i class="bi bi-info-circle text-primary me-1"></i>
+            <strong>Outils à gauche :</strong> Tracez un <em>polygone</em> pour borner l'emprise, ou une <em>ligne</em> pour dessiner la trajectoire.
+          </div>
+          <div class="d-flex align-items-center gap-3" style="font-size: 11px;">
+            <span><span class="d-inline-block rounded-circle me-1" style="width: 10px; height: 10px; background: #0284c7;"></span> Limites de vol</span>
+            <span><span class="d-inline-block rounded-circle me-1" style="width: 10px; height: 10px; background: #f59e0b;"></span> Trajectoire</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
 {% endblock %}
+
+{% block extra_js_vendor %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var defaultCenter = [14.6928, -17.4467];
+  var defaultZoom = 14;
+
+  var map = L.map('mission-draw-map', {
+    center: defaultCenter,
+    zoom: defaultZoom,
+    zoomControl: false
+  });
+
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  }).addTo(map);
+
+  var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 28,
+    maxNativeZoom: 19
+  });
+
+  L.control.layers({ 'Plan OSM': osm, 'Satellite': satellite }, null, { position: 'topright' }).addTo(map);
+
+  var drawnItems = new L.FeatureGroup();
+  map.addLayer(drawnItems);
+
+  var drawControl = new L.Control.Draw({
+    position: 'topleft',
+    draw: {
+      polygon: {
+        allowIntersection: false,
+        showArea: true,
+        shapeOptions: {
+          color: '#0284c7',
+          fillColor: '#38bdf8',
+          fillOpacity: 0.25,
+          weight: 2.5
+        }
+      },
+      polyline: {
+        shapeOptions: {
+          color: '#f59e0b',
+          weight: 3,
+          dashArray: '6, 6'
+        }
+      },
+      rectangle: false,
+      circle: false,
+      circlemarker: false,
+      marker: false
+    },
+    edit: {
+      featureGroup: drawnItems,
+      remove: true
+    }
+  });
+  map.addControl(drawControl);
+
+  var empriseLayer = null;
+  var trajectoireLayer = null;
+
+  function computePolygonAreaHa(layer) {
+    if (!layer || !layer.getLatLngs) return 0;
+    var latlngs = layer.getLatLngs();
+    if (Array.isArray(latlngs[0])) latlngs = latlngs[0];
+    
+    // Formule géodésique de Gauss (sphère terrestre R = 6378137m)
+    var area = 0;
+    if (latlngs.length > 2) {
+      for (var i = 0; i < latlngs.length; i++) {
+        var p1 = latlngs[i];
+        var p2 = latlngs[(i + 1) % latlngs.length];
+        area += ((p2.lng - p1.lng) * Math.PI / 180) * (2 + Math.sin(p1.lat * Math.PI / 180) + Math.sin(p2.lat * Math.PI / 180));
+      }
+      area = Math.abs(area * 6378137.0 * 6378137.0 / 2.0);
+    }
+    return (area / 10000); // conversion en hectares
+  }
+
+  function syncGeometriesToInputs() {
+    var empriseInput = document.getElementById('id_mission_emprise');
+    var trajectoireInput = document.getElementById('id_mission_trajectoire');
+    var surfaceInput = document.getElementById('id_superficie_prevue');
+    var surfaceBadge = document.getElementById('val-surface-display');
+
+    if (empriseLayer) {
+      var empriseGeo = empriseLayer.toGeoJSON().geometry;
+      empriseInput.value = JSON.stringify(empriseGeo);
+      var ha = computePolygonAreaHa(empriseLayer);
+      if (ha > 0) {
+        var rounded = Math.round(ha * 100) / 100;
+        surfaceInput.value = rounded;
+        surfaceBadge.textContent = rounded + ' ha';
+      }
+    } else {
+      empriseInput.value = '';
+    }
+
+    if (trajectoireLayer) {
+      var trajGeo = trajectoireLayer.toGeoJSON().geometry;
+      trajectoireInput.value = JSON.stringify(trajGeo);
+    } else {
+      trajectoireInput.value = '';
+    }
+  }
+
+  // Écoute des événements de création de dessin Leaflet.Draw
+  map.on(L.Draw.Event.CREATED, function (event) {
+    var layer = event.layer;
+    var type = event.layerType;
+
+    if (type === 'polygon') {
+      if (empriseLayer) drawnItems.removeLayer(empriseLayer);
+      empriseLayer = layer;
+      empriseLayer.setStyle({ color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.25, weight: 2.5 });
+      drawnItems.addLayer(empriseLayer);
+    } else if (type === 'polyline') {
+      if (trajectoireLayer) drawnItems.removeLayer(trajectoireLayer);
+      trajectoireLayer = layer;
+      trajectoireLayer.setStyle({ color: '#f59e0b', weight: 3, dashArray: '6, 6' });
+      drawnItems.addLayer(trajectoireLayer);
+    }
+
+    syncGeometriesToInputs();
+  });
+
+  map.on(L.Draw.Event.EDITED, function () {
+    syncGeometriesToInputs();
+  });
+
+  map.on(L.Draw.Event.DELETED, function () {
+    if (empriseLayer && !drawnItems.hasLayer(empriseLayer)) empriseLayer = null;
+    if (trajectoireLayer && !drawnItems.hasLayer(trajectoireLayer)) trajectoireLayer = null;
+    syncGeometriesToInputs();
+  });
+
+  // Chargement des géométries initiales (en cas de modification)
+  var initialEmpriseVal = document.getElementById('id_mission_emprise').value;
+  var initialTrajVal = document.getElementById('id_mission_trajectoire').value;
+
+  if (initialEmpriseVal) {
+    try {
+      var empriseGeo = JSON.parse(initialEmpriseVal);
+      empriseLayer = L.geoJSON(empriseGeo, {
+        style: { color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.25, weight: 2.5 }
+      }).getLayers()[0];
+      if (empriseLayer) drawnItems.addLayer(empriseLayer);
+    } catch (e) {
+      console.warn('Erreur lecture emprise initiale:', e);
+    }
+  }
+
+  if (initialTrajVal) {
+    try {
+      var trajGeo = JSON.parse(initialTrajVal);
+      trajectoireLayer = L.geoJSON(trajGeo, {
+        style: { color: '#f59e0b', weight: 3, dashArray: '6, 6' }
+      }).getLayers()[0];
+      if (trajectoireLayer) drawnItems.addLayer(trajectoireLayer);
+    } catch (e) {
+      console.warn('Erreur lecture trajectoire initiale:', e);
+    }
+  }
+
+  // Recentrer la carte
+  function fitDrawnItems() {
+    if (drawnItems.getLayers().length > 0) {
+      var b = drawnItems.getBounds();
+      if (b && b.isValid && b.isValid()) {
+        map.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
+      }
+    }
+  }
+
+  setTimeout(fitDrawnItems, 200);
+
+  document.getElementById('btn-recenter-map').addEventListener('click', function () {
+    if (drawnItems.getLayers().length > 0) {
+      fitDrawnItems();
+    } else {
+      map.setView(defaultCenter, defaultZoom);
+    }
+  });
+
+  document.getElementById('btn-clear-draw').addEventListener('click', function () {
+    if (confirm('Effacer la zone de vol et la trajectoire tracées ?')) {
+      drawnItems.clearLayers();
+      empriseLayer = null;
+      trajectoireLayer = null;
+      document.getElementById('id_mission_emprise').value = '';
+      document.getElementById('id_mission_trajectoire').value = '';
+      document.getElementById('id_superficie_prevue').value = '';
+      document.getElementById('val-surface-display').textContent = '0.00 ha';
+    }
+  });
+
+  // Recalcul du dimensionnement Leaflet
+  setTimeout(function () { map.invalidateSize(); }, 250);
+  window.addEventListener('resize', function () { map.invalidateSize(); });
+});
+</script>
+{% endblock %}
+

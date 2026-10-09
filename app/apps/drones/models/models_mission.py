@@ -36,6 +36,14 @@ class Mission(models.Model):
     altitude = models.FloatField(blank=True, null=True, verbose_name='Altitude de vol (m)')
     duree_minutes = models.FloatField(blank=True, null=True, verbose_name='Durée du vol (min)')
     superficie_prevue = models.FloatField(blank=True, null=True, verbose_name='Superficie prévue (ha)')
+    emprise = models.PolygonField(
+        srid=4326, blank=True, null=True,
+        verbose_name="Zone de vol (Emprise autorisée)",
+    )
+    trajectoire = models.LineStringField(
+        srid=4326, blank=True, null=True,
+        verbose_name="Trajectoire de vol planifiée",
+    )
     statut = models.CharField(
         max_length=20, choices=STATUTS, default=STATUT_ATTENTE,
         verbose_name='Statut',
@@ -43,6 +51,15 @@ class Mission(models.Model):
     notes = models.TextField(blank=True, verbose_name='Observations')
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.emprise and not self.superficie_prevue:
+            try:
+                geom_utm = self.emprise.transform(32628, clone=True)
+                self.superficie_prevue = round(geom_utm.area / 10000, 2)
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Mission drone'

@@ -46,3 +46,24 @@ def get_lexicon_tag(dossier_or_type):
       {{ lexicon.bati_plural }}
     """
     return get_dossier_lexicon(dossier_or_type)
+
+
+@register.simple_tag(takes_context=True, name='ws_url')
+def ws_url(context, view_name, *args, **kwargs):
+    """
+    Génère l'URL préfixée par le slug du dossier actif si l'utilisateur est dans un espace territorial.
+    Exemple : 
+      {% ws_url 'drones:missions' %} -> /{slug}/drones/
+      {% ws_url 'drones:perspectives' %} -> /{slug}/drones/perspectives/
+      {% ws_url 'drones:flux_videos' %} -> /{slug}/drones/flux/videos/
+      {% ws_url 'drones:mission_detail' mission.pk %} -> /{slug}/drones/missions/5/
+    """
+    from django.urls import reverse
+    url = reverse(view_name, args=args, kwargs=kwargs)
+    active_dossier = context.get('active_dossier')
+    if active_dossier and getattr(active_dossier, 'slug', None):
+        slug = active_dossier.slug
+        if not url.startswith(f'/{slug}/'):
+            url = f'/{slug}{url}'
+    return url
+

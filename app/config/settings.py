@@ -127,6 +127,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'dossiers.context_processors.active_dossier_context',
             ],
+            'builtins': [
+                'dossiers.templatetags.dossier_tags',
+            ],
         },
     },
 ]
